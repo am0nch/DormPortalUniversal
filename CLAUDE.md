@@ -60,7 +60,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/room-inspection.html` | 1,024 | ~55 KB | Move-in/out checklists, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,178 | ~54 KB | Key checkout/return/lost, overdue alerts, fine recording, shift print, ledger, agreement |
 | `modules/inventory.html` | 1,078 | ~55 KB | Asset inventory — Code 39 barcodes, room template, maintenance flags |
-| `modules/userguide.html` | 1,331 | ~62 KB | Dean's User Guide — all 8 modules, sidebar TOC, collapsible, search |
+| `modules/userguide.html` | 1,535 | ~72 KB | Dean's User Guide — all 8 modules + About/Version History/Legal sections |
 
 ---
 
@@ -469,9 +469,18 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [ ] Q1: Refactor table event listeners to use event delegation on tbody (performance)
 - [ ] Build 2 remaining modules: Staff Scheduling, Maintenance (Room Inspection ✅, Key Inventory ✅, Inventory ✅)
 - [ ] Password gate re-enable (code removed, ready to re-add to `index.html` when ready)
-- [ ] Push project to GitHub (`.gitignore` ready; pending `git init` + remote setup)
+- [ ] Set up GitHub remote and enable GitHub Pages (git init ✅, initial commit ✅; pending remote add + push)
 
 ---
+
+## Completed improvements (2026-05-31, session 20)
+
+- [x] `git init` — initialized repository; initial commit includes 14 files (all code + config, no data)
+- [x] `modules/userguide.html` — 3 new sections added (1,331 → 1,535 lines):
+  - **About This Project** (rationale, GitHub Pages access instructions, how auto-deploy works, requesting updates)
+  - **Version History** (v4 module release table + v1–v3 summary)
+  - **Disclaimer & Credits** (copyright, AI-assisted development attribution, data privacy + PDPA note, operational disclaimer)
+- [x] `CLAUDE.md` — file stats updated; session 20 completed improvements added
 
 ## Completed improvements (2026-05-31, session 19)
 
