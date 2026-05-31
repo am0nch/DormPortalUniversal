@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dorm Manager v4 — APIU</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:#f0f4f8;margin:0;padding:20px}
+.container{max-width:100%;margin:0 auto;background:#fff;border-radius:16px;padding:20px}
+h1{color:#1e3a5f;margin-top:0}
+.status-bar,.role-area,.filter-area,.upload-area,.stats,.footer-buttons{margin-bottom:14px;background:#e9ecef;padding:10px 15px;border-radius:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+.btn:hover{opacity:.88}
+.btn-green{background:#2c7a4d}.btn-blue{background:#2980b9}.btn-purple{background:#6f42c1}.btn-orange{background:#e67e22}.btn-red{background:#c0392b}.btn-teal{background:#16a085}
+.stats{background:#d9e6f5}
+.stat-card{background:#fff;padding:4px 10px;border-radius:20px;font-size:.78rem;white-space:nowrap}
+.conflict-warning{background:#f8d7da;color:#721c24;padding:8px 12px;border-radius:8px;display:none;margin-bottom:8px;font-size:.85rem}
+#unsavedBanner{display:none;background:#fff3cd;color:#856404;padding:6px 14px;border-radius:8px;margin-bottom:8px;font-size:.82rem}
+table{width:100%;border-collapse:collapse;font-size:.78rem;min-width:1550px}
+th,td{border:1px solid #ccc;padding:5px 4px;vertical-align:top}
+th{background:#1e3a5f;color:#fff;position:sticky;top:0;z-index:10;padding:7px 5px}
+.checkbox-cell{text-align:center;width:42px;vertical-align:middle}
+.waiting-row{background-color:#fff3cd}
+.active-row{background-color:#b8d9ff!important}
+.highlight-row{background-color:#ffeb3b!important}
+.occupancy-badge{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.room-cell{display:flex;align-items:flex-start;flex-direction:column;gap:2px}
+.room-cell-top{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.req-warning{color:#dc3545;font-size:.63rem;margin-top:1px}
+.req-info{color:#e67e22;font-size:.63rem;margin-top:1px}
+.incoming-badge{display:inline-block;background:#e8f4fd;color:#1565c0;border-radius:10px;padding:1px 5px;font-size:.62rem;cursor:pointer}
+.history-badge{display:inline-block;color:#6f42c1;font-size:.62rem;cursor:pointer}
+.transfer-badge{display:inline-block;background:#e8f4fd;color:#1565c0;border-radius:4px;padding:1px 5px;font-size:.65rem;cursor:pointer;margin-top:2px}
+.sub-select{margin-top:3px;width:100%;font-size:.72rem;padding:2px;border:1px solid #ccc;border-radius:4px;background:#fff8e1}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.45)}
+.modal-content{background:#fff;margin:3% auto;padding:22px;width:540px;border-radius:14px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal-content.wide{width:640px;max-width:calc(100vw - 40px)}
+.close-modal{float:right;font-size:26px;cursor:pointer;line-height:1;color:#666}
+.close-modal:hover{color:#c0392b}
+.fg{margin-bottom:10px;display:flex;align-items:flex-start;gap:8px}
+.fg label{width:150px;flex-shrink:0;padding-top:4px;font-size:.82rem;color:#444}
+.fg input,.fg select,.fg textarea{flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-size:.82rem}
+.fg textarea{height:65px;resize:vertical;font-family:inherit}
+.btn-sm{padding:2px 7px;font-size:.68rem;cursor:pointer;background:#1e3a5f;color:#fff;border:none;border-radius:4px;white-space:nowrap}
+.btn-sm:hover{opacity:.85}
+.btn-sm.green{background:#2c7a4d}.btn-sm.red{background:#c0392b}.btn-sm.orange{background:#e67e22}
+.storage-summary{font-size:.68rem;display:block;color:#555;margin-bottom:2px}
+.sec-head{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#1e3a5f;padding:3px 10px;border-radius:3px;margin:12px 0 8px;display:block}
+.report-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.report-options fieldset{padding:8px 10px;border-radius:6px;border:1px solid #ccc;font-size:.8rem}
+.report-options label{display:block;margin:4px 0}
+.fee-tbl{margin-top:4px}
+.fee-row{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid #eef;font-size:.8rem}
+.fee-row:last-child{border-bottom:none}
+.fee-row-lbl{flex:1;min-width:0}
+.fee-amt{display:flex;align-items:center;justify-content:flex-end;gap:4px;white-space:nowrap}
+.fee-amt input[type=number]{width:80px;border:none;border-bottom:1.5px solid #ccc;text-align:right;font-size:.8rem;background:transparent;outline:none;padding:1px 2px;-moz-appearance:textfield}
+.fee-amt input::-webkit-outer-spin-button,.fee-amt input::-webkit-inner-spin-button{-webkit-appearance:none}
+.fee-amt input:focus{border-bottom-color:#1e3a5f}
+.fee-total-row td{background:#1e3a5f;color:#fff;font-weight:700;padding:7px 4px}
+.queue-panel{background:#f0f9ff;border:1px solid #bee3f8;border-radius:12px;padding:16px;margin-top:16px}
+.queue-panel h3{margin:0 0 12px;color:#1e3a5f;font-size:1rem}
+.q-tbl{width:100%;border-collapse:collapse;font-size:.8rem;min-width:800px}
+.q-tbl th{background:#2c7a4d;color:#fff;padding:6px 8px;text-align:left}
+.q-tbl td{border:1px solid #ccc;padding:5px 7px;vertical-align:middle}
+.q-tbl tr:nth-child(even) td{background:#f5fff8}
+.h-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.h-tbl th{background:#6f42c1;color:#fff;padding:6px 8px}
+.h-tbl td{border:1px solid #ccc;padding:5px 7px}
+.h-tbl tr:nth-child(even) td{background:#f8f5ff}
+td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;border-radius:3px;padding:2px 4px;font-size:.77rem}
+</style>
+<style id="colVisStyle"></style>
+</head>
+<body>
+<div class="container">
+<div id="unsavedBanner">⚠️ Unsaved changes — use 💾 Save Excel to export, or data is auto-saved to browser storage.</div>
+<div style="margin-bottom:10px"><a href="../index.html" style="color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px">← Menu</a></div>
+<h1>🛏️ Room Reservations — <span id="dormNameSpan">Elijah Hall</span></h1>
+<div class="status-bar">
+  <span>📁 Last saved: <span id="lastUpdateTime">—</span></span>
+  <span>👤 Last updated by: <span id="lastUpdateUser">—</span></span>
+  <span id="autoSaveIndicator" style="font-size:.78rem;color:#2c7a4d"></span>
+</div>
+<div class="role-area">
+  <label>🏢 Dormitory:</label>
+  <select id="dormSelect" onchange="updateDormName()">
+    <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+    <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+    <option value="Other">Other (custom)</option>
+  </select>
+  <input type="text" id="customDormName" placeholder="Custom name" style="display:none;width:130px" oninput="updateDormName()">
+  <label>👥 Max/room:</label>
+  <select id="maxOccupantsSelect" onchange="setMaxOccupants()">
+    <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option>
+  </select>
+  <button class="btn btn-purple" onclick="openGeneratorModal()">🏗️ Generate Dorm Setup</button>
+</div>
+<div class="filter-area">
+  <div id="floorFilterDiv">
+    <label>👥 Floor:</label>
+    <select id="floorFilter">
+      <option value="all">All floors</option><option value="1,2">1st &amp; 2nd</option>
+      <option value="3">3rd</option><option value="4">4th</option>
+    </select>
+    <button class="btn" onclick="applyFloorFilter()">Apply</button>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button class="btn" onclick="toggleSearch()">🔍 Search</button>
+    <div id="searchBox" style="display:none;gap:4px;align-items:center">
+      <input type="text" id="searchRoomInput" placeholder="Name or room…" style="width:175px" onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="btn" onclick="doSearch()">Go</button>
+      <button class="btn" onclick="closeSearch()">✖</button>
+    </div>
+  </div>
+  <span style="font-size:.82rem">Showing <span id="filteredCount">0</span>/<span id="totalCount">0</span> beds</span>
+</div>
+<div class="upload-area">
+  <input type="file" id="excelInput" accept=".xlsx,.xls,.csv">
+  <button class="btn" onclick="loadFromInput()">⟳ Load File</button>
+  <button class="btn" onclick="resetToEmbedded()">🔄 Reset to Elijah Hall</button>
+  <button class="btn" onclick="exportEmptyTemplate()">📄 Empty Template</button>
+  <button class="btn btn-green" onclick="saveToExcel()">💾 Save Excel</button>
+  <button class="btn" onclick="undo()">↩️ Undo</button>
+  <button class="btn" onclick="redo()">↪️ Redo</button>
+  <button id="colPickerBtn" class="btn btn-blue" onclick="toggleColPicker()">Columns ▾</button>
+  <span id="loadStatus" style="font-size:.8rem;color:#2c7a4d"></span>
+</div>
+<div class="stats">
+  <div class="stat-card">☀️ Summer: <span id="summerCount">0</span></div>
+  <div class="stat-card">📖 1st Sem: <span id="sem1Count">0</span></div>
+  <div class="stat-card">🚪 Move Out: <span id="gradCount">0</span></div>
+  <div class="stat-card">🎓 Graduating: <span id="graduatingCount">0</span></div>
+  <div class="stat-card">🏠 Going Home: <span id="goingHomeCount">0</span></div>
+  <div class="stat-card">🚪 Leaving Dorm: <span id="leavingDormCount">0</span></div>
+  <div class="stat-card">💼 Internship: <span id="internshipCount">0</span></div>
+  <div class="stat-card">🏠 Held: <span id="holdCount">0</span></div>
+  <div class="stat-card">📥 In Queue: <span id="queueStatCount">0</span></div>
+  <div class="stat-card">📦 Storage: <span id="storageCount">0</span></div>
+  <div class="stat-card">💰 Revenue: <span id="totalRevenue">0</span> ฿</div>
+  <div class="stat-card">👥 Students: <span id="totalStudents">0</span></div>
+  <div class="stat-card">⏳ Waiting: <span id="waitingCount">0</span></div>
+  <div class="stat-card">🧍 Solo: <span id="soloCount">0</span></div>
+  <div class="stat-card">📤 Away: <span id="awayCount">0</span></div>
+  <div class="stat-card">📜 Archived: <span id="archivedCount">0</span></div>
+  <div class="stat-card">🔑 Keys Back: <span id="keysBackCount">0</span></div>
+  <div class="stat-card">📋 Clearance Done: <span id="clearanceDoneCount">0</span></div>
+  <div class="stat-card">📥 Transfer-In: <span id="transferInCount">0</span></div>
+  <div class="stat-card">✅ Confirmed: <span id="confirmedCount">0</span></div>
+  <div class="stat-card">🏠 Empty Beds: <span id="emptyBedsCount">0</span></div>
+</div>
+<div id="conflictWarning" class="conflict-warning">⚠️ Some rooms have a waiting list — max capacity reached.</div>
+<div style="overflow-x:auto;max-height:70vh">
+  <table id="studentTable">
+    <thead><tr>
+      <th style="min-width:90px">Room &amp; Occup.</th>
+      <th style="width:40px" title="Air conditioned room">❄️</th>
+      <th style="min-width:145px">Name</th>
+      <th style="min-width:90px">🪪 ID</th>
+      <th style="min-width:78px">Req. Room</th>
+      <th style="min-width:88px">Reservation</th>
+      <th style="width:40px">☀️</th><th style="width:40px">📖</th>
+      <th style="min-width:140px">🚪 Move Out</th>
+      <th style="min-width:98px">Leave Date</th>
+      <th style="min-width:98px">Return Date</th>
+      <th style="min-width:125px">📊 Status</th>
+      <th style="width:40px">🔑</th>
+      <th style="min-width:105px">📦 Storage</th>
+      <th style="width:40px">🧍</th>
+      <th style="width:50px">🏠 Hold</th>
+      <th style="min-width:95px">📋 Clearance</th>
+    </tr></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+<div class="footer-buttons">
+  <button class="btn btn-red" onclick="resetAllEdits()">🔄 Reset All Edits</button>
+  <button class="btn btn-teal" onclick="toggleQueuePanel()">📥 Incoming Queue <span id="queueBadge"></span></button>
+  <button class="btn btn-teal" onclick="toggleAwayPanel()">📤 Away <span id="awayBadge"></span></button>
+  <button class="btn btn-purple" onclick="window.location='floor-plan.html?back=room-reservations'">🏢 Floor Plan</button>
+  <button class="btn btn-purple" onclick="window.location='reports.html?back=room-reservations'">📊 Reports</button>
+</div>
+<div id="colPickerPanel" style="display:none;position:fixed;z-index:500;background:#fff;border:1px solid #bbb;border-radius:10px;padding:12px 16px;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:.82rem"></div>
+<div id="queuePanel" class="queue-panel" style="display:none">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <h3>📥 Incoming Transfers &amp; Pre-Reservations</h3>
+    <button class="btn btn-teal" onclick="openAddIncomingModal()">➕ Add Incoming Student</button>
+    <span id="queueInfo" style="font-size:.8rem;color:#555"></span>
+  </div>
+  <div style="overflow-x:auto"><div id="queueTableContainer"></div></div>
+</div>
+<div id="awayPanel" class="queue-panel" style="display:none">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <h3>📤 Temporarily Away Students</h3>
+    <span style="font-size:.8rem;color:#555">Bed released — student data preserved for restore</span>
+  </div>
+  <div id="awayPanelBody"><em style="color:#888">No away students.</em></div>
+</div>
+</div>
+
+<!-- Generator Modal -->
+<div id="generatorModal" class="modal"><div class="modal-content">
+  <span class="close-modal" onclick="closeModal('generatorModal')">&times;</span>
+  <h3>🏗️ Generate New Dorm Setup</h3>
+  <div class="fg"><label>Method:</label>
+    <select id="numberingMethod" onchange="toggleRoomListInput()">
+      <option value="sequential">Sequential (floors × rooms)</option>
+      <option value="custom">Custom list / ranges</option>
+    </select>
+  </div>
+  <div id="sequentialFields">
+    <div class="fg"><label>Prefix (optional):</label><input type="text" id="roomPrefix" placeholder="e.g. R, A"></div>
+    <div class="fg"><label>Starting number:</label><input type="number" id="startNum" value="101"></div>
+    <div class="fg"><label>Floors:</label><input type="number" id="numFloors" value="3" min="1"></div>
+    <div class="fg"><label>Rooms/floor:</label><input type="number" id="roomsPerFloor" value="20" min="1"></div>
+  </div>
+  <div id="customFields" style="display:none">
+    <div class="fg" style="align-items:flex-start"><label>Room list:</label>
+      <div style="flex:1"><textarea id="roomListInput" placeholder="e.g. 101-106, 201-227&#10;or one per line" style="height:80px;width:100%"></textarea>
+      <small style="color:#888">Ranges like 101-106 expand inclusively.</small></div>
+    </div>
+  </div>
+  <div class="fg"><label>Max occupants/room:</label>
+    <select id="genOccupants"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select>
+  </div>
+  <div style="text-align:right;gap:8px;display:flex;justify-content:flex-end;margin-top:14px">
+    <button class="btn btn-green" onclick="generateNewDorm()">Generate</button>
+    <button class="btn" onclick="closeModal('generatorModal')">Cancel</button>
+  </div>
+</div></div>
+
+<!-- Storage Modal -->
+<div id="storageModal" class="modal"><div class="modal-content">
+  <span class="close-modal" onclick="closeModal('storageModal')">&times;</span>
+  <h3>📦 Storage Boxes</h3>
+  <div class="fg"><label>Rent storage:</label><input type="checkbox" id="storageRentalCheck" onchange="onStorageRentalChange()"></div>
+  <div class="fg"><label>Quantity (1-3):</label>
+    <select id="storageQtySelect" onchange="updateStorageBoxFields();updateStorageTotalDisplay()">
+      <option>1</option><option>2</option><option>3</option>
+    </select>
+  </div>
+  <div id="boxFields"></div>
+  <div class="fg"><label>Payment method:</label>
+    <select id="paymentMethodSelect"><option>Not Paid</option><option>Cash</option><option>QR</option></select>
+  </div>
+  <div class="fg"><label>Total:</label><strong><span id="storageTotalDisplay">0</span> ฿</strong></div>
+  <button class="btn btn-green" onclick="saveStorage()">Save</button>
+</div></div>
+
+<!-- Clearance Modal (expanded) -->
+<div id="clearanceModal" class="modal"><div class="modal-content wide">
+  <span class="close-modal" onclick="closeModal('clearanceModal')">&times;</span>
+  <h3 id="clModalTitle">📋 Room Clearance</h3>
+  <span class="sec-head">Student Information</span>
+  <div class="fg"><label>Student ID:</label><input type="text" id="cl_id" placeholder="e.g. 6501234"></div>
+  <div class="fg"><label>Full Name:</label><input type="text" id="cl_name" readonly style="background:#f5f5f5"></div>
+  <div class="fg"><label>Student Type:</label>
+    <select id="cl_type">
+      <option value="regular">🎓 Regular Student</option><option value="new">🆕 New Student</option>
+      <option value="visitor">👤 Visitor</option><option value="guest">🏨 Guest</option>
+    </select>
+  </div>
+  <div class="fg"><label>Mobile Number:</label><input type="tel" id="cl_mobile" placeholder="+66 xx xxx xxxx"></div>
+  <div class="fg"><label>Email:</label><input type="email" id="cl_email" placeholder="student@apiu.edu"></div>
+  <span class="sec-head">Transfer Details</span>
+  <div class="fg"><label>From Dorm:</label>
+    <select id="cl_fromDorm">
+      <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option>Other / External</option>
+    </select>
+  </div>
+  <div class="fg"><label>From Room:</label><input type="text" id="cl_fromRoom" placeholder="e.g. 312"></div>
+  <div class="fg"><label>To Dorm / Destination:</label>
+    <select id="cl_toDorm">
+      <option value="">— Select —</option>
+      <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option>Off-Campus / Going Home</option><option>Other / External</option>
+    </select>
+  </div>
+  <div class="fg"><label>To Room:</label><input type="text" id="cl_toRoom" placeholder="e.g. 215 (if applicable)"></div>
+  <span class="sec-head">Utility Meter Readings</span>
+  <div class="fg"><label>Electricity — IN:</label><input type="number" id="cl_elecIn" placeholder="0" step="1"></div>
+  <div class="fg"><label>Electricity — OUT:</label><input type="number" id="cl_elecOut" placeholder="0" step="1"></div>
+  <div class="fg"><label>Hot Water — IN:</label><input type="number" id="cl_hotIn" placeholder="0" step="1"></div>
+  <div class="fg"><label>Hot Water — OUT:</label><input type="number" id="cl_hotOut" placeholder="0" step="1"></div>
+  <div class="fg"><label>Departure Date:</label><input type="date" id="cl_leaveDate"></div>
+  <span class="sec-head">💰 Fee Assessment</span>
+  <div class="fee-tbl">
+    <div class="fee-row"><input type="checkbox" id="cl_fee1" onchange="clFeeToggle(1)"><label class="fee-row-lbl" for="cl_fee1">Required dorm / room moving fees</label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt1" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row"><input type="checkbox" id="cl_fee2" onchange="clFeeToggle(2)"><label class="fee-row-lbl" for="cl_fee2">Cleaning fees <small style="color:#888">(room, balcony, sink, mirror, walls, fan, bathroom)</small></label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt2" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row"><input type="checkbox" id="cl_fee3" onchange="clFeeToggle(3)"><label class="fee-row-lbl" for="cl_fee3">Room key not returned</label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt3" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row"><input type="checkbox" id="cl_fee4" onchange="clFeeToggle(4)"><label class="fee-row-lbl" for="cl_fee4">Broken or missing drawer(s)</label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt4" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row"><input type="checkbox" id="cl_fee5" onchange="clFeeToggle(5)"><label class="fee-row-lbl" for="cl_fee5">Broken or missing chair</label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt5" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row"><input type="checkbox" id="cl_fee6" onchange="clFeeToggle(6)"><label class="fee-row-lbl" for="cl_fee6">Broken or missing stool</label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt6" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row"><input type="checkbox" id="cl_fee7" onchange="clFeeToggle(7)"><label class="fee-row-lbl" for="cl_fee7">Other fees for: <input type="text" id="cl_otherDesc" placeholder="describe…" style="width:120px;border:none;border-bottom:1px solid #ccc;font-size:.78rem;background:transparent;outline:none"></label><div class="fee-amt"><span>฿</span><input type="number" id="cl_amt7" min="0" step="1" placeholder="0" disabled oninput="clRecalc()"></div></div>
+    <div class="fee-row" style="background:#f5f7fa;padding:6px 4px"><div class="fee-row-lbl" style="text-align:right;font-weight:700;font-size:.82rem">TOTAL CHARGES</div><div class="fee-amt"><strong>฿ <span id="cl_total">0.00</span></strong></div></div>
+  </div>
+  <span class="sec-head">Remarks &amp; Status</span>
+  <div class="fg"><label>Remarks:</label><textarea id="cl_remarks" placeholder="Notes from the Dean…"></textarea></div>
+  <div class="fg"><label>Form No.:</label><input type="text" id="cl_formNo" placeholder="e.g. DC-2025-001"></div>
+  <div class="fg"><label>Clearance form done:</label><input type="checkbox" id="cl_formCompleted"></div>
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+    <button class="btn btn-green" onclick="saveClearance()">💾 Save</button>
+    <button class="btn btn-orange" onclick="printFinanceForm()">🖨️ Print Finance Form</button>
+    <button class="btn btn-red" style="margin-left:auto" onclick="vacateAndArchive()">✅ Vacate &amp; Archive</button>
+  </div>
+</div></div>
+
+<!-- Transfer In Modal -->
+<div id="transferModal" class="modal"><div class="modal-content">
+  <span class="close-modal" onclick="closeModal('transferModal')">&times;</span>
+  <h3>📥 Transfer In — From Another Dorm</h3>
+  <p style="font-size:.82rem;color:#666;margin-top:0">Record the student's previous dorm. Shown in Status column and Custom Reports.</p>
+  <div class="fg"><label>Student:</label><span id="trf_studentName" style="font-weight:500;padding-top:4px"></span></div>
+  <div class="fg"><label>From Dorm:</label>
+    <select id="trf_dormSel" onchange="onTrfDormSelect()">
+      <option value="">— Select or type —</option>
+      <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option value="other">Other (enter below)</option>
+    </select>
+  </div>
+  <div class="fg" id="trf_customRow" style="display:none"><label>Dorm name:</label><input type="text" id="trf_fromDorm" placeholder="Enter dorm name"></div>
+  <div class="fg"><label>From Room:</label><input type="text" id="trf_fromRoom" placeholder="e.g. 312"></div>
+  <div class="fg"><label>Move-in Date:</label><input type="date" id="trf_date"></div>
+  <div class="fg" style="align-items:flex-start"><label>Notes:</label><textarea id="trf_notes" placeholder="Any relevant notes…"></textarea></div>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="btn btn-green" onclick="saveTransfer()">Save</button>
+    <button class="btn btn-red" style="margin-left:auto" onclick="clearTransfer()">Clear Transfer Info</button>
+  </div>
+</div></div>
+
+<!-- Add / Edit Incoming Queue Modal -->
+<div id="addIncomingModal" class="modal"><div class="modal-content">
+  <span class="close-modal" onclick="closeModal('addIncomingModal')">&times;</span>
+  <h3 id="iq_modalTitle">➕ Add Incoming Student / Pre-Reservation</h3>
+  <div class="fg"><label>Full Name:</label><input type="text" id="iq_name" placeholder="Student name"></div>
+  <div class="fg"><label>Student Type:</label>
+    <select id="iq_type">
+      <option value="regular">🎓 Regular Student</option><option value="new">🆕 New Student</option>
+      <option value="visitor">👤 Visitor</option><option value="guest">🏨 Guest</option>
+    </select>
+  </div>
+  <!-- Fix 3: Smart room select replaces plain text input -->
+  <div class="fg" style="align-items:flex-start">
+    <label style="padding-top:6px">Target Room:</label>
+    <div style="flex:1">
+      <select id="iq_roomSelect" style="width:100%;margin-bottom:5px" onchange="onIqRoomSelect()">
+        <option value="">— Select a room —</option>
+      </select>
+      <div id="iq_customRoomRow" style="display:none">
+        <input type="text" id="iq_targetRoom" placeholder="Enter room number manually" style="width:100%">
+      </div>
+      <div id="iq_roomHint" style="font-size:.72rem;color:var(--color-text-secondary);margin-top:3px"></div>
+    </div>
+  </div>
+  <div class="fg"><label>From Dorm:</label>
+    <select id="iq_dormSel" onchange="onIqDormSelect()">
+      <option value="">— Not a transfer —</option>
+      <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option value="other">Other (enter below)</option>
+    </select>
+  </div>
+  <div class="fg" id="iq_customRow" style="display:none"><label>Dorm name:</label><input type="text" id="iq_fromDorm" placeholder="Enter dorm name"></div>
+  <div class="fg"><label>From Room:</label><input type="text" id="iq_fromRoom" placeholder="e.g. 215 (if transfer)"></div>
+  <div class="fg"><label>Expected Move-In:</label><input type="date" id="iq_moveIn"></div>
+  <div class="fg" style="align-items:flex-start"><label>Notes:</label><textarea id="iq_notes" placeholder="Any notes or conditions…"></textarea></div>
+  <div style="text-align:right;gap:8px;display:flex;justify-content:flex-end;margin-top:10px">
+    <button id="iq_saveBtn" class="btn btn-teal" onclick="saveIncomingEntry()">Add to Queue</button>
+    <button class="btn" onclick="closeModal('addIncomingModal')">Cancel</button>
+  </div>
+</div></div>
+
+<!-- Room History Modal (per-room) -->
+<div id="historyModal" class="modal"><div class="modal-content wide">
+  <span class="close-modal" onclick="closeModal('historyModal')">&times;</span>
+  <h3 id="histModalTitle">📜 Room History</h3>
+  <div id="histModalBody"><p style="color:#888;font-size:.85rem">No history records for this room.</p></div>
+</div></div>
+
+<!-- Room Hold Payment Modal -->
+<div id="restoreRoomModal" class="modal"><div class="modal-content">
+  <span class="close-modal" onclick="closeModal('restoreRoomModal')">&times;</span>
+  <h3>↩ Restore Student</h3>
+  <div id="restoreStudentInfo" style="margin-bottom:12px;padding:8px;background:#f5f5f5;border-radius:4px;font-size:.9rem"></div>
+  <p style="font-size:.85rem;color:#555;margin-bottom:8px">Select a room to restore the student into:</p>
+  <div id="restoreRoomGrid" style="display:flex;flex-wrap:wrap;gap:8px;max-height:300px;overflow-y:auto;padding:4px"></div>
+</div></div>
+
+<div id="holdModal" class="modal"><div class="modal-content">
+  <span class="close-modal" onclick="closeModal('holdModal')">&times;</span>
+  <h3>🏠 Room Hold</h3>
+  <div class="fg"><label>Student:</label><span id="holdStudentName" style="padding-top:4px;font-weight:500"></span></div>
+  <div class="fg" style="font-size:.8rem;color:#666;background:#fff8e1;border-left:3px solid #f9a825;padding:6px 10px;border-radius:4px">💡 Room hold charge will be billed to the student account by the Finance Office.</div>
+  <div class="fg"><label>Charge amount (฿):</label><input type="number" id="holdAmount" min="0" step="1" placeholder="0"></div>
+  <button class="btn btn-green" onclick="saveHold()">Save</button>
+</div></div>
+
+<script>
+// ═══ UTILITIES ═══
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getFloor(room){const m=String(room).trim().match(/\d+/);if(m){const d=m[0].charAt(0);if(d==='1'||d==='2')return'1,2';if(d==='3')return'3';if(d==='4')return'4';}return'unknown';}
+function matchesFloor(room,f){return f==='all'||getFloor(room)===f;}
+function debounce(fn,ms){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),ms);};}
+function isHoldActive(s){return!!(s.roomHold&&s.roomHold.active&&(s.summer||s.firstSem)&&s.moveOutReason!=='Graduating'&&!(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm'));}
+const DORM_LIST=['Elijah Hall','Esther Hall','Eve Hall','Ruth Hall','Sara Hall','Solomon Hall'];
+
+// ═══ DATA MODEL ═══
+function clearanceDef(){
+  return{formCompleted:false,leaveDate:'',elecIn:0,elecOut:0,hotIn:0,hotOut:0,
+    studentId:'',mobile:'',email:'',toDorm:'',toRoom:'',formNo:'',remarks:'',
+    fees:{movingFee:false,movingFeeAmt:0,cleaningFee:false,cleaningFeeAmt:0,
+      keyFee:false,keyFeeAmt:0,drawerFee:false,drawerFeeAmt:0,
+      chairFee:false,chairFeeAmt:0,stoolFee:false,stoolFeeAmt:0,
+      otherFee:false,otherFeeAmt:0,otherFeeDesc:''}};
+}
+function emptyStudent(room){
+  return{room,name:'',studentId:'',side:'',requestedRoom:'',requestStatus:'Confirmed',manualStatus:false,
+    ac:/AC/i.test(room),
+    summer:false,firstSem:false,graduating:false,moveOutReason:'',offCampusType:'',
+    studentType:'regular',keysReturned:false,solo:false,returnDate:'',
+    storageRental:false,storageQty:1,
+    box1Color:'',box1No:'',box2Color:'',box2No:'',box3Color:'',box3No:'',
+    paymentMethod:'Not Paid',totalAmount:0,
+    roomHold:{active:false,paymentMethod:'Not Paid',amountPaid:0},
+    transferIn:{fromDorm:'',fromRoom:'',transferDate:'',notes:''},
+    clearance:clearanceDef()};
+}
+function ensureStudent(s){
+  if(s.studentId===undefined)s.studentId='';
+  if(s.side===undefined)s.side='';
+  if(!s.offCampusType)s.offCampusType='';
+  if(!s.studentType)s.studentType='regular';
+  if(!s.transferIn)s.transferIn={fromDorm:'',fromRoom:'',transferDate:'',notes:''};
+  if(!s.clearance)s.clearance=clearanceDef();
+  const c=s.clearance;
+  ['studentId','mobile','email','toDorm','toRoom','formNo','remarks'].forEach(k=>{if(c[k]===undefined)c[k]='';});
+  if(!c.fees)c.fees=clearanceDef().fees;
+  if(!s.roomHold)s.roomHold={active:false,paymentMethod:'Not Paid',amountPaid:0};
+  if(s.ac===undefined)s.ac=/AC/i.test(s.room);
+  ['box1Color','box1No','box2Color','box2No','box3Color','box3No'].forEach(k=>{if(s[k]===undefined)s[k]='';});
+  return s;
+}
+
+// ═══ GLOBAL STATE ═══
+let dormMaxOccupants=2,currentDormName='Elijah Hall',fullData=[],filteredData=[],
+    incomingQueue=[],roomHistory=[],awayStudents=[],currentFloor='all',currentRole='dean',_initDone=false,
+    unsavedChanges=false,lastActiveElement=null,hiddenCols=new Set();
+
+function setMaxOccupants(){dormMaxOccupants=parseInt(document.getElementById('maxOccupantsSelect').value);if(_initDone)localStorage.setItem('dormMaxOccupants',dormMaxOccupants);}
+document.getElementById('maxOccupantsSelect').addEventListener('change',setMaxOccupants);setMaxOccupants();
+
+function updateDormName(){
+  const s=document.getElementById('dormSelect'),ci=document.getElementById('customDormName');
+  if(s.value==='Other'){ci.style.display='inline-block';currentDormName=ci.value.trim()||'Other Dorm';}
+  else{ci.style.display='none';currentDormName=s.value;}
+  document.getElementById('dormNameSpan').innerText=currentDormName;
+  if(_initDone){localStorage.setItem('dormNameSelect',s.value);if(s.value==='Other')localStorage.setItem('dormNameCustom',ci.value);}
+}
+document.getElementById('dormSelect').addEventListener('change',updateDormName);
+document.getElementById('customDormName').addEventListener('input',updateDormName);
+updateDormName();
+
+// ═══ HISTORY — BUG FIXED ═══
+let historyStack=[],historyIndex=-1;
+const MAX_HISTORY=30;
+function pushState(){
+  const snap=JSON.parse(JSON.stringify(fullData));
+  historyStack=historyStack.slice(0,historyIndex+1);
+  historyStack.push(snap);
+  if(historyStack.length>MAX_HISTORY)historyStack.shift();
+  historyIndex=historyStack.length-1; // FIX: always set to end after trim
+}
+function undo(){if(historyIndex>0){historyIndex--;fullData=JSON.parse(JSON.stringify(historyStack[historyIndex]));recalcWaiting();applyFilter();recordUpdate();}}
+function redo(){if(historyIndex<historyStack.length-1){historyIndex++;fullData=JSON.parse(JSON.stringify(historyStack[historyIndex]));recalcWaiting();applyFilter();recordUpdate();}}
+
+// ═══ USER / AUTO-SAVE ═══
+let currentUser=localStorage.getItem('dormUserName')||prompt('Your name:','User')||'Unknown';
+localStorage.setItem('dormUserName',currentUser);
+function recordUpdate(){
+  const t=new Date().toLocaleString();
+  document.getElementById('lastUpdateTime').innerText=t;
+  document.getElementById('lastUpdateUser').innerText=currentUser;
+  localStorage.setItem('dormLastUpdate',t);localStorage.setItem('dormLastUser',currentUser);
+  markUnsaved();autoSave();
+}
+const _st=localStorage.getItem('dormLastUpdate');if(_st)document.getElementById('lastUpdateTime').innerText=_st;
+const _su=localStorage.getItem('dormLastUser');if(_su)document.getElementById('lastUpdateUser').innerText=_su;
+function autoSave(){
+  try{
+    const data=JSON.stringify(fullData),queue=JSON.stringify(incomingQueue),hist=JSON.stringify(roomHistory),away=JSON.stringify(awayStudents);
+    const totalKB=Math.round((data.length+queue.length+hist.length+away.length)/1024);
+    DormDB.saveRooms(fullData);
+    DormDB.saveQueue(incomingQueue);
+    DormDB.saveHistory(roomHistory);
+    DormDB.saveAway(awayStudents);
+    const ind=document.getElementById('autoSaveIndicator');
+    ind.innerText='✓ Auto-saved';clearTimeout(ind._t);ind._t=setTimeout(()=>ind.innerText='',3000);
+    if(totalKB>3500){const warn=document.getElementById('autoSaveIndicator');warn.innerText=`⚠️ Storage ${totalKB}KB — export Excel soon!`;warn.style.color='#c0392b';}
+  }catch(e){const ind=document.getElementById('autoSaveIndicator');ind.innerText='⚠️ Auto-save failed — storage full!';ind.style.color='#c0392b';}
+}
+function saveRoomHistory(){try{DormDB.saveHistory(roomHistory);}catch(e){}}
+function saveQueue(){try{DormDB.saveQueue(incomingQueue);updateQueueBadge();}catch(e){}}
+function saveAwayStudents(){try{DormDB.saveAway(awayStudents);}catch(e){}}
+function updateAwayBadge(){const b=document.getElementById('awayBadge');if(b)b.textContent=awayStudents.length>0?`(${awayStudents.length})`:'';
+}
+function toggleAwayPanel(){const p=document.getElementById('awayPanel');p.style.display=p.style.display==='block'?'none':'block';if(p.style.display==='block'){renderAwayPanel();p.scrollIntoView({behavior:'smooth'});}}
+function markStudentAway(s){
+  if(!s.name.trim())return;
+  const defDate=s.returnDate||'';
+  askPrompt(`Mark "${s.name}" as temporarily away.\n\nEnter expected return date:`,defDate,'YYYY-MM-DD',(rd)=>{
+    askConfirm(`Temporarily vacate "${s.name}" from room ${s.room}?\n\nTheir data will be saved and the bed released for visitors/guests.\nReturn date: ${rd.trim()||'(not set)'}`,()=>{
+      awayStudents.push({id:Date.now(),originalRoom:s.room,awayReturnDate:rd.trim(),awayAddedAt:new Date().toISOString(),...s});
+      const idx=fullData.findIndex(x=>x===s);
+      if(idx!==-1)fullData[idx]=emptyStudent(s.room);
+      saveAwayStudents();updateAwayBadge();pushState();recordUpdate();recalcWaiting();applyFilter();
+    });
+  });
+}
+function openRestoreModal(entry){
+  currentRestoreEntry=entry;
+  const reqRoom=entry.requestedRoom&&entry.requestedRoom.trim();
+  const available=[...new Set(fullData.filter(x=>!x.name||!x.name.trim()).map(x=>x.room))].filter(r=>roomHasVacancy(r)).sort();
+  if(!available.length){showToast('No rooms currently available.','warning');return;}
+  const info=document.getElementById('restoreStudentInfo');
+  info.innerHTML=`<strong>${escapeHtml(entry.name)}</strong> &mdash; Original room: <b>${escapeHtml(entry.originalRoom||entry.room)}</b>`+
+    (reqRoom?` &bull; Requested: <b style="color:${roomHasVacancy(reqRoom)?'#27ae60':'#999'}">${escapeHtml(reqRoom)}</b>`:'');
+  const grid=document.getElementById('restoreRoomGrid');
+  grid.innerHTML='';
+  available.forEach(room=>{
+    const btn=document.createElement('button');btn.textContent=room;btn.className='btn-sm';
+    if(room===reqRoom)btn.style.cssText='background:#27ae60;color:#fff;border-color:#27ae60;font-weight:bold';
+    else if(room===(entry.originalRoom||entry.room))btn.style.cssText='border-color:#3498db;color:#3498db;font-weight:bold';
+    btn.onclick=()=>confirmRestoreToRoom(room);
+    grid.appendChild(btn);
+  });
+  openModal('restoreRoomModal');
+}
+function confirmRestoreToRoom(room){
+  const entry=currentRestoreEntry;
+  if(!entry)return;
+  if(!roomHasVacancy(room)){showToast('Room '+room+' is no longer available.','warning');closeModal('restoreRoomModal');return;}
+  const targetIdx=fullData.findIndex(x=>x.room===room&&(!x.name||!x.name.trim()));
+  if(targetIdx===-1){closeModal('restoreRoomModal');return;}
+  const reqRoom=entry.requestedRoom&&entry.requestedRoom.trim();
+  const{id,originalRoom,awayReturnDate,awayAddedAt,...studentData}=entry;
+  const clearedReq=room===reqRoom?'':studentData.requestedRoom;
+  fullData[targetIdx]={...studentData,room,requestedRoom:clearedReq,returnDate:awayReturnDate||studentData.returnDate};
+  awayStudents=awayStudents.filter(e=>e.id!==entry.id);
+  closeModal('restoreRoomModal');
+  saveAwayStudents();updateAwayBadge();recalcWaiting();applyFilter();pushState();recordUpdate();renderAwayPanel();renderTable();
+}
+function removeAwayEntry(entry){
+  askConfirm(`Permanently discard away record for "${entry.name}"?\n\nThis cannot be undone.`,()=>{
+    awayStudents=awayStudents.filter(e=>e.id!==entry.id);
+    saveAwayStudents();updateAwayBadge();renderAwayPanel();
+  });
+}
+function renderAwayPanel(){
+  const body=document.getElementById('awayPanelBody');
+  if(!body)return;
+  if(!awayStudents.length){body.innerHTML='<em style="color:#888">No away students.</em>';return;}
+  body.innerHTML='';
+  awayStudents.forEach(entry=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #fde8c8;flex-wrap:wrap';
+    const info=document.createElement('div');info.style.cssText='flex:1;min-width:120px';
+    info.innerHTML=`<strong>${escapeHtml(entry.name)}</strong><br><small>From: <b>${escapeHtml(entry.originalRoom||entry.room)}</b> &bull; Returns: ${entry.awayReturnDate||'(not set)'} &bull; Type: ${escapeHtml(entry.studentType||'regular')}</small>`;
+    const rb=document.createElement('button');rb.textContent='↩ Restore';rb.className='btn-sm';rb.style.cssText='color:#27ae60;border-color:#27ae60;font-size:.7rem';rb.onclick=()=>openRestoreModal(entry);
+    const db=document.createElement('button');db.textContent='✕ Discard';db.className='btn-sm';db.style.cssText='color:#c0392b;border-color:#c0392b;font-size:.7rem';db.onclick=()=>removeAwayEntry(entry);
+    row.appendChild(info);row.appendChild(rb);row.appendChild(db);body.appendChild(row);
+  });
+}
+function loadFromLS(){
+  try{
+    const r=DormDB.getRooms();
+    if(!r||!r.length)return false;
+    fullData=normaliseToRows(r.map(ensureStudent));
+    incomingQueue=DormDB.getQueue()||[];
+    roomHistory=DormDB.getHistory()||[];
+    awayStudents=DormDB.getAway()||[];
+    return true;
+  }catch(e){return false;}
+}
+function markUnsaved(){unsavedChanges=true;document.getElementById('unsavedBanner').style.display='block';}
+function markSaved(){unsavedChanges=false;document.getElementById('unsavedBanner').style.display='none';}
+window.addEventListener('beforeunload',e=>{if(unsavedChanges){e.preventDefault();e.returnValue='Unsaved changes exist.';}});
+
+// ═══ ROLE / FLOOR / SEARCH ═══
+function handleRoleChange(){}
+function updateRoleUI(){applyFilter();}
+function applyFloorFilter(){currentFloor=document.getElementById('floorFilter').value;localStorage.setItem('dormFloor',currentFloor);applyFilter();}
+function toggleSearch(){const b=document.getElementById('searchBox');b.style.display=b.style.display==='none'?'flex':'none';if(b.style.display!=='none')document.getElementById('searchRoomInput').focus();}
+function closeSearch(){document.getElementById('searchBox').style.display='none';document.getElementById('searchRoomInput').value='';}
+function doSearch(){
+  const term=document.getElementById('searchRoomInput').value.trim().toLowerCase();if(!term)return;
+  const rows=document.querySelectorAll('#tableBody tr');let found=false;
+  rows.forEach((row,i)=>{
+    row.classList.remove('highlight-row');
+    const s=filteredData[i];if(!s)return;
+    if(s.name.toLowerCase().includes(term)||s.room.toLowerCase().includes(term)){
+      if(!found){
+        row.scrollIntoView({behavior:'smooth',block:'center'});
+        const ni=row.cells[1]?.querySelector('input');
+        if(ni){ni.focus();const si=ni.value.toLowerCase().indexOf(term);if(si>=0)ni.setSelectionRange(si,si+term.length);}
+        found=true;
+      }
+      row.classList.add('highlight-row');setTimeout(()=>row.classList.remove('highlight-row'),2500);
+    }
+  });
+  if(!found)showToast('No match: '+escapeHtml(term),'warning');
+}
+
+// ═══ ROOM GENERATOR ═══
+function parseRoomList(input){
+  const rooms=[];
+  for(let line of input.split(/[\n,]+/)){
+    line=line.trim();if(!line)continue;
+    if(line.includes('-')){
+      const p=line.split('-');
+      if(p.length===2){const a=parseInt(p[0].trim()),b=parseInt(p[1].trim());if(!isNaN(a)&&!isNaN(b)&&a<=b){for(let i=a;i<=b;i++)rooms.push(i.toString());continue;}}
+    }
+    rooms.push(line);
+  }
+  return rooms;
+}
+function generateNewDorm(){
+  const method=document.getElementById('numberingMethod').value;
+  const maxOcc=parseInt(document.getElementById('genOccupants').value);
+  let roomNames=[];
+  if(method==='sequential'){
+    const prefix=document.getElementById('roomPrefix').value.trim();
+    let n=parseInt(document.getElementById('startNum').value);
+    const fl=parseInt(document.getElementById('numFloors').value),rp=parseInt(document.getElementById('roomsPerFloor').value);
+    if([n,fl,rp].some(isNaN)||n<1||fl<1||rp<1){showToast('Enter valid positive numbers.','warning');return;}
+    for(let i=0;i<fl*rp;i++)roomNames.push((prefix||'')+n++);
+  }else{
+    const raw=document.getElementById('roomListInput').value.trim();
+    if(!raw){showToast('Enter room numbers or ranges.','warning');return;}
+    roomNames=parseRoomList(raw);if(!roomNames.length){showToast('No valid rooms found.','warning');return;}
+  }
+  dormMaxOccupants=maxOcc;document.getElementById('maxOccupantsSelect').value=maxOcc;
+  fullData=[];for(const r of roomNames)for(let i=0;i<maxOcc;i++)fullData.push(emptyStudent(r));
+  historyStack=[];historyIndex=-1;
+  pushState();recalcWaiting();applyFilter();recordUpdate();markSaved();closeModal('generatorModal');
+  showToast(`Generated ${roomNames.length} rooms (${roomNames.length*maxOcc} beds).`,'success');
+}
+function toggleRoomListInput(){
+  const m=document.getElementById('numberingMethod').value;
+  document.getElementById('sequentialFields').style.display=m==='sequential'?'block':'none';
+  document.getElementById('customFields').style.display=m==='custom'?'block':'none';
+}
+function openGeneratorModal(){openModal('generatorModal');toggleRoomListInput();}
+
+// ═══ MASTER ROOM LIST (Elijah Hall) ═══
+function buildMasterList(){
+  const rooms=[];
+  for(let i=101;i<=106;i++)rooms.push(i+'AC');
+  for(let i=201;i<=227;i++){if([202,204,205,206,207,208].includes(i))rooms.push(i+' AC');else if([210,212,213,217,218,227].includes(i))rooms.push(i+'AC');else rooms.push(i.toString());}
+  for(let i=301;i<=327;i++){if([301,307,311,325].includes(i))rooms.push(i+'AC');else rooms.push(i.toString());}
+  for(let i=401;i<=427;i++){if([406,408,409,410,411,412,413,414,415,416,418,419,420,421,422,423,424,425,427].includes(i))rooms.push(i+'AC');else rooms.push(i.toString());}
+  const list=[];for(const r of rooms){list.push(emptyStudent(r));list.push(emptyStudent(r));}return list;
+}
+const studentMapping=new Map();
+function addStu(room,name){if(!studentMapping.has(room))studentMapping.set(room,[]);const a=studentMapping.get(room);if(a.length<2&&name&&name.trim())a.push(name.trim());}
+[].forEach(([r,n])=>addStu(r,n));
+const masterList=buildMasterList();
+const _ri={};for(let i=0;i<masterList.length;i++){const r=masterList[i].room;if(!_ri[r])_ri[r]=[];_ri[r].push(i);}
+for(const[r,ns]of studentMapping){const idx=_ri[r]||[];if(ns[0]&&idx[0]!==undefined)masterList[idx[0]].name=ns[0];if(ns[1]&&idx[1]!==undefined)masterList[idx[1]].name=ns[1];}
+
+// ═══ WAITING / SOLO AVAILABILITY ═══
+function recalcWaiting(){
+  const activeSolo=new Set(),releasingSolo=new Set(),heldRooms=new Set();
+  for(const s of fullData){
+    if(isHoldActive(s)){
+      const hk=s.room.trim();
+      if(hk)heldRooms.add(hk);
+    }
+    if(s.solo&&!s.graduating){
+      const k=(s.requestedRoom&&s.requestedRoom.trim())?s.requestedRoom.trim():s.room.trim();
+      if(k){if(s.moveOutReason)releasingSolo.add(k);else activeSolo.add(k);}
+    }
+  }
+  const roomReqs=new Map();
+  for(let i=0;i<fullData.length;i++){
+    const s=fullData[i];
+    if(s.graduating){s.requestStatus='';continue;}
+    const req=s.requestedRoom.trim();if(!req){s.requestStatus='';continue;}
+    if(activeSolo.has(req)&&!s.solo){if(!s.manualStatus)s.requestStatus='Waiting';continue;}
+    if(heldRooms.has(req)&&!s.solo&&!(s.roomHold&&s.roomHold.active)){if(!s.manualStatus)s.requestStatus='Waiting';continue;}
+    if(!roomReqs.has(req))roomReqs.set(req,[]);roomReqs.get(req).push(i);
+  }
+  for(const[room,indices]of roomReqs){
+    const cap=activeSolo.has(room)?1:dormMaxOccupants;
+    indices.forEach((idx,pos)=>{if(!fullData[idx].manualStatus)fullData[idx].requestStatus=pos<cap?'Confirmed':'Waiting';});
+  }
+}
+function normaliseToRows(data){
+  const m=new Map();
+  for(const s of data){if(!m.has(s.room))m.set(s.room,[]);m.get(s.room).push(s);}
+  const nd=[];
+  for(const[room,students]of m){
+    while(students.length<dormMaxOccupants)students.push(emptyStudent(room));
+    nd.push(...students.slice(0,dormMaxOccupants));
+  }
+  return nd;
+}
+function getOccupancyBadge(room){
+  const count=fullData.filter(s=>s.room===room&&s.name&&s.name.trim()).length;
+  const hasActiveSolo=fullData.some(s=>s.room===room&&s.solo&&!s.graduating&&!s.moveOutReason);
+  const hasHold=fullData.some(s=>s.room===room&&isHoldActive(s));
+  const effMax=hasActiveSolo?1:dormMaxOccupants;
+  const color=count===0?'#28a745':hasHold?'#e67e22':count>=effMax?'#dc3545':'#ffc107';
+  return`<span class="occupancy-badge" style="background:${color}"></span>${count}/${effMax}`;
+}
+function getDuplicateWarning(student){
+  if(!student.requestedRoom.trim()||student.graduating)return'';
+  if(student.requestedRoom.trim()===student.room.trim())return'';
+  const req=student.requestedRoom.trim();
+  const activeSolo=fullData.some(s=>(s.requestedRoom===req||s.room===req)&&s.solo&&!s.graduating&&!s.moveOutReason);
+  if(activeSolo&&!student.solo)return`<div class="req-warning">🔒 Room ${escapeHtml(req)} locked — solo, no move-out planned.</div>`;
+  const isHeldRoom=fullData.some(s=>(s.requestedRoom===req||s.room===req)&&isHoldActive(s));
+  if(isHeldRoom)return`<div class="req-warning">\uD83C\uDFE0 Room ${escapeHtml(req)} is on paid hold \u2014 unavailable until the student returns.</div>`;
+  const releasingSolo=fullData.some(s=>(s.requestedRoom===req||s.room===req)&&s.solo&&!s.graduating&&s.moveOutReason);
+  if(releasingSolo&&!student.solo)return`<div class="req-info">ℹ️ Room ${escapeHtml(req)}: solo resident planning to leave.</div>`;
+  const confirmed=fullData.filter(s=>s.requestedRoom===req&&s.requestStatus==='Confirmed'&&!s.graduating).length;
+  if(confirmed>=dormMaxOccupants)return`<div class="req-warning">⚠️ Room ${escapeHtml(req)} full — will be waitlisted.</div>`;
+  return'';
+}
+function getStatusText(student){
+  if(isHoldActive(student)){
+    const paid=student.roomHold.paymentMethod!=='Not Paid'?` \u00B7 ${student.roomHold.paymentMethod}`:'';
+    return`\uD83C\uDFE0 Room Held (away${paid})`;
+  }
+  if(student.graduating){
+    if(student.moveOutReason==='Off Campus'){
+      if(student.offCampusType==='Going Home')return'🏠 Going Home';
+      if(student.offCampusType==='Leaving Dorm')return'🚪 Leaving Dorm';
+      return'🏠 Off Campus';
+    }
+    if(student.moveOutReason==='Graduating')return'🎓 Graduating';
+    if(student.moveOutReason==='Internship')return'💼 Internship';
+    return student.moveOutReason||'Moving Out';
+  }
+  const transferNote=student.transferIn&&student.transferIn.fromDorm?`📥 From ${student.transferIn.fromDorm}`:'';
+  const roomKey=(student.requestedRoom&&student.requestedRoom.trim())?student.requestedRoom.trim():student.room.trim();
+  if(!roomKey)return transferNote||'None';
+  const mates=fullData.filter(s=>{
+    if(s===student||s.graduating)return false;
+    const sr=(s.requestedRoom&&s.requestedRoom.trim())?s.requestedRoom.trim():s.room.trim();
+    if(sr!==roomKey)return false;
+    return!s.requestedRoom.trim()||s.requestStatus==='Confirmed';
+  }).map(s=>s.name||'?');
+  const rm=mates.length?mates.join(', '):'None';
+  return transferNote?`${transferNote}\n${rm}`:rm;
+}
+
+// ═══ FILTER / RENDER ═══
+function applyFilter(){
+  filteredData=fullData.filter(s=>matchesFloor(s.room,currentFloor));
+  renderTable();
+  document.getElementById('filteredCount').innerText=filteredData.length;
+  document.getElementById('totalCount').innerText=fullData.length;
+  updateStats();
+  applyColVis();
+}
+function addInteractivity(el,row,ri,ci){
+  el.addEventListener('focus',()=>{lastActiveElement={rowIndex:ri,colIndex:ci};document.querySelectorAll('#tableBody tr').forEach(r=>r.classList.remove('active-row'));row.classList.add('active-row');});
+  el.addEventListener('keydown',e=>{if((e.key==='ArrowUp'||e.key==='ArrowDown')&&el.type!=='date'&&el.type!=='number'){e.preventDefault();const ni=e.key==='ArrowUp'?ri-1:ri+1;if(ni>=0&&ni<filteredData.length){const tr=document.querySelectorAll('#tableBody tr')[ni];if(tr){const ti=tr.cells[ci]?.querySelector('input,select');if(ti)ti.focus();}}}});
+}
+function restoreFocus(){
+  if(!lastActiveElement)return;
+  const rows=document.querySelectorAll('#tableBody tr');
+  if(rows[lastActiveElement.rowIndex]){
+    const c=rows[lastActiveElement.rowIndex].cells[lastActiveElement.colIndex];
+    const inp=c?c.querySelector('input,select'):null;
+    rows[lastActiveElement.rowIndex].classList.add('active-row');
+    if(inp)inp.focus();
+  }
+}
+function renderTable(){
+  const tbody=document.getElementById('tableBody');
+  tbody.innerHTML='';
+  const frag=document.createDocumentFragment();
+  const _profiles=DormDB.getProfiles();
+  function _hasProfile(s){
+    if(!s.name||!s.name.trim())return false;
+    return _profiles.some(p=>{
+      if(p.studentId&&(s.studentId===p.studentId||(s.clearance&&s.clearance.studentId===p.studentId)))return true;
+      const pn=(p.firstName+' '+p.surname).toLowerCase().trim();
+      return pn&&pn===s.name.toLowerCase().trim();
+    });
+  }
+  filteredData.forEach((s,ri)=>{
+    const row=document.createElement('tr');
+    row.addEventListener('mousedown',()=>{lastActiveElement=Object.assign({},lastActiveElement||{colIndex:2},{rowIndex:ri});});
+    if(s.requestStatus==='Waiting')row.classList.add('waiting-row');
+
+    // 0: Room
+    const td0=document.createElement('td');
+    const top=document.createElement('div');top.className='room-cell-top';
+    top.innerHTML=`${getOccupancyBadge(s.room)} <strong>${escapeHtml(s.room)}</strong>`;
+    const rc=document.createElement('div');rc.className='room-cell';rc.appendChild(top);
+    const iqc=incomingQueue.filter(q=>q.targetRoom===s.room).length;
+    if(iqc>0){const b=document.createElement('span');b.className='incoming-badge';b.textContent=`📥 ${iqc} incoming`;b.onclick=()=>{document.getElementById('queuePanel').style.display='block';renderQueue();};rc.appendChild(b);}
+    const hc=roomHistory.filter(h=>h.room===s.room).length;
+    if(hc>0){const b=document.createElement('span');b.className='history-badge';b.textContent=`📜 ${hc} prev.`;b.onclick=()=>openHistoryModal(s.room);rc.appendChild(b);}
+    const namedInRoom=fullData.filter(x=>x.room===s.room&&x.name.trim()).length;
+    if(namedInRoom>dormMaxOccupants){const wb=document.createElement('span');wb.style.cssText='display:block;font-size:.65rem;color:#c0392b;font-weight:bold';wb.textContent=`⚠️ Over capacity (${namedInRoom}/${dormMaxOccupants})`;rc.appendChild(wb);}
+    td0.appendChild(rc);row.appendChild(td0);
+
+    // 1: AC
+    const tdAC=document.createElement('td');tdAC.className='checkbox-cell';
+    const chkAC=document.createElement('input');chkAC.type='checkbox';chkAC.checked=!!s.ac;chkAC.title='Air conditioned room';
+    chkAC.onchange=e=>{const v=e.target.checked;fullData.filter(x=>x.room===s.room).forEach(x=>x.ac=v);pushState();recordUpdate();renderTable();};
+    addInteractivity(chkAC,row,ri,1);tdAC.appendChild(chkAC);row.appendChild(tdAC);
+
+    // 2: Name + Transfer badge
+    const td1=document.createElement('td');
+    const inpN=document.createElement('input');inpN.type='text';inpN.value=s.name;inpN.placeholder='Name';inpN.style.width='100%';
+    const dbN=debounce(v=>{s.name=v;pushState();recordUpdate();renderTable();},400);
+    inpN.addEventListener('input',e=>dbN(e.target.value));addInteractivity(inpN,row,ri,2);td1.appendChild(inpN);
+    const tb=document.createElement('span');
+    if(s.transferIn&&s.transferIn.fromDorm){tb.className='transfer-badge';tb.title=`From ${s.transferIn.fromDorm} Rm ${s.transferIn.fromRoom||'?'}`;tb.textContent=`📥 ${s.transferIn.fromDorm}`;}
+    else{tb.className='transfer-badge';tb.style.opacity='.45';tb.textContent='📥 Transfer In';}
+    tb.onclick=()=>openTransferModal(s);td1.appendChild(document.createElement('br'));td1.appendChild(tb);
+    if(s.name.trim()&&!s.graduating){const rb=document.createElement('button');rb.textContent='✕ Remove';rb.className='btn-sm';rb.style.cssText='color:#c0392b;border-color:#c0392b;margin-top:3px;display:block;font-size:.65rem';rb.onclick=()=>quickRemoveStudent(s);td1.appendChild(rb);}
+    if(s.name.trim()){const ab=document.createElement('button');ab.textContent='📤 Away';ab.className='btn-sm';ab.style.cssText='color:#8e44ad;border-color:#8e44ad;margin-top:3px;display:block;font-size:.65rem';ab.onclick=()=>markStudentAway(s);td1.appendChild(ab);}
+    if(s.name.trim()&&_hasProfile(s)){const pb=document.createElement('span');pb.textContent='👤 Profile';pb.title='Student profile on file';pb.style.cssText='display:inline-block;margin-top:3px;font-size:.62rem;color:#1565c0;background:#e8f4fd;border-radius:8px;padding:1px 6px;font-weight:700';td1.appendChild(document.createElement('br'));td1.appendChild(pb);}
+    // Side A/B toggle button
+    {const sb=document.createElement('button');sb.className='btn-sm';
+     const sideLabels={'':'— Side','A':'A-Door','B':'B-Balcony'};
+     sb.textContent=sideLabels[s.side||'']||'— Side';
+     sb.title='Toggle room side: A=near door, B=near balcony';
+     sb.style.cssText='margin-top:3px;display:block;font-size:.6rem;'+(s.side==='A'?'background:#2c7a4d':s.side==='B'?'background:#2980b9':'background:#888');
+     sb.onclick=()=>cycleSide(ri);td1.appendChild(sb);}
+    row.appendChild(td1);
+
+    // 3: Student ID
+    const tdId=document.createElement('td');
+    const inpId=document.createElement('input');inpId.type='text';inpId.value=s.studentId||'';
+    inpId.placeholder='ID';inpId.style.width='100%';inpId.maxLength=30;
+    const dbId=debounce(v=>{s.studentId=v;pushState();recordUpdate();},400);
+    inpId.addEventListener('input',e=>dbId(e.target.value));addInteractivity(inpId,row,ri,3);
+    tdId.appendChild(inpId);row.appendChild(tdId);
+
+    // 4: Req room
+    const td2=document.createElement('td');
+    const inpR=document.createElement('input');inpR.type='text';inpR.value=s.requestedRoom||'';inpR.placeholder='Room#';inpR.style.width='100%';inpR.disabled=s.graduating;
+    const dbR=debounce(v=>{s.requestedRoom=v;s.manualStatus=false;recalcWaiting();applyFilter();pushState();recordUpdate();},400);
+    inpR.addEventListener('input',e=>dbR(e.target.value));addInteractivity(inpR,row,ri,4);td2.appendChild(inpR);
+    const wd=document.createElement('div');wd.innerHTML=getDuplicateWarning(s);td2.appendChild(wd);row.appendChild(td2);
+
+    // 3: Reservation
+    const td3=document.createElement('td');
+    const selSt=document.createElement('select');
+    ['Confirmed','Waiting'].forEach(o=>{const op=document.createElement('option');op.value=o;op.text=o;if(s.requestStatus===o)op.selected=true;selSt.appendChild(op);});
+    selSt.disabled=s.graduating||!s.requestedRoom.trim();
+    selSt.onchange=e=>{s.requestStatus=e.target.value;s.manualStatus=true;applyFilter();pushState();recordUpdate();};
+    addInteractivity(selSt,row,ri,5);td3.appendChild(selSt);
+    if(s.name.trim()&&!s.graduating&&s.requestedRoom.trim()&&s.requestStatus==='Confirmed'&&roomHasVacancy(s.requestedRoom.trim())){const mb=document.createElement('button');mb.textContent='✓ Move In';mb.className='btn-sm';mb.style.cssText='color:#27ae60;border-color:#27ae60;margin-top:3px;display:block;font-size:.65rem';mb.onclick=()=>moveStudentToRoom(s);td3.appendChild(mb);}
+    row.appendChild(td3);
+
+    // 4: Summer
+    const td4=document.createElement('td');td4.className='checkbox-cell';
+    const chkS=document.createElement('input');chkS.type='checkbox';chkS.checked=!!s.summer;
+    chkS.onchange=e=>{s.summer=e.target.checked;if(!s.summer&&!s.firstSem&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
+    addInteractivity(chkS,row,ri,6);td4.appendChild(chkS);row.appendChild(td4);
+
+    // 5: 1st Sem
+    const td5=document.createElement('td');td5.className='checkbox-cell';
+    const chkF=document.createElement('input');chkF.type='checkbox';chkF.checked=!!s.firstSem;
+    chkF.onchange=e=>{s.firstSem=e.target.checked;if(!s.summer&&!s.firstSem&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
+    addInteractivity(chkF,row,ri,7);td5.appendChild(chkF);row.appendChild(td5);
+
+    // 6: Move Out + Off Campus sub-select
+    const td6=document.createElement('td');td6.style.minWidth='138px';
+    const selMO=document.createElement('select');selMO.style.cssText='width:100%;font-size:.75rem';
+    [['','— Staying'],['Graduating','🎓 Graduating'],['Off Campus','🏠 Off Campus'],['Internship','💼 Internship']].forEach(([v,l])=>{
+      const o=document.createElement('option');o.value=v;o.text=l;if((s.moveOutReason||'')===v)o.selected=true;selMO.appendChild(o);
+    });
+    const subDiv=document.createElement('div');subDiv.style.display=s.moveOutReason==='Off Campus'?'block':'none';
+    const selOC=document.createElement('select');selOC.className='sub-select';
+    [['','— Select type'],['Going Home','🏠 Going Home'],['Leaving Dorm','🚪 Leaving Dorm']].forEach(([v,l])=>{
+      const o=document.createElement('option');o.value=v;o.text=l;if((s.offCampusType||'')===v)o.selected=true;selOC.appendChild(o);
+    });
+    selOC.onchange=e=>{s.offCampusType=e.target.value;recalcWaiting();applyFilter();pushState();recordUpdate();};
+    subDiv.appendChild(selOC);
+    selMO.onchange=e=>{
+      s.moveOutReason=e.target.value;s.graduating=s.moveOutReason!=='';
+      if(s.moveOutReason!=='Off Campus')s.offCampusType='';
+      subDiv.style.display=s.moveOutReason==='Off Campus'?'block':'none';
+      recalcWaiting();applyFilter();pushState();recordUpdate();
+    };
+    addInteractivity(selMO,row,ri,8);td6.appendChild(selMO);td6.appendChild(subDiv);row.appendChild(td6);
+
+    // 7: Leave Date
+    const td7=document.createElement('td');
+    const ldI=document.createElement('input');ldI.type='date';ldI.value=s.clearance.leaveDate||'';
+    ldI.disabled=!(s.summer||s.firstSem||s.graduating);
+    ldI.onchange=e=>{s.clearance.leaveDate=e.target.value;pushState();recordUpdate();};
+    addInteractivity(ldI,row,ri,9);td7.appendChild(ldI);row.appendChild(td7);
+
+    // 8: Return Date
+    const td8=document.createElement('td');
+    const rdI=document.createElement('input');rdI.type='date';rdI.value=s.returnDate||'';
+    rdI.disabled=!(s.summer||s.firstSem);
+    rdI.onchange=e=>{s.returnDate=e.target.value;pushState();recordUpdate();};
+    addInteractivity(rdI,row,ri,10);td8.appendChild(rdI);row.appendChild(td8);
+
+    // 9: Status
+    const td9=document.createElement('td');td9.style.cssText='font-size:.75rem;white-space:pre-line';
+    td9.textContent=getStatusText(s);row.appendChild(td9);
+
+    // 10: Keys
+    const td10=document.createElement('td');td10.className='checkbox-cell';
+    const chkK=document.createElement('input');chkK.type='checkbox';chkK.checked=!!s.keysReturned;
+    chkK.onchange=e=>{s.keysReturned=e.target.checked;pushState();recordUpdate();};
+    addInteractivity(chkK,row,ri,12);td10.appendChild(chkK);row.appendChild(td10);
+
+    // 11: Storage
+    const td11=document.createElement('td');
+    const ss=document.createElement('span');ss.className='storage-summary';
+    if(s.storageRental){
+      const boxes=[];
+      for(let i=1;i<=s.storageQty;i++){const bc=s[`box${i}Color`]||'',bn=s[`box${i}No`]||'';if(bc||bn)boxes.push((bc&&bn)?`${bc}#${bn}`:bc||`#${bn}`);}
+      ss.textContent=`${s.storageQty} box${s.storageQty>1?'es':''} · ${s.paymentMethod}`+(boxes.length?` · ${boxes.join(', ')}`:'');
+    }else{ss.textContent='No storage';}
+    const bst=document.createElement('button');bst.textContent='Manage';bst.className='btn-sm';bst.onclick=()=>openStorageModal(s);
+    td11.appendChild(ss);td11.appendChild(bst);row.appendChild(td11);
+
+    // 12: Solo
+    const td12=document.createElement('td');td12.className='checkbox-cell';
+    const chkSolo=document.createElement('input');chkSolo.type='checkbox';chkSolo.checked=!!s.solo;
+    chkSolo.onchange=e=>{s.solo=e.target.checked;recalcWaiting();applyFilter();pushState();recordUpdate();};
+    addInteractivity(chkSolo,row,ri,14);td12.appendChild(chkSolo);row.appendChild(td12);
+
+    // Room-hold column
+    const td13h=document.createElement('td');td13h.className='checkbox-cell';
+    const chkH=document.createElement('input');chkH.type='checkbox';
+    chkH.checked=!!(s.roomHold&&s.roomHold.active);
+    chkH.disabled=!(s.summer||s.firstSem)||!s.name.trim();
+    chkH.title='Hold room during absence (paid)';
+    chkH.onchange=e=>{
+      if(!s.roomHold)s.roomHold={active:false,paymentMethod:'Not Paid',amountPaid:0};
+      s.roomHold.active=e.target.checked;
+      recalcWaiting();applyFilter();pushState();recordUpdate();
+    };
+    td13h.appendChild(chkH);
+    if(s.roomHold&&s.roomHold.active){
+      const payBtn=document.createElement('button');payBtn.textContent='💳';
+      payBtn.className='btn-sm';payBtn.style.fontSize='.6rem';payBtn.style.display='block';payBtn.style.marginTop='2px';
+      payBtn.title=`Hold payment: ${s.roomHold.paymentMethod} · ฿${s.roomHold.amountPaid}`;
+      payBtn.onclick=()=>openHoldModal(s);
+      td13h.appendChild(payBtn);
+    }
+    row.appendChild(td13h);
+
+    // 13: Clearance — Graduating + Leaving Dorm
+    const td13=document.createElement('td');
+    const needsClearance=s.graduating&&s.moveOutReason;
+    if(needsClearance){
+      const bc=document.createElement('button');
+      const needsFees=s.moveOutReason==='Graduating'||s.moveOutReason==='Internship'||(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm');
+      bc.className=s.clearance.formCompleted?'btn-sm green':'btn-sm orange';
+      bc.textContent=s.clearance.formCompleted?'✅ Done':(needsFees?'📋 Clearance':'📦 Archive');
+      bc.onclick=()=>openClearanceModal(s);td13.appendChild(bc);
+    }else{td13.textContent='—';td13.style.cssText='text-align:center;color:#aaa';}
+    row.appendChild(td13);
+
+    frag.appendChild(row);
+  });
+  tbody.appendChild(frag);
+  const wc=fullData.filter(s=>s.requestStatus==='Waiting').length;
+  document.getElementById('waitingCount').innerText=wc;
+  document.getElementById('conflictWarning').style.display=wc>0?'block':'none';
+  restoreFocus();
+}
+
+function updateStats(){
+  let summer=0,first=0,grad=0,graduating=0,goingHome=0,leavingDorm=0,internship=0,holds=0,storage=0,revenue=0,waiting=0,solo=0,keysBack=0,clearanceDone=0,transferIn=0,confirmed=0;
+  for(const s of fullData){
+    if(s.summer)summer++;if(s.firstSem)first++;if(s.graduating)grad++;
+    if(s.moveOutReason==='Graduating')graduating++;
+    if(s.moveOutReason==='Off Campus'&&s.offCampusType==='Going Home')goingHome++;
+    if(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm')leavingDorm++;
+    if(s.moveOutReason==='Internship')internship++;
+    if(isHoldActive(s))holds++;
+    if(s.storageRental){storage++;revenue+=s.storageQty*100;}
+    if(s.requestStatus==='Waiting')waiting++;
+    if(s.solo)solo++;
+    if(s.keysReturned)keysBack++;
+    if(s.clearance&&s.clearance.formCompleted)clearanceDone++;
+    if(s.transferIn&&s.transferIn.fromDorm)transferIn++;
+    if(s.requestedRoom&&s.requestedRoom.trim()&&s.requestStatus==='Confirmed')confirmed++;
+  }
+  for(const s of awayStudents){if(s.storageRental){storage++;revenue+=(s.storageQty||1)*100;}}
+  for(const h of roomHistory){if(h.storageRental&&!h.storageResolved){revenue+=(h.storageQty||1)*100;}}
+  document.getElementById('summerCount').innerText=summer;
+  document.getElementById('sem1Count').innerText=first;
+  document.getElementById('gradCount').innerText=grad;
+  document.getElementById('graduatingCount').innerText=graduating;
+  document.getElementById('goingHomeCount').innerText=goingHome;
+  document.getElementById('leavingDormCount').innerText=leavingDorm;
+  document.getElementById('internshipCount').innerText=internship;
+  document.getElementById('holdCount').innerText=holds;
+  document.getElementById('queueStatCount').innerText=incomingQueue.length;
+  document.getElementById('storageCount').innerText=storage;
+  document.getElementById('totalRevenue').innerText=revenue;
+  document.getElementById('totalStudents').innerText=fullData.filter(s=>s.name&&s.name.trim()).length;
+  document.getElementById('waitingCount').innerText=waiting;
+  document.getElementById('soloCount').innerText=solo;
+  document.getElementById('awayCount').innerText=awayStudents.filter(s=>s.name&&s.name.trim()).length;
+  document.getElementById('archivedCount').innerText=roomHistory.length;
+  document.getElementById('keysBackCount').innerText=keysBack;
+  document.getElementById('clearanceDoneCount').innerText=clearanceDone;
+  document.getElementById('transferInCount').innerText=transferIn;
+  document.getElementById('confirmedCount').innerText=confirmed;
+  document.getElementById('emptyBedsCount').innerText=fullData.filter(s=>!s.name||!s.name.trim()).length;
+}
+
+// ═══ MODALS ═══
+function closeModal(id){
+  document.getElementById(id).style.display='none';
+  if(id==='storageModal')currentStorageStudent=null;
+  else if(id==='clearanceModal')currentClearanceStudent=null;
+  else if(id==='transferModal')currentTransferStudent=null;
+  else if(id==='holdModal')currentHoldStudent=null;
+  else if(id==='restoreRoomModal')currentRestoreEntry=null;
+  if(!['generatorModal','storageModal','clearanceModal','transferModal','addIncomingModal','historyModal','holdModal','restoreRoomModal','confirmModal','promptModal'].some(m=>document.getElementById(m)?.style.display==='block'))document.body.style.overflow='';
+}
+function openModal(id){document.getElementById(id).style.display='block';document.body.style.overflow='hidden';}
+function showToast(msg,type,duration){
+  type=type||'info';duration=duration||3500;
+  const c=document.getElementById('toastContainer');if(!c)return;
+  const t=document.createElement('div');
+  const bg={info:'#1e3a5f',success:'#2e7d32',warning:'#e65100',error:'#c62828'}[type]||'#1e3a5f';
+  t.style.cssText='background:'+bg+';color:#fff;padding:10px 16px;border-radius:8px;font-size:.84rem;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;pointer-events:auto;line-height:1.4;word-break:break-word';
+  t.textContent=msg;
+  c.appendChild(t);
+  requestAnimationFrame(()=>t.style.opacity='1');
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},duration);
+}
+// ═══ COLUMN VISIBILITY ═══
+const _COL_DEFS=[
+  {n:1,label:'Room & Occup.',locked:true},
+  {n:2,label:'❄️ AC',locked:false},
+  {n:3,label:'Name',locked:true},
+  {n:4,label:'🪪 Student ID',locked:false},
+  {n:5,label:'Req. Room',locked:false},
+  {n:6,label:'Reservation',locked:false},
+  {n:7,label:'☀️ Summer',locked:false},
+  {n:8,label:'📖 1st Sem',locked:false},
+  {n:9,label:'🚪 Move Out',locked:true},
+  {n:10,label:'Leave Date',locked:false},
+  {n:11,label:'Return Date',locked:false},
+  {n:12,label:'📊 Status',locked:false},
+  {n:13,label:'🔑 Keys',locked:false},
+  {n:14,label:'📦 Storage',locked:false},
+  {n:15,label:'🧍 Solo',locked:false},
+  {n:16,label:'🏠 Hold',locked:false},
+  {n:17,label:'📋 Clearance',locked:false},
+];
+function applyColVis(){
+  const rules=[];
+  hiddenCols.forEach(n=>{rules.push(`#studentTable th:nth-child(${n}),#studentTable td:nth-child(${n}){display:none}`);});
+  document.getElementById('colVisStyle').textContent=rules.join('\n');
+}
+function toggleColPicker(){
+  const p=document.getElementById('colPickerPanel');
+  const btn=document.getElementById('colPickerBtn');
+  const open=p.style.display==='block';
+  p.style.display=open?'none':'block';
+  if(!open){const br=btn.getBoundingClientRect();p.style.top=(br.bottom+4)+'px';p.style.left=br.left+'px';}
+}
+function toggleCol(n,visible){
+  if(visible)hiddenCols.delete(n);else hiddenCols.add(n);
+  localStorage.setItem('dormCols',JSON.stringify([...hiddenCols]));
+  applyColVis();
+}
+function initColPicker(){
+  const saved=localStorage.getItem('dormCols');
+  hiddenCols=saved?new Set(JSON.parse(saved)):new Set([4]);
+  const panel=document.getElementById('colPickerPanel');
+  if(!panel)return;
+  panel.innerHTML=_COL_DEFS.map(c=>`<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:${c.locked?'default':'pointer'};color:${c.locked?'#aaa':'inherit'};user-select:none"><input type="checkbox" ${c.locked?'disabled':''} ${hiddenCols.has(c.n)?'':'checked'} onchange="toggleCol(${c.n},this.checked)"> ${c.label}</label>`).join('');
+  applyColVis();
+}
+// ═══ CONFIRM / PROMPT MODALS ═══
+let _confirmOnYes=null,_confirmOnNo=null,_promptOnOk=null;
+function askConfirm(msg,onYes,onNo){
+  _confirmOnYes=onYes||null;_confirmOnNo=onNo||null;
+  document.getElementById('confirmMsg').textContent=msg;
+  openModal('confirmModal');
+}
+function _doConfirmYes(){const fn=_confirmOnYes;_confirmOnYes=null;_confirmOnNo=null;closeModal('confirmModal');if(fn)fn();}
+function _doConfirmNo(){const fn=_confirmOnNo;_confirmOnYes=null;_confirmOnNo=null;closeModal('confirmModal');if(fn)fn();}
+function askPrompt(msg,defaultVal,placeholder,onOk){
+  _promptOnOk=onOk||null;
+  document.getElementById('promptMsg').textContent=msg;
+  const inp=document.getElementById('promptInput');
+  inp.value=defaultVal||'';inp.placeholder=placeholder||'';
+  openModal('promptModal');
+  setTimeout(()=>inp.focus(),80);
+}
+function _doPromptOk(){const v=document.getElementById('promptInput').value;const fn=_promptOnOk;_promptOnOk=null;closeModal('promptModal');if(fn)fn(v);}
+window.addEventListener('click',e=>{
+  ['generatorModal','storageModal','clearanceModal','transferModal','addIncomingModal','historyModal','holdModal','restoreRoomModal'].forEach(id=>{
+    if(e.target===document.getElementById(id))closeModal(id);
+  });
+  const panel=document.getElementById('colPickerPanel'),btn=document.getElementById('colPickerBtn');
+  if(panel&&panel.style.display==='block'&&!panel.contains(e.target)&&e.target!==btn)panel.style.display='none';
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    ['generatorModal','storageModal','clearanceModal','transferModal','addIncomingModal','historyModal','holdModal','restoreRoomModal'].forEach(id=>{const el=document.getElementById(id);if(el&&el.style.display==='block')closeModal(id);});
+    const cm=document.getElementById('confirmModal');if(cm&&cm.style.display==='block')_doConfirmNo();
+    const pm=document.getElementById('promptModal');if(pm&&pm.style.display==='block'){_promptOnOk=null;closeModal('promptModal');}
+  }
+  if(e.key==='Enter'){const pm=document.getElementById('promptModal');if(pm&&pm.style.display==='block'){e.preventDefault();_doPromptOk();}}
+});
+
+let currentRestoreEntry=null;
+
+// ═══ STORAGE MODAL ═══
+let currentStorageStudent=null;
+function openStorageModal(s){currentStorageStudent=s;document.getElementById('storageRentalCheck').checked=s.storageRental;document.getElementById('storageQtySelect').value=s.storageQty;document.getElementById('storageQtySelect').disabled=!s.storageRental;document.getElementById('paymentMethodSelect').value=s.paymentMethod;updateStorageBoxFields();updateStorageTotalDisplay();openModal('storageModal');}
+function onStorageRentalChange(){
+  const c=document.getElementById('storageRentalCheck').checked,qs=document.getElementById('storageQtySelect');
+  if(!c&&currentStorageStudent&&currentStorageStudent.storageRental){
+    askConfirm('Disabling storage will clear all box data. Continue?',()=>{
+      qs.disabled=true;updateStorageBoxFields();updateStorageTotalDisplay();
+    },()=>{
+      document.getElementById('storageRentalCheck').checked=true;qs.disabled=false;
+    });
+    return;
+  }
+  qs.disabled=!c;updateStorageBoxFields();updateStorageTotalDisplay();
+}
+function updateStorageBoxFields(){
+  const qty=parseInt(document.getElementById('storageQtySelect').value);
+  const c=document.getElementById('boxFields');c.innerHTML='';
+  for(let i=1;i<=qty;i++){
+    const w=document.createElement('div');w.className='fg';
+    const l1=document.createElement('label');l1.textContent=`Box ${i} Color:`;l1.style.width='80px';
+    const ci=document.createElement('input');ci.type='text';ci.id=`box${i}Color`;ci.value=(currentStorageStudent&&currentStorageStudent[`box${i}Color`])||'';ci.style.cssText='flex:unset;width:90px';
+    const l2=document.createElement('label');l2.textContent=' No:';l2.style.width='28px';
+    const ni=document.createElement('input');ni.type='text';ni.id=`box${i}No`;ni.value=(currentStorageStudent&&currentStorageStudent[`box${i}No`])||'';ni.style.cssText='flex:unset;width:80px';
+    w.append(l1,ci,l2,ni);c.appendChild(w);
+  }
+}
+function updateStorageTotalDisplay(){const r=document.getElementById('storageRentalCheck').checked;document.getElementById('storageTotalDisplay').innerText=(r?parseInt(document.getElementById('storageQtySelect').value):0)*100;}
+function saveStorage(){
+  if(!currentStorageStudent)return;
+  currentStorageStudent.storageRental=document.getElementById('storageRentalCheck').checked;
+  currentStorageStudent.storageQty=parseInt(document.getElementById('storageQtySelect').value);
+  currentStorageStudent.paymentMethod=document.getElementById('paymentMethodSelect').value;
+  for(let i=1;i<=3;i++){const ce=document.getElementById(`box${i}Color`),ne=document.getElementById(`box${i}No`);currentStorageStudent[`box${i}Color`]=(i<=currentStorageStudent.storageQty&&ce)?ce.value:'';currentStorageStudent[`box${i}No`]=(i<=currentStorageStudent.storageQty&&ne)?ne.value:'';}
+  currentStorageStudent.totalAmount=currentStorageStudent.storageRental?currentStorageStudent.storageQty*100:0;
+  closeModal('storageModal');pushState();recordUpdate();renderTable();
+}
+
+// ═══ CLEARANCE MODAL ═══
+let currentClearanceStudent=null;
+function clFeeToggle(i){const cb=document.getElementById('cl_fee'+i),amt=document.getElementById('cl_amt'+i);amt.disabled=!cb.checked;if(!cb.checked)amt.value='';clRecalc();}
+function clRecalc(){let total=0;for(let i=1;i<=7;i++){const cb=document.getElementById('cl_fee'+i),a=document.getElementById('cl_amt'+i);if(cb&&cb.checked&&a&&a.value)total+=parseFloat(a.value)||0;}document.getElementById('cl_total').textContent=total.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function _getInspectionCharges(room,studentId,side){
+  const insp=DormDB.getInspections();
+  const rec=insp.filter(r=>r.room===room&&r.type==='move-out')
+               .sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt))[0];
+  if(!rec||!rec.charges)return null;
+  const occupants=(rec.occupants||[]).length||2;
+  const sideKey=side?`side${side}`:null;
+  const sideAmt=sideKey?(rec.charges[sideKey]||[]).reduce((a,c)=>a+c.amount,0):0;
+  const sharedAmt=(rec.charges.shared||[]).reduce((a,c)=>a+c.amount,0)/occupants;
+  const bathAmt=(rec.charges.bathroom||[]).reduce((a,c)=>a+c.amount,0)/((rec.bathroom&&rec.bathroom.sharedOccupants)||occupants);
+  const total=Math.round(sideAmt+sharedAmt+bathAmt);
+  return total>0?{total}:null;
+}
+function openClearanceModal(s){
+  currentClearanceStudent=s;
+  const c=s.clearance;const f=c.fees||{};
+  document.getElementById('clModalTitle').textContent=s.moveOutReason==='Off Campus'?'📋 Clearance — Leaving Dorm':'📋 Graduation Clearance';
+  document.getElementById('cl_name').value=s.name||'';
+  document.getElementById('cl_id').value=c.studentId||s.studentId||'';
+  document.getElementById('cl_type').value=s.studentType||'regular';
+  document.getElementById('cl_mobile').value=c.mobile||'';
+  document.getElementById('cl_email').value=c.email||'';
+  document.getElementById('cl_fromDorm').value=currentDormName;
+  document.getElementById('cl_fromRoom').value=s.room||'';
+  document.getElementById('cl_toDorm').value=c.toDorm||'';
+  document.getElementById('cl_toRoom').value=c.toRoom||'';
+  document.getElementById('cl_elecIn').value=c.elecIn||0;
+  document.getElementById('cl_elecOut').value=c.elecOut||0;
+  document.getElementById('cl_hotIn').value=c.hotIn||0;
+  document.getElementById('cl_hotOut').value=c.hotOut||0;
+  document.getElementById('cl_leaveDate').value=c.leaveDate||'';
+  const fdata=[['movingFee','movingFeeAmt'],['cleaningFee','cleaningFeeAmt'],['keyFee','keyFeeAmt'],['drawerFee','drawerFeeAmt'],['chairFee','chairFeeAmt'],['stoolFee','stoolFeeAmt'],['otherFee','otherFeeAmt']];
+  fdata.forEach(([ck,ak],i)=>{const cbEl=document.getElementById('cl_fee'+(i+1)),amtEl=document.getElementById('cl_amt'+(i+1));cbEl.checked=!!(f[ck]);amtEl.disabled=!cbEl.checked;amtEl.value=f[ak]||0;});
+  document.getElementById('cl_otherDesc').value=f.otherFeeDesc||'';
+  document.getElementById('cl_remarks').value=c.remarks||'';
+  document.getElementById('cl_formNo').value=c.formNo||'';
+  document.getElementById('cl_formCompleted').checked=!!c.formCompleted;
+  // Pre-fill Other fee from room inspection charges if not already set
+  if(!f.otherFee){const ic=_getInspectionCharges(s.room,s.studentId||s.name,s.side);if(ic&&ic.total>0){document.getElementById('cl_fee7').checked=true;document.getElementById('cl_amt7').disabled=false;document.getElementById('cl_amt7').value=ic.total;document.getElementById('cl_otherDesc').value='Room inspection damage — see inspection report';}}
+  clRecalc();
+  openModal('clearanceModal');
+}
+function readClearanceFields(s){
+  const c=s.clearance;if(!c.fees)c.fees={};
+  s.studentType=document.getElementById('cl_type').value;
+  c.studentId=document.getElementById('cl_id').value;
+  c.mobile=document.getElementById('cl_mobile').value;
+  c.email=document.getElementById('cl_email').value;
+  c.toDorm=document.getElementById('cl_toDorm').value;
+  c.toRoom=document.getElementById('cl_toRoom').value;
+  c.elecIn=parseInt(document.getElementById('cl_elecIn').value)||0;
+  c.elecOut=parseInt(document.getElementById('cl_elecOut').value)||0;
+  c.hotIn=parseInt(document.getElementById('cl_hotIn').value)||0;
+  c.hotOut=parseInt(document.getElementById('cl_hotOut').value)||0;
+  c.leaveDate=document.getElementById('cl_leaveDate').value;
+  const fkeys=[['movingFee','movingFeeAmt'],['cleaningFee','cleaningFeeAmt'],['keyFee','keyFeeAmt'],['drawerFee','drawerFeeAmt'],['chairFee','chairFeeAmt'],['stoolFee','stoolFeeAmt'],['otherFee','otherFeeAmt']];
+  fkeys.forEach(([ck,ak],i)=>{c.fees[ck]=document.getElementById('cl_fee'+(i+1)).checked;c.fees[ak]=parseFloat(document.getElementById('cl_amt'+(i+1)).value)||0;});
+  c.fees.otherFeeDesc=document.getElementById('cl_otherDesc').value;
+  c.remarks=document.getElementById('cl_remarks').value;
+  c.formNo=document.getElementById('cl_formNo').value;
+  c.formCompleted=document.getElementById('cl_formCompleted').checked;
+}
+function saveClearance(){if(!currentClearanceStudent)return;readClearanceFields(currentClearanceStudent);closeModal('clearanceModal');pushState();recordUpdate();renderTable();}
+function vacateAndArchive(){
+  if(!currentClearanceStudent)return;
+  const s=currentClearanceStudent;
+  askConfirm(`Archive "${s.name}" (${s.room}) and clear their slot?\nThis adds them to Room History.`,()=>{
+  readClearanceFields(s);
+  const c=s.clearance,f=c.fees||{};
+  let totalFees=0;['movingFeeAmt','cleaningFeeAmt','keyFeeAmt','drawerFeeAmt','chairFeeAmt','stoolFeeAmt','otherFeeAmt'].forEach(k=>{totalFees+=f[k]||0;});
+  roomHistory.unshift({
+    room:s.room,name:s.name,studentType:s.studentType||'regular',
+    moveOutReason:s.moveOutReason,offCampusType:s.offCampusType||'',
+    leaveDate:c.leaveDate,archivedAt:new Date().toISOString(),
+    studentId:s.studentId||c.studentId||'',email:c.email||'',mobile:c.mobile||'',
+    elecIn:c.elecIn,elecOut:c.elecOut,hotIn:c.hotIn,hotOut:c.hotOut,
+    formNo:c.formNo||'',formCompleted:!!c.formCompleted,
+    transferFrom:(s.transferIn&&s.transferIn.fromDorm)||'',
+    toDorm:c.toDorm||'',totalFees:totalFees,notes:c.remarks||'',
+    storageRental:s.storageRental||false,storageQty:s.storageQty||0,
+    storagePaymentMethod:s.paymentMethod||'Not Paid',storageTotalAmount:s.totalAmount||0,
+    box1Color:s.box1Color||'',box1No:s.box1No||'',
+    box2Color:s.box2Color||'',box2No:s.box2No||'',
+    box3Color:s.box3Color||'',box3No:s.box3No||'',
+    storageResolved:false,storageResolvedAt:''
+  });
+  saveRoomHistory();
+  const idx=fullData.findIndex(x=>x===s);
+  if(idx!==-1)fullData[idx]=emptyStudent(s.room);
+  closeModal('clearanceModal');currentClearanceStudent=null;
+  pushState();recordUpdate();recalcWaiting();applyFilter();
+  });
+}
+
+function cycleSide(ri){
+  const s=filteredData[ri];if(!s)return;
+  s.side=s.side==='A'?'B':s.side==='B'?'':'A';
+  pushState();recordUpdate();renderTable();
+}
+function quickRemoveStudent(s){
+  if(!s.name.trim())return;
+  askConfirm(`Remove "${s.name}" from room ${s.room}?\n\nThis clears the bed and adds a basic record to history.`,()=>{
+    roomHistory.push({
+      room:s.room,name:s.name,studentType:s.studentType||'regular',
+      moveOutReason:'Removed',offCampusType:'',
+      leaveDate:'',archivedAt:new Date().toISOString(),
+      studentId:s.clearance&&s.clearance.studentId||'',
+      email:s.clearance&&s.clearance.email||'',
+      mobile:s.clearance&&s.clearance.mobile||'',
+      elecIn:0,elecOut:0,hotIn:0,hotOut:0,
+      formNo:'',formCompleted:false,
+      transferFrom:s.transferIn&&s.transferIn.fromDorm||'',toDorm:'',
+      totalFees:0,notes:'Quick removed'
+    });
+    const idx=fullData.findIndex(x=>x===s);
+    if(idx!==-1)fullData[idx]=emptyStudent(s.room);
+    saveRoomHistory();pushState();recordUpdate();recalcWaiting();applyFilter();
+  });
+}
+
+function moveStudentToRoom(s){
+  const targetRoom=s.requestedRoom.trim();
+  if(!targetRoom||targetRoom===s.room)return;
+  if(!roomHasVacancy(targetRoom)){showToast('Room '+targetRoom+' is no longer available.','warning');renderTable();return;}
+  askConfirm(`Move "${s.name}" from room ${s.room} to room ${targetRoom}?`,()=>{
+    const targetIdx=fullData.findIndex(x=>x.room===targetRoom&&(!x.name||!x.name.trim()));
+    const srcIdx=fullData.findIndex(x=>x===s);
+    if(targetIdx===-1||srcIdx===-1)return;
+    fullData[targetIdx]={...s,room:targetRoom,requestedRoom:'',requestStatus:'Confirmed',manualStatus:false};
+    fullData[srcIdx]=emptyStudent(s.room);
+    recalcWaiting();applyFilter();pushState();recordUpdate();
+  });
+}
+
+// ═══ PRINT FINANCE FORM ═══
+function printFinanceForm(){
+  if(!currentClearanceStudent)return;
+  const s=currentClearanceStudent;readClearanceFields(s);
+  const c=s.clearance,f=c.fees||{};
+  const feeRows=[[f.movingFee,f.movingFeeAmt,'Required dorm / room moving fees',''],[f.cleaningFee,f.cleaningFeeAmt,'Cleaning fees','Dirty room, balcony, sink, mirror, walls, ceiling fan, bathroom, etc.'],[f.keyFee,f.keyFeeAmt,'Room key not returned',''],[f.drawerFee,f.drawerFeeAmt,'Broken or missing drawer(s)',''],[f.chairFee,f.chairFeeAmt,'Broken or missing chair',''],[f.stoolFee,f.stoolFeeAmt,'Broken or missing stool',''],[f.otherFee,f.otherFeeAmt,'Other fees: '+(f.otherFeeDesc||'_______________'),'']];
+  let total=0;feeRows.forEach(([checked,amt])=>{if(checked)total+=amt||0;});
+  const typeLabel={regular:'Regular Student',new:'New Student',visitor:'Visitor',guest:'Guest'}[s.studentType||'regular']||'Regular Student';
+  const feeHtml=feeRows.map(([checked,amt,desc,note])=>`<tr><td style="width:22px;text-align:center">${checked?'☑':'☐'}</td><td>${escapeHtml(desc)}${note?`<br><small style="color:#888">${escapeHtml(note)}</small>`:''}</td><td style="text-align:right;white-space:nowrap">${checked?'฿ '+Number(amt).toLocaleString('th-TH',{minimumFractionDigits:2}):'—'}</td></tr>`).join('');
+  const formNo=escapeHtml(c.formNo||('DC-'+new Date().getFullYear()+'-???'));
+  const dateIssued=new Date().toLocaleDateString();
+  function cardHtml(finBox,copyLabel){
+    return `<div class="card">
+      <div class="hdr"><div class="logo">APIU<br>DORM</div><div><h1>ASIA-PACIFIC INTERNATIONAL UNIVERSITY</h1><h2>Dormitory Administration — Clearance &amp; Transfer Form</h2></div><div class="hdr-r"><div>FORM NO.</div><div class="fno">${formNo}</div><div style="margin-top:3px">DATE ISSUED</div><div>${dateIssued}</div></div></div>
+      <div class="tbar"><h3>🏠 Clearance &amp; Transfer Form</h3><span class="typ">${escapeHtml(typeLabel)}</span></div>
+      <div class="body">
+        <span class="sec">📋 Student Information</span>
+        <div class="g3">
+          <div class="fld"><label>ID Number</label><div class="val">${escapeHtml(c.studentId||'')}</div></div>
+          <div class="fld" style="grid-column:span 2"><label>Full Name</label><div class="val"><strong>${escapeHtml(s.name)}</strong></div></div>
+          <div class="fld"><label>Mobile</label><div class="val">${escapeHtml(c.mobile||'')}</div></div>
+          <div class="fld" style="grid-column:span 2"><label>Email</label><div class="val">${escapeHtml(c.email||'')}</div></div>
+        </div>
+        <span class="sec">🔄 Transfer Details</span>
+        <div class="trf">
+          <div class="trf-col from"><div class="ctitle">⬆ Transferring From</div><div class="fld"><label>Dormitory</label><div class="val">${escapeHtml(currentDormName)}</div></div><div class="fld"><label>Room Number</label><div class="val">${escapeHtml(s.room)}</div></div></div>
+          <div class="arrow">→</div>
+          <div class="trf-col to"><div class="ctitle">⬇ Transferring To</div><div class="fld"><label>Dormitory</label><div class="val">${escapeHtml(c.toDorm||'')}</div></div><div class="fld"><label>Room Number</label><div class="val">${escapeHtml(c.toRoom||'')}</div></div></div>
+        </div>
+        <span class="sec">⚡ Utility Meter Readings</span>
+        <div class="g2">
+          <div class="fld"><label>Electricity — Move IN</label><div class="val">${c.elecIn||0}</div></div>
+          <div class="fld"><label>Electricity — Move OUT</label><div class="val">${c.elecOut||0}</div></div>
+          <div class="fld"><label>Hot Water — Move IN</label><div class="val">${c.hotIn||0}</div></div>
+          <div class="fld"><label>Hot Water — Move OUT</label><div class="val">${c.hotOut||0}</div></div>
+          <div class="fld"><label>Departure Date</label><div class="val">${escapeHtml(c.leaveDate||'')}</div></div>
+        </div>
+        <span class="sec">💰 Fee Assessment</span>
+        <table class="tbl"><thead><tr><th style="width:20px"></th><th>Description</th><th style="text-align:right;width:100px">Amount</th></tr></thead>
+          <tbody>${feeHtml}</tbody>
+          <tfoot><tr class="total-row"><td colspan="2"><strong>TOTAL CHARGES</strong></td><td style="text-align:right"><strong>฿ ${total.toLocaleString('th-TH',{minimumFractionDigits:2})}</strong></td></tr></tfoot>
+        </table>
+        <span class="sec">📝 Remarks</span>
+        <div style="border:1px solid #dce3ea;border-radius:4px;padding:6px 8px;min-height:36px;font-size:.78rem">${escapeHtml(c.remarks||'')}</div>
+        <span class="sec">✍️ Authorisation &amp; Signatures</span>
+        <div class="sig-grid">
+          <div class="sig-card dean"><div class="sig-role">🖊️ Dean / Administrator</div><div class="sig-line"></div><div style="font-size:.62rem;color:#888">Signature over printed name</div><div class="sig-date">Date: _______________</div></div>
+          <div class="sig-card"><div class="sig-role">Student / Resident</div><div class="sig-line"></div><div style="font-size:.62rem;color:#888">Signature over printed name</div><div class="sig-date">Date: _______________</div></div>
+          <div class="sig-card"><div class="sig-role">Finance Officer</div><div class="sig-line"></div><div style="font-size:.62rem;color:#888">Received by</div><div class="sig-date">Date: _______________</div></div>
+        </div>
+        ${finBox?'<div class="finance-box"><div class="finance-box-title">For Finance Office Use Only</div><div class="g3"><div class="fld"><label>Receipt No.</label><div class="val">&nbsp;</div></div><div class="fld"><label>Amount Received (฿)</label><div class="val">&nbsp;</div></div><div class="fld"><label>Processed By</label><div class="val">&nbsp;</div></div></div></div>':''}
+      </div>
+      <div class="footer"><span>Asia-Pacific International University — Dormitory Administration</span><span>${escapeHtml(currentDormName)}</span><span>${escapeHtml(copyLabel)}</span></div>
+    </div>`;
+  }
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Clearance Form — ${escapeHtml(s.name)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#4a5568;font-family:'Segoe UI',Arial,sans-serif;padding:20px;overflow-x:auto}.a4-sheet{width:1120px;min-height:720px;background:#fff;margin:0 auto;box-shadow:0 6px 32px rgba(0,0,0,.5);display:flex;flex-direction:row;padding:14px;gap:0}.copy-wrap{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}.cut-line-v{width:22px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-left:1.5px dashed #bbb;border-right:1.5px dashed #bbb;background:#fafafa;color:#999;padding:6px 0;margin:0 3px}.cut-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:.6rem;color:#bbb;letter-spacing:.06em;white-space:nowrap}.copy-badge{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:10px;margin-bottom:3px;display:inline-block}.badge-student{background:#e8f4fd;color:#1565c0;border:1px solid #90caf9}.badge-office{background:#fce8e8;color:#b71c1c;border:1px solid #ef9a9a}.card{background:#fff;border:1px solid #c8cdd4;zoom:0.68;width:780px}.hdr{background:#1e3a5f;color:#fff;padding:10px 18px;display:flex;align-items:center;gap:12px;border-bottom:3px solid #e67e22}.logo{width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.5rem;color:#1e3a5f;font-weight:700;text-align:center;padding:4px;flex-shrink:0;line-height:1.2}.hdr h1{font-size:.84rem;font-weight:700;margin:0 0 1px}.hdr h2{font-size:.7rem;font-weight:400;margin:0;opacity:.85}.hdr-r{margin-left:auto;text-align:right;font-size:.66rem}.hdr-r .fno{font-size:.82rem;font-weight:700}.tbar{background:#f0f4f8;border-bottom:1px solid #d0d7df;padding:6px 18px;display:flex;align-items:center;justify-content:space-between}.tbar h3{font-size:.88rem;font-weight:700;color:#1e3a5f;margin:0}.typ{background:#1e3a5f;color:#fff;padding:2px 10px;border-radius:20px;font-size:.7rem}.body{padding:10px 18px}.sec{font-size:.62rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#1e3a5f;padding:2px 8px;border-radius:3px;margin:5px 0 3px;display:block}.g2{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px}.fld label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#555;display:block;margin-bottom:1px}.fld .val{border-bottom:1.5px solid #b0b8c4;padding:2px 2px;font-size:.8rem;min-height:18px}.tbl{width:100%;border-collapse:collapse;font-size:.76rem;margin-top:3px}.tbl th{background:#f0f4f8;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 6px;border-bottom:2px solid #1e3a5f;text-align:left}.tbl td{padding:4px 6px;border-bottom:1px solid #edf0f4}.tbl tr:last-child td{border-bottom:none}.trf{display:grid;grid-template-columns:1fr 36px 1fr;background:#f8fafc;border:1px solid #dce3ea;border-radius:5px;padding:8px}.trf-col .ctitle{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;padding-bottom:2px;border-bottom:2px solid #1e3a5f}.trf-col.from .ctitle{border-color:#e74c3c;color:#c0392b}.trf-col.to .ctitle{border-color:#27ae60;color:#27ae60}.arrow{display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:1.2rem;color:#aaa}.total-row td{background:#1e3a5f;color:#fff;font-weight:700;padding:6px}.sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:5px}.sig-card{border-top:2px solid #1e3a5f;padding-top:4px;text-align:center}.sig-card.dean{border-top-color:#e67e22}.sig-line{height:22px;border-bottom:1.5px solid #b0b8c4;margin:2px 6px 4px}.sig-role{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1e3a5f}.sig-card.dean .sig-role{color:#d35400}.sig-date{font-size:.62rem;color:#888;margin-top:3px}.finance-box{margin-top:8px;border:1px dashed #b0b8c4;border-radius:4px;padding:6px 10px;background:#fafbfc}.finance-box-title{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin-bottom:4px}.footer{background:#f0f4f8;border-top:1px solid #dce3ea;padding:5px 18px;display:flex;justify-content:space-between;font-size:.62rem;color:#888}.pbtn{position:fixed;top:14px;right:16px;background:#1e3a5f;color:#fff;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;z-index:99}@media print{body{background:#fff;padding:0}.pbtn{display:none}.a4-sheet{box-shadow:none;width:100%;min-height:auto;padding:0}.copy-badge,.card,.hdr,.tbar,.sec,.total-row td,.footer{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:5mm 6mm}}</style>
+</head><body>
+<button class="pbtn" onclick="window.print()">🖶️ Print</button>
+<div class="a4-sheet">
+  <div class="copy-wrap"><span class="copy-badge badge-student">✂ Student Copy — Keep this</span>${cardHtml(false,'STUDENT COPY')}</div>
+  <div class="cut-line-v"><span>✂</span><div class="cut-label">Cut here — return Office Copy to Finance</div><span>✂</span></div>
+  <div class="copy-wrap"><span class="copy-badge badge-office">📋 Office Copy — Submit to Finance</span>${cardHtml(true,'OFFICE COPY — CONFIDENTIAL')}</div>
+</div>
+<script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ═══ TRANSFER IN MODAL ═══
+let currentTransferStudent=null;
+function openTransferModal(s){
+  currentTransferStudent=s;
+  document.getElementById('trf_studentName').textContent=s.name||'(unnamed)';
+  const ti=s.transferIn||{};
+  const sel=document.getElementById('trf_dormSel');
+  if(ti.fromDorm&&DORM_LIST.includes(ti.fromDorm)){sel.value=ti.fromDorm;document.getElementById('trf_customRow').style.display='none';}
+  else if(ti.fromDorm){sel.value='other';document.getElementById('trf_customRow').style.display='flex';}
+  else{sel.value='';document.getElementById('trf_customRow').style.display='none';}
+  document.getElementById('trf_fromDorm').value=ti.fromDorm||'';
+  document.getElementById('trf_fromRoom').value=ti.fromRoom||'';
+  document.getElementById('trf_date').value=ti.transferDate||'';
+  document.getElementById('trf_notes').value=ti.notes||'';
+  openModal('transferModal');
+}
+function onTrfDormSelect(){const v=document.getElementById('trf_dormSel').value;document.getElementById('trf_customRow').style.display=v==='other'?'flex':'none';if(v&&v!=='other')document.getElementById('trf_fromDorm').value=v;}
+function saveTransfer(){
+  if(!currentTransferStudent)return;
+  const sel=document.getElementById('trf_dormSel').value;
+  const fromDorm=sel==='other'?document.getElementById('trf_fromDorm').value.trim():(sel||'');
+  if(!currentTransferStudent.transferIn)currentTransferStudent.transferIn={};
+  currentTransferStudent.transferIn.fromDorm=fromDorm;
+  currentTransferStudent.transferIn.fromRoom=document.getElementById('trf_fromRoom').value.trim();
+  currentTransferStudent.transferIn.transferDate=document.getElementById('trf_date').value;
+  currentTransferStudent.transferIn.notes=document.getElementById('trf_notes').value.trim();
+  closeModal('transferModal');pushState();recordUpdate();renderTable();
+}
+function clearTransfer(){
+  if(!currentTransferStudent)return;
+  askConfirm('Clear all transfer info?',()=>{
+    currentTransferStudent.transferIn={fromDorm:'',fromRoom:'',transferDate:'',notes:''};
+    closeModal('transferModal');pushState();recordUpdate();renderTable();
+  });
+}
+
+// ═══ INCOMING QUEUE ═══
+// FIX 4: editing state variable
+let editingQueueId=null;
+function toggleQueuePanel(){const p=document.getElementById('queuePanel');p.style.display=p.style.display==='none'?'block':'none';if(p.style.display==='block'){renderQueue();p.scrollIntoView({behavior:'smooth'});}}
+function updateQueueBadge(){const c=incomingQueue.length;document.getElementById('queueBadge').textContent=c>0?`(${c})`:'';document.getElementById('queueStatCount').innerText=c;document.getElementById('queueInfo').textContent=`${c} entr${c===1?'y':'ies'} in queue`;}
+// FIX 4: openAdd resets editingQueueId and populates smart dropdown
+function openAddIncomingModal(){
+  editingQueueId=null;
+  ['iq_name','iq_fromDorm','iq_fromRoom','iq_notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('iq_type').value='regular';
+  document.getElementById('iq_dormSel').value='';document.getElementById('iq_moveIn').value='';
+  document.getElementById('iq_customRow').style.display='none';
+  document.getElementById('iq_modalTitle').textContent='Add Incoming Student / Pre-Reservation';
+  document.getElementById('iq_saveBtn').textContent='Add to Queue';
+  populateRoomDropdown('');
+  openModal('addIncomingModal');
+}
+// FIX 4: new Edit function — pre-fills modal and sets editingQueueId
+function openEditIncomingModal(id){
+  const entry=incomingQueue.find(q=>q.id===id);if(!entry)return;
+  editingQueueId=id;
+  document.getElementById('iq_name').value=entry.name||'';
+  document.getElementById('iq_type').value=entry.studentType||'regular';
+  document.getElementById('iq_moveIn').value=entry.expectedMoveIn||'';
+  document.getElementById('iq_notes').value=entry.notes||'';
+  const dormSel=document.getElementById('iq_dormSel');
+  if(entry.fromDorm&&DORM_LIST.includes(entry.fromDorm)){dormSel.value=entry.fromDorm;document.getElementById('iq_customRow').style.display='none';}
+  else if(entry.fromDorm){dormSel.value='other';document.getElementById('iq_customRow').style.display='flex';document.getElementById('iq_fromDorm').value=entry.fromDorm;}
+  else{dormSel.value='';document.getElementById('iq_customRow').style.display='none';}
+  document.getElementById('iq_fromRoom').value=entry.fromRoom||'';
+  document.getElementById('iq_modalTitle').textContent='Edit Incoming Student';
+  document.getElementById('iq_saveBtn').textContent='Save Changes';
+  populateRoomDropdown(entry.targetRoom||'');
+  openModal('addIncomingModal');
+}
+function onIqDormSelect(){const v=document.getElementById('iq_dormSel').value;document.getElementById('iq_customRow').style.display=v==='other'?'flex':'none';if(v&&v!=='other')document.getElementById('iq_fromDorm').value=v;}
+// FIX 4+5: saveIncomingEntry handles both Add and Edit paths
+function saveIncomingEntry(){
+  const name=document.getElementById('iq_name').value.trim();if(!name){showToast('Please enter a student name.','warning');return;}
+  const sel=document.getElementById('iq_dormSel').value;
+  const fromDorm=sel==='other'?document.getElementById('iq_fromDorm').value.trim():(sel||'');
+  const targetRoom=getIqTargetRoom();
+  const entry={
+    id:editingQueueId||Date.now(),name,studentType:document.getElementById('iq_type').value,
+    targetRoom,fromDorm,fromRoom:document.getElementById('iq_fromRoom').value.trim(),
+    expectedMoveIn:document.getElementById('iq_moveIn').value,
+    notes:document.getElementById('iq_notes').value.trim(),
+    addedAt:editingQueueId?(incomingQueue.find(q=>q.id===editingQueueId)?.addedAt||new Date().toISOString()):new Date().toISOString()
+  };
+  if(editingQueueId){
+    const idx=incomingQueue.findIndex(q=>q.id===editingQueueId);
+    if(idx!==-1)incomingQueue[idx]=entry;
+    editingQueueId=null;
+  }else{incomingQueue.push(entry);}
+  saveQueue();closeModal('addIncomingModal');renderQueue();renderTable();updateStats();
+}
+// FIX 1: correct vacancy check — aligned with confirmIncomingToRoom (both use empty slot logic)
+function roomHasVacancy(targetRoom){
+  if(!targetRoom)return false;
+  const hasEmpty=fullData.some(s=>s.room===targetRoom&&(!s.name||!s.name.trim()));
+  const soloLocked=fullData.some(s=>s.room===targetRoom&&s.solo&&!s.graduating&&!s.moveOutReason);
+  const isHeld=fullData.some(s=>s.room===targetRoom&&isHoldActive(s));
+  return hasEmpty&&!soloLocked&&!isHeld;
+}
+// FIX 2+3: rich 4-state availability model — used by dropdown and queue display
+function getRoomsWithAvailability(){
+  const map=new Map();
+  for(const s of fullData){
+    if(!map.has(s.room))map.set(s.room,{room:s.room,totalSlots:0,emptySlots:0,leavingDates:[],activeSolo:false});
+    const info=map.get(s.room);info.totalSlots++;
+    if(!s.name||!s.name.trim()){info.emptySlots++;}
+    else{
+      if(s.solo&&!s.moveOutReason)info.activeSolo=true;
+      if(isHoldActive(s))info.isHeld=true;
+      if(s.moveOutReason&&s.clearance&&s.clearance.leaveDate)info.leavingDates.push(s.clearance.leaveDate);
+    }
+  }
+  const order={available:0,soon:1,held:2,full:3,locked:4};
+  const getNum=r=>{const m=String(r).match(/\d+/);return m?parseInt(m[0]):9999;};
+  return Array.from(map.values()).map(info=>{
+    let status,label;
+    if(info.activeSolo){status='locked';label=`\uD83D\uDD12 ${info.room} \u2014 Solo locked`;}
+    else if(info.isHeld){status='held';label=`\uD83C\uDFE0 ${info.room} \u2014 Room hold (student away, paid)`;}
+    else if(info.emptySlots>0){
+      const filled=info.totalSlots-info.emptySlots;
+      status='available';label=`\u2705 ${info.room} (${filled}/${info.totalSlots} \u2014 ${info.emptySlots} slot${info.emptySlots>1?'s':''} free)`;
+    }else if(info.leavingDates.length>0){
+      const earliest=[...info.leavingDates].sort()[0];
+      status='soon';label=`\uD83D\uDCC5 ${info.room} \u2014 opens after ${earliest}`;
+    }else{
+      status='full';label=`\uD83D\uDEAB ${info.room} \u2014 full (${info.totalSlots-info.emptySlots}/${info.totalSlots})`;
+    }
+    return{room:info.room,status,label,emptySlots:info.emptySlots,leavingDates:info.leavingDates};
+  }).sort((a,b)=>order[a.status]-order[b.status]||getNum(a.room)-getNum(b.room));
+}
+// Populate room select dropdown (called on modal open for Add and Edit)
+function populateRoomDropdown(currentValue){
+  const sel=document.getElementById('iq_roomSelect');
+  const rooms=getRoomsWithAvailability();
+  sel.innerHTML='<option value="">-- Select a room --</option>';
+  const groups={available:[],soon:[],held:[],full:[],locked:[]};
+  for(const r of rooms)groups[r.status].push(r);
+  const glabels={available:'Available now',soon:'Opening soon (students leaving)',held:'Room hold — paid absence',full:'Currently full',locked:'Solo locked'};
+  for(const[status,statusRooms]of Object.entries(groups)){
+    if(!statusRooms.length)continue;
+    const og=document.createElement('optgroup');og.label=glabels[status];
+    for(const r of statusRooms){
+      const opt=document.createElement('option');opt.value=r.room;opt.textContent=r.label;
+      if(r.room===currentValue)opt.selected=true;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
+  }
+  const other=document.createElement('option');other.value='__other__';other.textContent='Other (type manually)';
+  sel.appendChild(other);
+  const inList=rooms.some(r=>r.room===currentValue);
+  if(currentValue&&!inList){sel.value='__other__';document.getElementById('iq_customRoomRow').style.display='block';document.getElementById('iq_targetRoom').value=currentValue;}
+  else{document.getElementById('iq_customRoomRow').style.display=sel.value==='__other__'?'block':'none';document.getElementById('iq_targetRoom').value='';}
+  updateRoomHint(sel.value,rooms);
+}
+function onIqRoomSelect(){
+  const v=document.getElementById('iq_roomSelect').value;
+  document.getElementById('iq_customRoomRow').style.display=v==='__other__'?'block':'none';
+  if(v==='__other__'){document.getElementById('iq_targetRoom').focus();document.getElementById('iq_roomHint').textContent='';}
+  else updateRoomHint(v,getRoomsWithAvailability());
+}
+function updateRoomHint(roomVal,rooms){
+  const hint=document.getElementById('iq_roomHint');if(!roomVal||roomVal==='__other__'){hint.textContent='';return;}
+  const info=rooms.find(r=>r.room===roomVal);if(!info){hint.textContent='';return;}
+  if(info.status==='available')hint.textContent=`${info.emptySlots} empty slot${info.emptySlots>1?'s':''} — can be confirmed immediately.`;
+  else if(info.status==='soon')hint.textContent=`Full now but ${info.leavingDates.length} student${info.leavingDates.length>1?'s':''} planning to leave. Earliest: ${[...info.leavingDates].sort()[0]}.`;
+  else if(info.status==='full')hint.textContent='No students leaving. Entry queued until a slot opens.';
+  else if(info.status==='held')hint.textContent='Room is on paid hold — student is away but keeping their spot.';
+  else hint.textContent='Active solo resident with no move-out plan — room is locked.';
+}
+function getIqTargetRoom(){
+  const sel=document.getElementById('iq_roomSelect');
+  return sel.value==='__other__'?document.getElementById('iq_targetRoom').value.trim():sel.value;
+}
+function confirmIncomingToRoom(id){
+  const entry=incomingQueue.find(q=>q.id===id);if(!entry)return;
+  if(!entry.targetRoom){showToast('This entry has no target room.','warning');return;}
+  if(!roomHasVacancy(entry.targetRoom)){showToast(`Room ${entry.targetRoom} is currently full. Wait for a student to move out first.`,'warning');return;}
+  const emptySlot=fullData.find(s=>s.room===entry.targetRoom&&(!s.name||!s.name.trim()));
+  if(!emptySlot){showToast(`No empty bed slot found in room ${entry.targetRoom}.`,'warning');return;}
+  emptySlot.name=entry.name;emptySlot.studentType=entry.studentType||'regular';
+  if(entry.fromDorm)emptySlot.transferIn={fromDorm:entry.fromDorm,fromRoom:entry.fromRoom,transferDate:entry.expectedMoveIn,notes:entry.notes};
+  incomingQueue=incomingQueue.filter(q=>q.id!==id);
+  saveQueue();pushState();recordUpdate();renderTable();renderQueue();
+  showToast(`${escapeHtml(entry.name)} confirmed into room ${entry.targetRoom}.`,'success');
+}
+function removeIncomingEntry(id){
+  askConfirm('Remove this entry from the queue?',()=>{
+    incomingQueue=incomingQueue.filter(q=>q.id!==id);saveQueue();renderQueue();renderTable();updateStats();
+  });
+}
+function renderQueue(){
+  const c=document.getElementById('queueTableContainer');updateQueueBadge();
+  if(!incomingQueue.length){c.innerHTML='<p style="color:#888;font-size:.85rem;margin:0">Queue is empty. Use ➕ Add Incoming Student to pre-register students.</p>';return;}
+  // FIX 4: use rich 4-state availability model for each target room
+  const roomAvail=new Map();
+  for(const r of getRoomsWithAvailability())roomAvail.set(r.room,r);
+  const typeIcon={regular:'🎓',new:'🆕',visitor:'👤',guest:'🏨'};
+  let html=`<div style="overflow-x:auto"><table class="q-tbl"><thead><tr>
+    <th>Name</th><th>Type</th><th>Target Room</th><th>From Dorm</th><th>From Room</th>
+    <th>Move-In Date</th><th>Notes</th><th>Room Status</th><th>Actions</th>
+  </tr></thead><tbody>`;
+  for(const q of incomingQueue){
+    const info=q.targetRoom?roomAvail.get(q.targetRoom):null;
+    const canConfirm=info&&info.status==='available';
+    let vB='<span style="color:#aaa">—</span>';
+    if(info){
+      if(info.status==='available')
+        vB=`<span style="color:#2c7a4d;font-weight:700">✅ Available now</span>`;
+      else if(info.status==='soon'){
+        const earliest=[...info.leavingDates].sort()[0];
+        vB=`<span style="color:#e67e22;font-weight:600">🗓️ After ${earliest}</span>`;
+      }else if(info.status==='full')
+        vB=`<span style="color:#c0392b">🚫 Full</span>`;
+      else if(info.status==='held')
+        vB=`<span style="color:#e67e22;font-weight:600">🏠 Room hold (paid absence)</span>`;
+      else
+        vB=`<span style="color:#c0392b">🔒 Solo locked</span>`;
+    }
+    html+=`<tr>
+      <td><strong>${escapeHtml(q.name)}</strong></td>
+      <td>${typeIcon[q.studentType]||'🎓'} ${escapeHtml(q.studentType||'regular')}</td>
+      <td><strong>${escapeHtml(q.targetRoom||'—')}</strong></td>
+      <td>${escapeHtml(q.fromDorm||'—')}</td>
+      <td>${escapeHtml(q.fromRoom||'—')}</td>
+      <td>${escapeHtml(q.expectedMoveIn||'—')}</td>
+      <td style="font-size:.76rem;max-width:140px">${escapeHtml(q.notes||'')}</td>
+      <td>${vB}</td>
+      <td style="white-space:nowrap;display:flex;gap:4px;flex-wrap:wrap;padding:5px 4px">
+        <button class="btn-sm" onclick="openEditIncomingModal(${q.id})">✏️ Edit</button>
+        ${canConfirm?`<button class="btn-sm green" onclick="confirmIncomingToRoom(${q.id})">✅ Confirm</button>`:''}
+        <button class="btn-sm red" onclick="removeIncomingEntry(${q.id})">🗑️ Remove</button>
+      </td>
+    </tr>`;
+  }
+  html+=`</tbody></table></div>`;c.innerHTML=html;
+}
+
+// ═══ ROOM HISTORY MODAL ═══
+function storageSubRow(h,cols){
+  if(!h.storageRental)return'';
+  const boxes=[];
+  for(let i=1;i<=(h.storageQty||1);i++){
+    const c=h[`box${i}Color`],n=h[`box${i}No`];
+    if(c||n)boxes.push(`Box ${i}: ${[c,n].filter(Boolean).join(' #')}`);
+  }
+  const boxStr=boxes.length?boxes.join(' · '):'No box details recorded';
+  const refDate=h.leaveDate?new Date(h.leaveDate):new Date(h.archivedAt);
+  const days=Math.floor((Date.now()-refDate)/86400000);
+  const dayStr=days>0?`${days} day${days!==1?'s':''} since leave date`:'Left today';
+  if(h.storageResolved){
+    const rd=h.storageResolvedAt?` on ${new Date(h.storageResolvedAt).toLocaleDateString()}`:'';
+    return`<tr style="background:#f0fff4"><td colspan="${cols}" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#27ae60">📦 ✅ Storage retrieved${rd} &nbsp;·&nbsp; ${escapeHtml(boxStr)}</td></tr>`;
+  }
+  return`<tr style="background:#fff8e1"><td colspan="${cols}" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#856404">📦 <strong>${h.storageQty||1} box${(h.storageQty||1)!==1?'es':''} outstanding</strong> &nbsp;·&nbsp; ${escapeHtml(boxStr)} &nbsp;·&nbsp; ⏱ ${escapeHtml(dayStr)} &nbsp;<button onclick="resolveStorage('${h.archivedAt}')" style="padding:1px 8px;font-size:.72rem;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer">✓ Mark Retrieved</button></td></tr>`;
+}
+function resolveStorage(archivedAt){
+  const h=roomHistory.find(r=>r.archivedAt===archivedAt);
+  if(!h)return;
+  askConfirm(`Mark storage boxes for "${h.name}" as retrieved?`,()=>{
+    h.storageResolved=true;
+    h.storageResolvedAt=new Date().toISOString();
+    saveRoomHistory();
+    const hm=document.getElementById('historyModal');
+    if(hm.style.display!=='none')openHistoryModal(h.room);
+  });
+}
+function openHistoryModal(room){
+  document.getElementById('histModalTitle').textContent=`📜 Room ${escapeHtml(room)} — History`;
+  const entries=roomHistory.filter(h=>h.room===room);
+  if(!entries.length){document.getElementById('histModalBody').innerHTML='<p style="color:#888;font-size:.85rem">No history records for this room.</p>';}
+  else{
+    const typeIcon={regular:'🎓',new:'🆕',visitor:'👤',guest:'🏨'};
+    let html=`<table class="h-tbl"><thead><tr><th>Name</th><th>ID</th><th>Type</th><th>Move-Out</th><th>Leave Date</th><th>To</th><th>Fees</th><th>Archived</th></tr></thead><tbody>`;
+    for(const h of entries){
+      const reason=h.moveOutReason+(h.offCampusType?' — '+h.offCampusType:'');
+      html+=`<tr>
+        <td><strong>${escapeHtml(h.name)}</strong><br><small style='color:#888'>${escapeHtml(h.email||'')} ${escapeHtml(h.mobile?'· '+h.mobile:'')}</small></td>
+        <td style='font-size:.75rem'>${escapeHtml(h.studentId||'—')}</td>
+        <td>${typeIcon[h.studentType]||'🎓'} ${escapeHtml(h.studentType||'regular')}</td>
+        <td>${escapeHtml(reason||'—')}</td>
+        <td>${escapeHtml(h.leaveDate||'—')}</td>
+        <td style='font-size:.75rem'>${escapeHtml(h.toDorm||'—')}</td>
+        <td>${h.totalFees?'฿'+Number(h.totalFees).toLocaleString('th-TH',{minimumFractionDigits:2}):'—'}</td>
+        <td style='font-size:.72rem'>${new Date(h.archivedAt).toLocaleDateString()}</td>
+      </tr>${storageSubRow(h,8)}`;
+    }
+    html+=`</tbody></table>`;document.getElementById('histModalBody').innerHTML=html;
+  }
+  openModal('historyModal');
+}
+
+// ═══ HOLD PAYMENT MODAL JS (room-hold change #9) ═══
+let currentHoldStudent=null;
+function openHoldModal(s){
+  currentHoldStudent=s;
+  document.getElementById('holdStudentName').textContent=s.name||'(unnamed)';
+  document.getElementById('holdAmount').value=(s.roomHold&&s.roomHold.amountPaid)||0;
+  openModal('holdModal');
+}
+function saveHold(){
+  if(!currentHoldStudent)return;
+  if(!currentHoldStudent.roomHold)currentHoldStudent.roomHold={active:true,paymentMethod:'Not Paid',amountPaid:0};
+  currentHoldStudent.roomHold.amountPaid=parseFloat(document.getElementById('holdAmount').value)||0;
+  closeModal('holdModal');pushState();recordUpdate();renderTable();
+}
+
+// ═══ SAVE / LOAD / RESET ═══
+function saveToExcel(){
+  const rows=fullData.map(s=>{
+    const c=s.clearance||{};const f=c.fees||{};
+    return{Room:s.room,'AC Room':s.ac?1:0,Name:s.name,'Requested Room':s.requestedRoom,Status:s.requestStatus,'Manual Status':s.manualStatus?1:0,
+      Summer:s.summer?1:0,'1st Semester':s.firstSem?1:0,'Move Out':s.graduating?1:0,
+      'Move Out Reason':s.moveOutReason||'',"Off Campus Type":s.offCampusType||'',
+      'Student Type':s.studentType||'regular',
+      'Leave Date':c.leaveDate||'',"Return Date":s.returnDate||'',
+      'Keys Returned':s.keysReturned?1:0,Solo:s.solo?1:0,
+      'Storage Rental':s.storageRental?1:0,'Storage Qty':s.storageQty,'Payment Method':s.paymentMethod,'Total Amount':s.totalAmount,'Box 1 Color':s.box1Color||'','Box 1 No':s.box1No||'','Box 2 Color':s.box2Color||'','Box 2 No':s.box2No||'','Box 3 Color':s.box3Color||'','Box 3 No':s.box3No||'',
+      'Transfer From Dorm':(s.transferIn&&s.transferIn.fromDorm)||'',
+      'Transfer From Room':(s.transferIn&&s.transferIn.fromRoom)||'',
+      'Transfer Date':(s.transferIn&&s.transferIn.transferDate)||'',
+      'Transfer Notes':(s.transferIn&&s.transferIn.notes)||'',
+      'Student ID':s.studentId||c.studentId||'',Mobile:c.mobile||'',Email:c.email||'',
+      'To Dorm':c.toDorm||'','To Room':c.toRoom||'',
+      'Elec IN':c.elecIn||0,'Elec OUT':c.elecOut||0,'Hot IN':c.hotIn||0,'Hot OUT':c.hotOut||0,
+      'Form No':c.formNo||'','Clearance Done':c.formCompleted?1:0,'Clearance Remarks':c.remarks||'',
+      'Moving Fee':f.movingFee?f.movingFeeAmt:0,'Cleaning Fee':f.cleaningFee?f.cleaningFeeAmt:0,
+      'Key Fee':f.keyFee?f.keyFeeAmt:0,'Drawer Fee':f.drawerFee?f.drawerFeeAmt:0,
+      'Chair Fee':f.chairFee?f.chairFeeAmt:0,'Stool Fee':f.stoolFee?f.stoolFeeAmt:0,
+      'Other Fee Desc':f.otherFeeDesc||'','Other Fee Amt':f.otherFee?f.otherFeeAmt:0,
+      'Room Hold Active':(s.roomHold&&s.roomHold.active)?1:0,
+      'Room Hold Payment':(s.roomHold&&s.roomHold.paymentMethod)||'Not Paid',
+      'Room Hold Amount':(s.roomHold&&s.roomHold.amountPaid)||0};
+  });
+  const ws1=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws1,'DormData');
+  if(incomingQueue.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(incomingQueue),'IncomingQueue');}
+  if(roomHistory.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(roomHistory),'RoomHistory');}
+  if(awayStudents.length){const awayRows=awayStudents.map(e=>({...e,roomHold:JSON.stringify(e.roomHold||{}),transferIn:JSON.stringify(e.transferIn||{}),clearance:JSON.stringify(e.clearance||{})}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(awayRows),'AwayStudents');}
+  XLSX.writeFile(wb,`${currentDormName.replace(/\s/g,'_')}_DormData_v4.xlsx`);
+  markSaved();document.getElementById('loadStatus').innerText='✓ Saved!';setTimeout(()=>document.getElementById('loadStatus').innerText='',3000);
+}
+function loadFromInput(){
+  const file=document.getElementById('excelInput').files[0];if(!file){showToast('Please select a file first.','warning');return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
+      const pb=v=>typeof v==='boolean'?v:String(v).toLowerCase()==='yes'||String(v)==='1';
+      const str=v=>String(v||'').trim();
+      fullData=rows.filter(r=>str(r.Room)||str(r.Name)).map(r=>{
+        const s=emptyStudent(str(r.Room));s.ac=r['AC Room']!==undefined&&r['AC Room']!==''?pb(r['AC Room']):/AC/i.test(str(r.Room));s.name=str(r.Name);s.studentId=str(r['Student ID'])||'';s.requestedRoom=str(r['Requested Room']);s.requestStatus=str(r.Status)||'Confirmed';s.manualStatus=pb(r['Manual Status']);s.summer=pb(r.Summer);s.firstSem=pb(r['1st Semester']);s.graduating=pb(r['Move Out'])||!!str(r['Move Out Reason']);s.moveOutReason=str(r['Move Out Reason']);s.offCampusType=str(r['Off Campus Type']);s.studentType=str(r['Student Type'])||'regular';s.keysReturned=pb(r['Keys Returned']);s.solo=pb(r.Solo);s.returnDate=str(r['Return Date']);s.storageRental=pb(r['Storage Rental']);s.storageQty=parseInt(r['Storage Qty'])||1;s.paymentMethod=str(r['Payment Method'])||'Not Paid';s.totalAmount=parseInt(r['Total Amount'])||0;s.box1Color=str(r['Box 1 Color']||'');s.box1No=str(r['Box 1 No']||'');s.box2Color=str(r['Box 2 Color']||'');s.box2No=str(r['Box 2 No']||'');s.box3Color=str(r['Box 3 Color']||'');s.box3No=str(r['Box 3 No']||'');
+        s.transferIn={fromDorm:str(r['Transfer From Dorm']),fromRoom:str(r['Transfer From Room']),transferDate:str(r['Transfer Date']),notes:str(r['Transfer Notes']||'')};
+        s.roomHold={active:pb(r['Room Hold Active']),paymentMethod:str(r['Room Hold Payment'])||'Not Paid',amountPaid:parseFloat(r['Room Hold Amount'])||0};
+        s.clearance={formCompleted:pb(r['Clearance Done']),leaveDate:str(r['Leave Date']),elecIn:parseInt(r['Elec IN'])||0,elecOut:parseInt(r['Elec OUT'])||0,hotIn:parseInt(r['Hot IN'])||0,hotOut:parseInt(r['Hot OUT'])||0,studentId:str(r['Student ID']),mobile:str(r.Mobile),email:str(r.Email),toDorm:str(r['To Dorm']),toRoom:str(r['To Room']),formNo:str(r['Form No']),remarks:str(r['Clearance Remarks']||''),fees:{movingFee:!!(parseFloat(r['Moving Fee'])),movingFeeAmt:parseFloat(r['Moving Fee'])||0,cleaningFee:!!(parseFloat(r['Cleaning Fee'])),cleaningFeeAmt:parseFloat(r['Cleaning Fee'])||0,keyFee:!!(parseFloat(r['Key Fee'])),keyFeeAmt:parseFloat(r['Key Fee'])||0,drawerFee:!!(parseFloat(r['Drawer Fee'])),drawerFeeAmt:parseFloat(r['Drawer Fee'])||0,chairFee:!!(parseFloat(r['Chair Fee'])),chairFeeAmt:parseFloat(r['Chair Fee'])||0,stoolFee:!!(parseFloat(r['Stool Fee'])),stoolFeeAmt:parseFloat(r['Stool Fee'])||0,otherFee:!!(parseFloat(r['Other Fee Amt'])),otherFeeAmt:parseFloat(r['Other Fee Amt'])||0,otherFeeDesc:str(r['Other Fee Desc'])}};
+        return s;
+      });
+      if(wb.SheetNames.includes('IncomingQueue')){try{incomingQueue=XLSX.utils.sheet_to_json(wb.Sheets['IncomingQueue'],{defval:''})||[];}catch(e){}}
+      if(wb.SheetNames.includes('RoomHistory')){try{roomHistory=XLSX.utils.sheet_to_json(wb.Sheets['RoomHistory'],{defval:''})||[];}catch(e){}}
+      if(wb.SheetNames.includes('AwayStudents')){try{const safeJ=(v,d)=>{try{return typeof v==='string'&&v?JSON.parse(v):v||d;}catch(e2){return d;}};awayStudents=XLSX.utils.sheet_to_json(wb.Sheets['AwayStudents'],{defval:''}).map(e=>({...e,roomHold:safeJ(e.roomHold,{active:false,paymentMethod:'Not Paid',amountPaid:0}),transferIn:safeJ(e.transferIn,{fromDorm:'',fromRoom:'',transferDate:'',notes:''}),clearance:safeJ(e.clearance,clearanceDef())}));}catch(e){}}
+      fullData=normaliseToRows(fullData);historyStack=[];historyIndex=-1;
+      pushState();recalcWaiting();applyFilter();recordUpdate();markSaved();renderQueue();updateQueueBadge();updateAwayBadge();
+      document.getElementById('loadStatus').innerText=`✓ Loaded ${rows.length} rows`;setTimeout(()=>document.getElementById('loadStatus').innerText='',5000);
+    }catch(err){showToast('Error reading file: '+err.message,'error',6000);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function exportEmptyTemplate(){
+  if(!fullData.length){showToast('Load or generate a dorm setup first.','warning');return;}
+  const ws=XLSX.utils.aoa_to_sheet([['Room','Name','Transfer From Dorm','Transfer From Room'],...fullData.map(s=>[s.room,'','',''])]);
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Template');
+  XLSX.writeFile(wb,`Empty_Template_${currentDormName.replace(/\s/g,'_')}.xlsx`);
+}
+function resetToEmbedded(){
+  askConfirm('Reset to default Elijah Hall data? All unsaved changes will be lost.',()=>{
+    fullData=JSON.parse(JSON.stringify(masterList));historyStack=[];historyIndex=-1;
+    pushState();recalcWaiting();applyFilter();recordUpdate();markSaved();
+    document.getElementById('loadStatus').innerText='✓ Reset to Elijah Hall';setTimeout(()=>document.getElementById('loadStatus').innerText='',4000);
+  });
+}
+function resetAllEdits(){
+  askConfirm('Reset ALL edits? All changes since last save will be lost.',()=>{
+    fullData=JSON.parse(JSON.stringify(masterList));historyStack=[];historyIndex=-1;
+    pushState();recalcWaiting();applyFilter();recordUpdate();markSaved();
+  });
+}
+
+// ═══ INIT ═══
+function _runInit(){
+  const sn=localStorage.getItem('dormNameSelect'),sc=localStorage.getItem('dormNameCustom'),sm=localStorage.getItem('dormMaxOccupants');
+  if(sn){document.getElementById('dormSelect').value=sn;if(sn==='Other'&&sc)document.getElementById('customDormName').value=sc;updateDormName();}
+  if(sm){document.getElementById('maxOccupantsSelect').value=sm;setMaxOccupants();}
+  const sf=localStorage.getItem('dormFloor')||'all';currentFloor=sf;document.getElementById('floorFilter').value=sf;
+  if(loadFromLS()){document.getElementById('loadStatus').innerText='✓ Restored from browser storage';setTimeout(()=>document.getElementById('loadStatus').innerText='',4000);recalcWaiting();}
+  else{fullData=JSON.parse(JSON.stringify(masterList));}
+  pushState();applyFilter();markSaved();renderQueue();updateQueueBadge();updateAwayBadge();
+  initColPicker();
+  _initDone=true;
+}
+_runInit();
+</script>
+<div style="text-align:center;padding:18px 0 10px;font-size:.72rem;color:#aaa;line-height:1.7">
+  Developed using <a href="https://claude.ai/code" target="_blank" style="color:#7b61ff;text-decoration:none">Claude Code</a> by <strong style="color:#888">Richmond Ilao</strong><br>
+  DormPortalUniversal v4 &nbsp;·&nbsp; Asia-Pacific International University
+</div>
+<!-- Confirm Modal -->
+<div id="confirmModal" class="modal" style="display:none"><div class="modal-content" style="max-width:420px">
+  <div id="confirmMsg" style="margin-bottom:22px;line-height:1.6;white-space:pre-wrap;font-size:.9rem"></div>
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn" style="background:#888" onclick="_doConfirmNo()">Cancel</button>
+    <button class="btn btn-green" onclick="_doConfirmYes()">Confirm</button>
+  </div>
+</div></div>
+
+<!-- Prompt Modal -->
+<div id="promptModal" class="modal" style="display:none"><div class="modal-content" style="max-width:420px">
+  <div id="promptMsg" style="margin-bottom:12px;line-height:1.6;white-space:pre-wrap;font-size:.9rem"></div>
+  <input id="promptInput" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:.85rem;margin-bottom:16px">
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <button class="btn" style="background:#888" onclick="_promptOnOk=null;closeModal('promptModal')">Cancel</button>
+    <button class="btn btn-green" onclick="_doPromptOk()">OK</button>
+  </div>
+</div></div>
+
+<div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none"></div>
+</body>
+</html>

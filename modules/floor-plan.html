@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Floor Plan — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.nav-bar{display:flex;align-items:center;gap:12px;background:#1e3a5f;color:#fff;padding:10px 18px;flex-wrap:wrap}
+.nav-back{color:#fff;text-decoration:none;font-size:.82rem;font-weight:700;padding:4px 10px;background:rgba(255,255,255,.15);border-radius:6px}
+.nav-back:hover{background:rgba(255,255,255,.25)}
+.nav-title{font-size:1rem;font-weight:800}
+.nav-dorm{font-size:.78rem;opacity:.75;margin-left:auto}
+.wrap{max-width:1200px;margin:0 auto;padding:20px}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px;background:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 13px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+.btn:hover{opacity:.88}
+.btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-teal{background:#16a085}
+.floor-tabs{display:flex;gap:4px}
+.ftab{padding:5px 14px;border-radius:6px;border:2px solid #d9e6f5;background:#fff;cursor:pointer;font-size:.8rem;font-weight:700;color:#1e3a5f;transition:all .15s}
+.ftab.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+.legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.75rem;margin-left:auto}
+.leg-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+
+/* ── Floor grid ── */
+.floor-section{margin-bottom:24px}
+.floor-label{font-size:.85rem;font-weight:800;color:#1e3a5f;margin-bottom:8px;padding-left:2px}
+.room-grid{display:flex;flex-wrap:wrap;gap:8px}
+.room-card{width:100px;background:#fff;border-radius:10px;padding:8px 10px;box-shadow:0 1px 5px rgba(0,0,0,.09);position:relative;cursor:default;border:2px solid transparent;transition:border-color .12s}
+.room-card:hover{border-color:#1e3a5f}
+.room-no{font-weight:800;font-size:.85rem;color:#1e3a5f;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+.room-badge{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.room-occ{font-size:.68rem;color:#555;line-height:1.4}
+.room-empty{font-size:.65rem;color:#bbb;font-style:italic}
+.ac-tag{font-size:.55rem;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 4px;font-weight:700}
+.hw-tag{font-size:.55rem;background:#fff3e0;color:#e65100;border-radius:3px;padding:1px 4px;font-weight:700;display:block;margin-top:3px}
+.empty-state{color:#aaa;font-size:.9rem;padding:40px;text-align:center}
+
+/* ── Pairing config panel ── */
+.pair-panel{background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 8px rgba(0,0,0,.08);margin-top:20px}
+.pair-panel h3{font-size:.95rem;color:#1e3a5f;margin-bottom:14px;font-weight:800}
+.pair-info{font-size:.78rem;color:#666;margin-bottom:14px;line-height:1.5}
+.pair-table-wrap{overflow-x:auto;margin-bottom:12px}
+.pair-tbl{width:100%;border-collapse:collapse;font-size:.8rem;min-width:380px}
+.pair-tbl th{background:#1e3a5f;color:#fff;padding:6px 10px;text-align:left}
+.pair-tbl td{border:1px solid #e0e0e0;padding:6px 10px;vertical-align:middle}
+.pair-tbl tr:nth-child(even) td{background:#f8faff}
+.pair-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.45)}
+.modal-content{background:#fff;margin:10% auto;padding:22px;width:380px;border-radius:14px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.close-modal{float:right;font-size:24px;cursor:pointer;color:#666;line-height:1}
+.close-modal:hover{color:#c0392b}
+.fg{margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.fg label{width:110px;flex-shrink:0;font-size:.82rem;color:#444}
+.fg input,.fg select{flex:1;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:.82rem}
+.btn-sm{padding:3px 8px;font-size:.72rem;cursor:pointer;background:#1e3a5f;color:#fff;border:none;border-radius:4px}
+.btn-sm.red{background:#c0392b}.btn-sm.orange{background:#e67e22}
+
+/* ── Print ── */
+#printSection{display:none}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body>*:not(#printSection){display:none!important}
+  #printSection{display:block!important}
+  @page{size:A4 landscape;margin:8mm 10mm}
+  .pr-title{font-size:12pt;font-weight:800;color:#1e3a5f;margin-bottom:6pt;text-align:center}
+  .pr-floor{break-before:auto;margin-bottom:10pt}
+  .pr-floor-lbl{font-size:9pt;font-weight:800;color:#1e3a5f;margin-bottom:4pt;border-bottom:1pt solid #1e3a5f;padding-bottom:2pt}
+  .pr-grid{display:flex;flex-wrap:wrap;gap:5pt}
+  .pr-card{width:65pt;padding:4pt 5pt;border:1pt solid #ccc;border-radius:4pt;font-size:7pt;background:#fff}
+  .pr-card.avail{background:#e8f5e9;border-color:#2e7d32}
+  .pr-card.soon{background:#fff9c4;border-color:#f9a825}
+  .pr-card.held{background:#fff3e0;border-color:#ef6c00}
+  .pr-card.full{background:#fdecea;border-color:#c62828}
+  .pr-card.empty{background:#f5f5f5;border-color:#bbb}
+  .pr-room{font-weight:800;font-size:8pt}
+  .pr-names{font-size:6.5pt;color:#333;margin-top:2pt;line-height:1.3}
+  .pr-hw{font-size:6pt;color:#e65100;margin-top:2pt}
+}
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <a id="navBack" href="../index.html" class="nav-back">← Menu</a>
+  <script>(function(){const from=new URLSearchParams(location.search).get('back');if(from==='room-reservations'){const l=document.getElementById('navBack');l.href='room-reservations.html';l.textContent='← Room Reservations';}})()</script>
+  <span class="nav-title">🏢 Floor Plan</span>
+  <span class="nav-dorm" id="navDorm"></span>
+</div>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div class="floor-tabs" id="floorTabs">
+      <button class="ftab active" data-floor="all" onclick="setFloor('all')">All Floors</button>
+      <button class="ftab" data-floor="1,2" onclick="setFloor('1,2')">Floor 1–2</button>
+      <button class="ftab" data-floor="3" onclick="setFloor('3')">Floor 3</button>
+      <button class="ftab" data-floor="4" onclick="setFloor('4')">Floor 4</button>
+    </div>
+    <button class="btn btn-orange" onclick="printFloorPlan()">📐 Print A4</button>
+    <button class="btn btn-teal" onclick="togglePairPanel()">🚿 Bathroom Pairing</button>
+    <div class="legend">
+      <span><span class="leg-dot" style="background:#4caf50"></span>Available</span>
+      <span><span class="leg-dot" style="background:#fbc02d"></span>Leaving soon</span>
+      <span><span class="leg-dot" style="background:#ef6c00"></span>Room hold</span>
+      <span><span class="leg-dot" style="background:#e53935"></span>Full / Locked</span>
+      <span><span class="leg-dot" style="background:#bdbdbd"></span>Empty</span>
+    </div>
+  </div>
+
+  <div id="floorplanWrap"></div>
+
+  <!-- Bathroom pairing panel -->
+  <div id="pairPanel" class="pair-panel" style="display:none">
+    <h3>🚿 Hot Water Bathroom Pairing</h3>
+    <p class="pair-info">
+      Define which rooms share a single hot water meter. Used by the Electricity & Hot Water module to
+      split bills between paired rooms. Rooms 226, 326, and 426 have their own solo meters.
+    </p>
+    <div class="pair-table-wrap">
+      <table class="pair-tbl" id="pairTable">
+        <thead><tr><th>#</th><th>Room A</th><th>Room B</th><th>Type</th><th></th></tr></thead>
+        <tbody id="pairTbody"></tbody>
+      </table>
+    </div>
+    <div class="pair-actions">
+      <button class="btn btn-green" onclick="openPairModal(null)">➕ Add Pair</button>
+      <button class="btn" onclick="autoGeneratePairs()">⚡ Auto-Generate</button>
+      <span id="pairSaveMsg" style="font-size:.78rem;color:#2c7a4d"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Pair Modal -->
+<div id="pairModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closePairModal()">&times;</span>
+    <h3 id="pairModalTitle">Add Bathroom Pair</h3>
+    <div style="margin-top:16px">
+      <div class="fg">
+        <label>Type:</label>
+        <select id="pairType" onchange="onPairTypeChange()">
+          <option value="pair">Shared (2 rooms)</option>
+          <option value="solo">Solo meter (1 room)</option>
+        </select>
+      </div>
+      <div class="fg" id="pairRoomARow">
+        <label>Room A:</label>
+        <input type="text" id="pairRoomA" placeholder="e.g. 201">
+      </div>
+      <div class="fg" id="pairRoomBRow">
+        <label>Room B:</label>
+        <input type="text" id="pairRoomB" placeholder="e.g. 203">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-green" onclick="savePairEntry()">Save</button>
+        <button class="btn" onclick="closePairModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Print section (hidden on screen) -->
+<div id="printSection"></div>
+
+<script>
+let currentFloor = 'all';
+let rooms = [];
+let floorPlan = { bathroomPairs: [], soloPairs: [] };
+let editingPairIndex = null;
+
+// ── Init ──────────────────────────────────────────────────────────────
+function init() {
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  rooms = DormDB.getRooms();
+  floorPlan = DormDB.getFloorPlan();
+  renderFloorPlan();
+  renderPairTable();
+  DormDB.on('dormData', () => { rooms = DormDB.getRooms(); renderFloorPlan(); });
+  DormDB.on('dormFloorPlan', () => { floorPlan = DormDB.getFloorPlan(); renderPairTable(); renderFloorPlan(); });
+}
+
+// ── Occupancy helpers ─────────────────────────────────────────────────
+function getFloor(room) {
+  const m = String(room).trim().match(/\d+/);
+  if (m) { const d = m[0].charAt(0); if (d === '1' || d === '2') return '1,2'; if (d === '3') return '3'; if (d === '4') return '4'; }
+  return 'unknown';
+}
+
+function matchesFloor(room, f) { return f === 'all' || getFloor(room) === f; }
+
+function getOccupancy(room) {
+  const slots = rooms.filter(s => s.room === room);
+  const named = slots.filter(s => s.name && s.name.trim());
+  const leaving = named.filter(s => s.graduating && s.moveOutReason && s.clearance && s.clearance.leaveDate);
+  const held = named.some(s => s.roomHold && s.roomHold.active && (s.summer || s.firstSem));
+  const solo = named.some(s => s.solo && !s.moveOutReason);
+  if (named.length === 0) return { state: 'empty', students: [] };
+  if (held) return { state: 'held', students: named.map(s => ({ name: s.name, id: s.studentId || '' })) };
+  if (solo) return { state: 'full', students: named.map(s => ({ name: s.name, id: s.studentId || '' })) };
+  if (leaving.length > 0 && leaving.length === named.length) return { state: 'soon', students: named.map(s => ({ name: s.name, id: s.studentId || '' })) };
+  const maxOcc = DormDB.getMaxOcc();
+  if (named.length >= maxOcc) return { state: 'full', students: named.map(s => ({ name: s.name, id: s.studentId || '' })) };
+  return { state: 'avail', students: named.map(s => ({ name: s.name, id: s.studentId || '' })) };
+}
+
+const BADGE_COLOR = { avail: '#4caf50', soon: '#fbc02d', held: '#ef6c00', full: '#e53935', empty: '#bdbdbd' };
+
+function getHwLabel(room) {
+  const fp = floorPlan;
+  if (fp.soloPairs && fp.soloPairs.includes(room)) return '🚿 Solo meter';
+  const pair = fp.bathroomPairs && fp.bathroomPairs.find(p => p[0] === room || p[1] === room);
+  if (pair) {
+    const partner = pair[0] === room ? pair[1] : pair[0];
+    return `🚿 ↔ ${partner}`;
+  }
+  return '';
+}
+
+// ── Floor plan render ─────────────────────────────────────────────────
+function setFloor(f) {
+  currentFloor = f;
+  document.querySelectorAll('.ftab').forEach(t => t.classList.toggle('active', t.dataset.floor === f));
+  renderFloorPlan();
+}
+
+function renderFloorPlan() {
+  const wrap = document.getElementById('floorplanWrap');
+  // Get unique rooms in this floor filter
+  const allRooms = [...new Set(rooms.map(s => s.room))].filter(r => matchesFloor(r, currentFloor));
+  if (allRooms.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">No rooms to display. Load data in Room Reservations first.</div>';
+    return;
+  }
+
+  // Group by floor
+  const floors = {};
+  allRooms.forEach(r => {
+    const f = getFloor(r);
+    if (!floors[f]) floors[f] = [];
+    floors[f].push(r);
+  });
+
+  const floorOrder = ['1,2', '3', '4', 'unknown'];
+  const floorLabel = { '1,2': 'Floors 1–2', '3': 'Floor 3', '4': 'Floor 4', 'unknown': 'Other' };
+
+  let html = '';
+  floorOrder.forEach(f => {
+    if (!floors[f]) return;
+    html += `<div class="floor-section">
+      <div class="floor-label">${floorLabel[f] || f}</div>
+      <div class="room-grid">`;
+    floors[f].forEach(room => {
+      const occ = getOccupancy(room);
+      const color = BADGE_COLOR[occ.state];
+      const isAC = room.includes('AC');
+      const hwLabel = getHwLabel(room);
+      const names = occ.students.length
+        ? occ.students.map(s => `<div>${s.name.split(' ')[0]}${s.id ? ` <span style="font-size:.55rem;color:#999">${s.id}</span>` : ''}</div>`).join('')
+        : '<div class="room-empty">Vacant</div>';
+      html += `<div class="room-card">
+        <div class="room-no">
+          <span class="room-badge" style="background:${color}"></span>
+          ${room}${isAC ? ' <span class="ac-tag">AC</span>' : ''}
+        </div>
+        <div class="room-occ">${names}</div>
+        ${hwLabel ? `<span class="hw-tag">${hwLabel}</span>` : ''}
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  wrap.innerHTML = html;
+}
+
+// ── Pair panel ────────────────────────────────────────────────────────
+function togglePairPanel() {
+  const p = document.getElementById('pairPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display === 'block') p.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderPairTable() {
+  const tbody = document.getElementById('pairTbody');
+  const fp = floorPlan;
+  let rows = '';
+  let idx = 0;
+
+  (fp.bathroomPairs || []).forEach((pair, i) => {
+    rows += `<tr>
+      <td>${idx + 1}</td>
+      <td>${pair[0]}</td>
+      <td>${pair[1]}</td>
+      <td>Shared</td>
+      <td>
+        <button class="btn-sm orange" onclick="openPairModal({type:'pair',idx:${i}})">✏️</button>
+        <button class="btn-sm red" onclick="deletePair('pair',${i})" style="margin-left:4px">✕</button>
+      </td>
+    </tr>`;
+    idx++;
+  });
+
+  (fp.soloPairs || []).forEach((room, i) => {
+    rows += `<tr>
+      <td>${idx + 1}</td>
+      <td>${room}</td>
+      <td>—</td>
+      <td>Solo meter</td>
+      <td>
+        <button class="btn-sm red" onclick="deletePair('solo',${i})" style="margin-left:0">✕</button>
+      </td>
+    </tr>`;
+    idx++;
+  });
+
+  tbody.innerHTML = rows || '<tr><td colspan="5" style="color:#aaa;text-align:center;padding:10px">No pairs configured. Click Auto-Generate or Add Pair.</td></tr>';
+}
+
+function openPairModal(opts) {
+  editingPairIndex = opts;
+  document.getElementById('pairModalTitle').textContent = opts ? 'Edit Bathroom Pair' : 'Add Bathroom Pair';
+  if (opts) {
+    document.getElementById('pairType').value = opts.type;
+    if (opts.type === 'pair') {
+      const pair = floorPlan.bathroomPairs[opts.idx];
+      document.getElementById('pairRoomA').value = pair[0];
+      document.getElementById('pairRoomB').value = pair[1];
+    } else {
+      document.getElementById('pairRoomA').value = floorPlan.soloPairs[opts.idx];
+      document.getElementById('pairRoomB').value = '';
+    }
+  } else {
+    document.getElementById('pairType').value = 'pair';
+    document.getElementById('pairRoomA').value = '';
+    document.getElementById('pairRoomB').value = '';
+  }
+  onPairTypeChange();
+  document.getElementById('pairModal').style.display = 'block';
+}
+
+function closePairModal() {
+  document.getElementById('pairModal').style.display = 'none';
+  editingPairIndex = null;
+}
+
+function onPairTypeChange() {
+  const isSolo = document.getElementById('pairType').value === 'solo';
+  document.getElementById('pairRoomBRow').style.display = isSolo ? 'none' : 'flex';
+  document.getElementById('pairRoomARow').querySelector('label').textContent = isSolo ? 'Room:' : 'Room A:';
+}
+
+function savePairEntry() {
+  const type = document.getElementById('pairType').value;
+  const roomA = document.getElementById('pairRoomA').value.trim().toUpperCase();
+  const roomB = document.getElementById('pairRoomB').value.trim().toUpperCase();
+  if (!roomA) { alert('Please enter a room number.'); return; }
+  if (type === 'pair' && !roomB) { alert('Please enter Room B.'); return; }
+
+  const fp = JSON.parse(JSON.stringify(floorPlan));
+
+  if (editingPairIndex) {
+    // Remove old entry
+    if (editingPairIndex.type === 'pair') fp.bathroomPairs.splice(editingPairIndex.idx, 1);
+    else fp.soloPairs.splice(editingPairIndex.idx, 1);
+  }
+
+  if (type === 'pair') fp.bathroomPairs.push([roomA, roomB]);
+  else fp.soloPairs.push(roomA);
+
+  DormDB.saveFloorPlan(fp);
+  floorPlan = fp;
+  closePairModal();
+  renderPairTable();
+  renderFloorPlan();
+  showSaveMsg('Saved.');
+}
+
+function deletePair(type, idx) {
+  if (!confirm('Remove this entry?')) return;
+  const fp = JSON.parse(JSON.stringify(floorPlan));
+  if (type === 'pair') fp.bathroomPairs.splice(idx, 1);
+  else fp.soloPairs.splice(idx, 1);
+  DormDB.saveFloorPlan(fp);
+  floorPlan = fp;
+  renderPairTable();
+  renderFloorPlan();
+  showSaveMsg('Deleted.');
+}
+
+function autoGeneratePairs() {
+  if (!confirm('Auto-generate will replace all current pairings with the default Elijah Hall layout (201↔203, 202↔204, etc., plus solo 226/326/426). Continue?')) return;
+
+  const allRooms = [...new Set(rooms.map(s => s.room))];
+  const pairs = [];
+  const solos = ['226', '226AC', '326', '326AC', '426', '426AC'];
+
+  // Group rooms by floor prefix
+  const byFloor = {};
+  allRooms.forEach(r => {
+    const m = r.match(/^(\d)/);
+    if (!m) return;
+    const f = m[1];
+    if (!byFloor[f]) byFloor[f] = [];
+    byFloor[f].push(r);
+  });
+
+  // For each floor, sort rooms numerically and pair by corridor-side logic:
+  // odd-numbered sequence positions pair with position+2 (1st↔3rd, 5th↔7th, ...)
+  // even-numbered sequence positions pair with position+2 (2nd↔4th, 6th↔8th, ...)
+  Object.values(byFloor).forEach(floorRooms => {
+    // Sort by numeric portion only
+    floorRooms.sort((a, b) => {
+      const na = parseInt(a.match(/\d+/)[0]);
+      const nb = parseInt(b.match(/\d+/)[0]);
+      return na - nb;
+    });
+
+    // Separate into odd and even by last two digits
+    const odd = floorRooms.filter(r => { const n = parseInt(r.match(/\d+/)[0]); return n % 2 !== 0; });
+    const even = floorRooms.filter(r => { const n = parseInt(r.match(/\d+/)[0]); return n % 2 === 0; });
+
+    [odd, even].forEach(group => {
+      for (let i = 0; i < group.length - 1; i += 2) {
+        const a = group[i], b = group[i + 1];
+        if (solos.includes(a) || solos.includes(b)) {
+          if (!solos.includes(a)) pairs.push([a, a]); // fallback
+        } else {
+          pairs.push([a, b]);
+        }
+      }
+      // If odd count, last one is solo
+      if (group.length % 2 !== 0) {
+        const last = group[group.length - 1];
+        if (!solos.includes(last)) solos.push(last);
+      }
+    });
+  });
+
+  const fp = { bathroomPairs: pairs, soloPairs: solos };
+  DormDB.saveFloorPlan(fp);
+  floorPlan = fp;
+  renderPairTable();
+  renderFloorPlan();
+  showSaveMsg('Auto-generated ' + pairs.length + ' pairs.');
+}
+
+function showSaveMsg(msg) {
+  const el = document.getElementById('pairSaveMsg');
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+// ── Print ─────────────────────────────────────────────────────────────
+function printFloorPlan() {
+  const allRooms = [...new Set(rooms.map(s => s.room))].filter(r => matchesFloor(r, currentFloor));
+  const floors = {};
+  allRooms.forEach(r => {
+    const f = getFloor(r);
+    if (!floors[f]) floors[f] = [];
+    floors[f].push(r);
+  });
+
+  const floorOrder = ['1,2', '3', '4', 'unknown'];
+  const floorLabel = { '1,2': 'Floors 1–2', '3': 'Floor 3', '4': 'Floor 4', 'unknown': 'Other' };
+  const stateLabel = { avail: 'Available', soon: 'Leaving soon', held: 'Room hold', full: 'Full', empty: 'Empty' };
+
+  let html = `<div class="pr-title">🏢 ${DormDB.getDormName()} — Floor Plan (${new Date().toLocaleDateString()})</div>`;
+
+  floorOrder.forEach(f => {
+    if (!floors[f]) return;
+    html += `<div class="pr-floor">
+      <div class="pr-floor-lbl">${floorLabel[f] || f}</div>
+      <div class="pr-grid">`;
+    floors[f].forEach(room => {
+      const occ = getOccupancy(room);
+      const hw = getHwLabel(room);
+      html += `<div class="pr-card ${occ.state}">
+        <div class="pr-room">${room}</div>
+        <div class="pr-names">${occ.students.length ? occ.students.map(s => s.name.split(' ')[0] + (s.id ? ` (${s.id})` : '')).join('<br>') : 'Vacant'}</div>
+        ${hw ? `<div class="pr-hw">${hw}</div>` : ''}
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+
+  document.getElementById('printSection').innerHTML = html;
+  window.print();
+}
+
+init();
+</script>
+</body>
+</html>

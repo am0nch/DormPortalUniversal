@@ -1,0 +1,10 @@
+# Student data exports and backups (re-created by the app at runtime)
+*.json
+*.xlsx
+*.pdf
+
+# Design previews (not part of the module system)
+clearance_a5_preview.html
+
+# VS Code workspace config (local only)
+*.code-workspace

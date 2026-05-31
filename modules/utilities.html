@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Electricity & Hot Water — Dorm Manager</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.nav-bar{display:flex;align-items:center;gap:12px;background:#1e3a5f;color:#fff;padding:10px 18px;flex-wrap:wrap}
+.nav-back{color:#fff;text-decoration:none;font-size:.82rem;font-weight:700;padding:4px 10px;background:rgba(255,255,255,.15);border-radius:6px}
+.nav-back:hover{background:rgba(255,255,255,.25)}
+.nav-title{font-size:1rem;font-weight:800}
+.nav-dorm{font-size:.78rem;opacity:.75;margin-left:auto}
+.wrap{max-width:1300px;margin:0 auto;padding:20px}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;background:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 13px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+.btn:hover{opacity:.88}
+.btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-red{background:#c0392b}
+.period-label{font-size:.82rem;color:#444;font-weight:700}
+.tab-bar{display:flex;gap:4px;margin-bottom:14px}
+.tab{padding:7px 20px;border-radius:8px 8px 0 0;border:2px solid #d9e6f5;border-bottom:none;background:#f0f4f8;cursor:pointer;font-size:.85rem;font-weight:700;color:#1e3a5f}
+.tab.active{background:#fff;border-color:#1e3a5f;color:#1e3a5f}
+
+/* ── Rate bar ── */
+.rate-bar{background:#fff;padding:10px 16px;border-radius:10px;margin-bottom:14px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.06);font-size:.82rem}
+.rate-bar label{color:#555}
+.rate-bar input{width:90px;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:.82rem}
+
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto;background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:.78rem;min-width:900px}
+th{background:#1e3a5f;color:#fff;padding:7px 8px;text-align:left;position:sticky;top:0;z-index:5;white-space:nowrap}
+td{border-bottom:1px solid #eee;padding:5px 8px;vertical-align:middle}
+tr:hover td{background:#f8faff}
+td input[type=number]{width:80px;padding:3px 5px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;text-align:right}
+td input[type=number]:focus{outline:none;border-color:#1e3a5f;background:#f0f7ff}
+.computed{background:#f8f9fa;color:#333;font-size:.78rem}
+.per-student{font-weight:700;color:#1e3a5f}
+.room-tag{display:inline-block;background:#e8f0fe;color:#1e3a5f;border-radius:4px;padding:1px 6px;font-weight:700;font-size:.75rem}
+.ac-tag{font-size:.6rem;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 4px;font-weight:700;margin-left:3px}
+.occ-tag{display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-size:.72rem;font-weight:700;margin-left:4px}
+.zero-occ{background:#fff3e0;color:#e65100}
+.no-pair{color:#bbb;font-style:italic;font-size:.72rem}
+
+/* ── Summary ── */
+.summary-box{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 6px rgba(0,0,0,.07);margin-bottom:16px}
+.summary-box h3{font-size:.9rem;color:#1e3a5f;font-weight:800;margin-bottom:10px}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.sum-card{background:#f0f4f8;border-radius:8px;padding:10px 14px}
+.sum-card .label{font-size:.7rem;color:#888;margin-bottom:3px}
+.sum-card .value{font-size:1rem;font-weight:800;color:#1e3a5f}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e3a5f;color:#fff;padding:10px 18px;border-radius:10px;font-size:.82rem;font-weight:700;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* ── Print ── */
+#printSection{display:none}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body>*:not(#printSection){display:none!important}
+  #printSection{display:block!important}
+  @page{size:A4 portrait;margin:10mm 12mm}
+  .pr-title{font-size:13pt;font-weight:800;color:#1e3a5f;text-align:center;margin-bottom:4pt}
+  .pr-sub{font-size:9pt;color:#666;text-align:center;margin-bottom:8pt}
+  .pr-section{margin-bottom:10pt}
+  .pr-section-title{font-size:9pt;font-weight:800;background:#1e3a5f;color:#fff;padding:3pt 6pt;margin-bottom:4pt}
+  table{width:100%;border-collapse:collapse;font-size:7.5pt}
+  th{background:#1e3a5f!important;color:#fff!important;padding:4pt 5pt}
+  td{border:0.5pt solid #ccc;padding:3pt 5pt}
+  .per-student{font-weight:800}
+}
+</style>
+</head>
+<body>
+
+<div class="nav-bar">
+  <a href="../index.html" class="nav-back">← Menu</a>
+  <span class="nav-title">⚡ Electricity & Hot Water</span>
+  <span class="nav-dorm" id="navDorm"></span>
+</div>
+
+<div class="wrap">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="period-label">📅 Period:</span>
+    <input type="month" id="periodInput" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.82rem">
+    <button class="btn" onclick="loadPeriod()">Load</button>
+    <button class="btn btn-green" onclick="savePeriod()">💾 Save</button>
+    <button class="btn btn-orange" onclick="printBills()">🖨️ Print Bills</button>
+    <button class="btn" onclick="exportExcel()">📊 Export Excel</button>
+    <span id="saveMsg" style="font-size:.78rem;color:#2c7a4d"></span>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <div class="tab active" id="tabElec" onclick="switchTab('elec')">⚡ Electricity</div>
+    <div class="tab" id="tabHw" onclick="switchTab('hw')">🚿 Hot Water</div>
+    <div class="tab" id="tabSummary" onclick="switchTab('summary')">📊 Summary</div>
+  </div>
+
+  <!-- Electricity tab -->
+  <div id="panelElec">
+    <div class="rate-bar">
+      <label>Rate per kWh:</label>
+      <input type="number" id="elecRate" value="4" min="0" step="0.1" placeholder="฿/kWh" onchange="recalcAll()">
+      <span style="color:#888;font-size:.78rem">฿/kWh — applied to all rooms</span>
+      <button class="btn" style="margin-left:auto" onclick="fillMeterIn('elec')">⬇ Copy OUT → next IN</button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="elecTable">
+        <thead><tr>
+          <th>Room</th>
+          <th>Occupants</th>
+          <th>Meter IN</th>
+          <th>Meter OUT</th>
+          <th>Usage (kWh)</th>
+          <th>Rate (฿)</th>
+          <th>Total Bill (฿)</th>
+          <th>Per Student (฿)</th>
+        </tr></thead>
+        <tbody id="elecTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Hot Water tab -->
+  <div id="panelHW" style="display:none">
+    <div class="rate-bar">
+      <label>Rate per unit:</label>
+      <input type="number" id="hwRate" value="2" min="0" step="0.1" placeholder="฿/unit" onchange="recalcAll()">
+      <span style="color:#888;font-size:.78rem">฿/unit — shared meter split between paired rooms</span>
+      <button class="btn" style="margin-left:auto" onclick="fillMeterIn('hw')">⬇ Copy OUT → next IN</button>
+    </div>
+    <div style="font-size:.78rem;color:#888;margin-bottom:10px;padding:0 4px">
+      Bathroom pairs are configured in the <a href="floor-plan.html" style="color:#1e3a5f;font-weight:700">🏢 Floor Plan</a> module.
+    </div>
+    <div class="tbl-wrap">
+      <table id="hwTable">
+        <thead><tr>
+          <th>Group</th>
+          <th>Room A</th>
+          <th>Room B</th>
+          <th>Total Occupants</th>
+          <th>Meter IN</th>
+          <th>Meter OUT</th>
+          <th>Usage</th>
+          <th>Rate (฿)</th>
+          <th>Total Bill (฿)</th>
+          <th>Per Student (฿)</th>
+        </tr></thead>
+        <tbody id="hwTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Summary tab -->
+  <div id="panelSummary" style="display:none">
+    <div class="summary-box">
+      <h3>⚡ Electricity Summary</h3>
+      <div class="sum-grid" id="elecSummary"></div>
+    </div>
+    <div class="summary-box">
+      <h3>🚿 Hot Water Summary</h3>
+      <div class="sum-grid" id="hwSummary"></div>
+    </div>
+    <div class="summary-box">
+      <h3>📋 Per-Student Bill List</h3>
+      <div id="billList" style="overflow-x:auto">
+        <table style="width:100%;font-size:.8rem;border-collapse:collapse;min-width:600px">
+          <thead><tr style="background:#1e3a5f;color:#fff">
+            <th style="padding:6px 10px">Room</th>
+            <th style="padding:6px 10px">Student</th>
+            <th style="padding:6px 10px">ID</th>
+            <th style="padding:6px 10px;text-align:right">Electricity (฿)</th>
+            <th style="padding:6px 10px;text-align:right">Hot Water (฿)</th>
+            <th style="padding:6px 10px;text-align:right">Total (฿)</th>
+          </tr></thead>
+          <tbody id="billListBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="printSection"></div>
+<div id="toastEl" class="toast"></div>
+
+<script>
+let currentTab = 'elec';
+let currentPeriod = '';
+let rooms = [];
+let floorPlan = { bathroomPairs: [], soloPairs: [] };
+let utilitiesData = [];    // all saved periods
+let elecRows = [];         // working rows for current period — electricity
+let hwRows = [];           // working rows for current period — hot water
+
+// ── Init ──────────────────────────────────────────────────────────────
+function init() {
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  // Default to current month
+  const now = new Date();
+  const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('periodInput').value = ym;
+  currentPeriod = ym;
+
+  rooms = DormDB.getRooms();
+  floorPlan = DormDB.getFloorPlan();
+  utilitiesData = DormDB.getUtilities();
+
+  buildRows();
+  loadPeriodData();
+  renderElec();
+  renderHW();
+  renderSummary();
+}
+
+// ── Floor helpers ─────────────────────────────────────────────────────
+function getFloor(room) {
+  const m = String(room).trim().match(/\d+/);
+  if (m) { const d = m[0].charAt(0); if (d === '1' || d === '2') return '1,2'; if (d === '3') return '3'; if (d === '4') return '4'; }
+  return 'other';
+}
+
+function getOccupants(room) {
+  return rooms.filter(s => s.room === room && s.name && s.name.trim() && !s.graduating).length;
+}
+
+function getStudentNames(room) {
+  return rooms.filter(s => s.room === room && s.name && s.name.trim() && !s.graduating).map(s => s.name);
+}
+function getStudentSlots(room) {
+  return rooms.filter(s => s.room === room && s.name && s.name.trim() && !s.graduating);
+}
+function getStudentSlotsFlexible(room) {
+  const base = room.replace(/AC$/i, '');
+  return rooms.filter(s => s.room.replace(/AC$/i, '') === base && s.name && s.name.trim() && !s.graduating);
+}
+
+function isAC(room) { return room.includes('AC'); }
+
+// ── Build working rows from current room list ─────────────────────────
+function buildRows() {
+  // Electricity: one row per unique room
+  const uniqueRooms = [...new Set(rooms.map(s => s.room))].sort((a, b) => {
+    return parseInt(a.match(/\d+/)[0]) - parseInt(b.match(/\d+/)[0]);
+  });
+
+  elecRows = uniqueRooms.map(room => ({
+    room,
+    occupants: getOccupants(room),
+    meterIn: 0,
+    meterOut: 0,
+  }));
+
+  // Hot water: one row per bathroom pair/solo
+  hwRows = [];
+  let grp = 1;
+  const coveredBases = new Set();
+  // Flexible count: '426AC' floor plan config picks up students recorded as '426' and vice versa
+  const hwOcc = room => {
+    const base = room.replace(/AC$/i, '');
+    return rooms.filter(s => s.room.replace(/AC$/i, '') === base && s.name && s.name.trim() && !s.graduating).length;
+  };
+  (floorPlan.bathroomPairs || []).forEach(pair => {
+    hwRows.push({ group: grp++, roomA: pair[0], roomB: pair[1], occupantsA: hwOcc(pair[0]), occupantsB: hwOcc(pair[1]), meterIn: 0, meterOut: 0 });
+    [pair[0], pair[1]].forEach(r => coveredBases.add(r.replace(/AC$/i, '')));
+  });
+  (floorPlan.soloPairs || []).forEach(room => {
+    if (!room) return;
+    hwRows.push({ group: grp++, roomA: room, roomB: '', occupantsA: hwOcc(room), occupantsB: 0, meterIn: 0, meterOut: 0 });
+    coveredBases.add(room.replace(/AC$/i, ''));
+  });
+
+  // Rooms not in floor plan: add once per base number (deduplicates '426' vs '426AC')
+  uniqueRooms.forEach(room => {
+    const base = room.replace(/AC$/i, '');
+    if (!coveredBases.has(base)) {
+      coveredBases.add(base);
+      hwRows.push({ group: grp++, roomA: room, roomB: '', occupantsA: hwOcc(room), occupantsB: 0, meterIn: 0, meterOut: 0 });
+    }
+  });
+}
+
+// ── Load saved data for a period ──────────────────────────────────────
+function loadPeriod() {
+  currentPeriod = document.getElementById('periodInput').value;
+  if (!currentPeriod) { showToast('Select a month/year first.'); return; }
+  loadPeriodData();
+  renderElec();
+  renderHW();
+  renderSummary();
+}
+
+function loadPeriodData() {
+  const saved = utilitiesData.filter(r => r.period === currentPeriod);
+  if (!saved.length) return;
+
+  // Restore meter readings
+  saved.filter(r => r.type === 'electricity').forEach(r => {
+    const row = elecRows.find(e => e.room === r.roomA);
+    if (row) { row.meterIn = r.meterIn; row.meterOut = r.meterOut; }
+  });
+  saved.filter(r => r.type === 'hotwater').forEach(r => {
+    const row = hwRows.find(h => h.roomA === r.roomA && h.roomB === r.roomB);
+    if (row) { row.meterIn = r.meterIn; row.meterOut = r.meterOut; }
+  });
+
+  // Restore rates
+  const eRec = saved.find(r => r.type === 'electricity');
+  const hRec = saved.find(r => r.type === 'hotwater');
+  if (eRec && eRec.rate) document.getElementById('elecRate').value = eRec.rate;
+  if (hRec && hRec.rate) document.getElementById('hwRate').value = hRec.rate;
+}
+
+// ── Save ──────────────────────────────────────────────────────────────
+function savePeriod() {
+  if (!currentPeriod) { showToast('Select a period first.'); return; }
+  collectFromDOM();
+  const elecRate = parseFloat(document.getElementById('elecRate').value) || 0;
+  const hwRate = parseFloat(document.getElementById('hwRate').value) || 0;
+  const now = new Date().toISOString();
+  const user = DormDB.getCurrentUser();
+
+  // Remove old entries for this period
+  utilitiesData = utilitiesData.filter(r => r.period !== currentPeriod);
+
+  // Add electricity rows
+  elecRows.forEach(row => {
+    utilitiesData.push({ period: currentPeriod, type: 'electricity', roomA: row.room, roomB: '', meterIn: row.meterIn, meterOut: row.meterOut, rate: elecRate, occupantsA: row.occupants, occupantsB: 0, recordedAt: now, recordedBy: user });
+  });
+
+  // Add hot water rows
+  hwRows.forEach(row => {
+    utilitiesData.push({ period: currentPeriod, type: 'hotwater', roomA: row.roomA, roomB: row.roomB || '', meterIn: row.meterIn, meterOut: row.meterOut, rate: hwRate, occupantsA: row.occupantsA, occupantsB: row.occupantsB, recordedAt: now, recordedBy: user });
+  });
+
+  DormDB.saveUtilities(utilitiesData);
+  showToast('Saved for ' + currentPeriod);
+  const msg = document.getElementById('saveMsg');
+  msg.textContent = 'Saved ' + new Date().toLocaleTimeString();
+  setTimeout(() => { msg.textContent = ''; }, 4000);
+}
+
+// ── Read inputs from DOM ──────────────────────────────────────────────
+function collectFromDOM() {
+  elecRows.forEach((row, i) => {
+    row.meterIn  = parseFloat(document.getElementById('eIn_' + i)?.value) || 0;
+    row.meterOut = parseFloat(document.getElementById('eOut_' + i)?.value) || 0;
+    row.occupants = parseInt(document.getElementById('eOcc_' + i)?.value) || row.occupants;
+  });
+  hwRows.forEach((row, i) => {
+    row.meterIn  = parseFloat(document.getElementById('hIn_' + i)?.value) || 0;
+    row.meterOut = parseFloat(document.getElementById('hOut_' + i)?.value) || 0;
+  });
+}
+
+// ── Recalc (called on rate change) ────────────────────────────────────
+function recalcAll() {
+  collectFromDOM();
+  renderElec();
+  renderHW();
+  if (currentTab === 'summary') renderSummary();
+}
+
+// ── Electricity render ────────────────────────────────────────────────
+function renderElec() {
+  const rate = parseFloat(document.getElementById('elecRate').value) || 0;
+  const tbody = document.getElementById('elecTbody');
+  let html = '';
+
+  elecRows.forEach((row, i) => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * rate;
+    const occ = row.occupants;
+    const perStudent = occ > 0 ? (total / occ) : 0;
+
+    html += `<tr>
+      <td><span class="room-tag">${row.room}</span>${isAC(row.room) ? '<span class="ac-tag">AC</span>' : ''}</td>
+      <td>
+        <input type="number" id="eOcc_${i}" value="${occ}" min="0" max="10" style="width:52px" onchange="recalcAll()" title="Override occupants">
+        <span class="occ-tag ${occ === 0 ? 'zero-occ' : ''}">${occ === 0 ? 'vacant' : occ + ' student' + (occ > 1 ? 's' : '')}</span>
+      </td>
+      <td><input type="number" id="eIn_${i}" value="${row.meterIn}" min="0" step="0.01" onchange="recalcAll()"></td>
+      <td><input type="number" id="eOut_${i}" value="${row.meterOut}" min="0" step="0.01" onchange="recalcAll()"></td>
+      <td class="computed">${usage.toFixed(2)}</td>
+      <td class="computed">${rate.toFixed(2)}</td>
+      <td class="computed">${total.toFixed(2)}</td>
+      <td class="computed per-student">${occ > 0 ? perStudent.toFixed(2) : '—'}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html || '<tr><td colspan="8" style="color:#aaa;text-align:center;padding:16px">No rooms found. Open Room Reservations and set up your dorm layout first.</td></tr>';
+}
+
+// ── Hot Water render ──────────────────────────────────────────────────
+function renderHW() {
+  const rate = parseFloat(document.getElementById('hwRate').value) || 0;
+  const tbody = document.getElementById('hwTbody');
+  let html = '';
+
+  if (hwRows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="color:#aaa;text-align:center;padding:16px">
+      No bathroom pairs configured. Go to <a href="floor-plan.html" style="color:#1e3a5f;font-weight:700">Floor Plan</a> → Bathroom Pairing to set up.
+    </td></tr>`;
+    return;
+  }
+
+  hwRows.forEach((row, i) => {
+    const totalOcc = row.occupantsA + row.occupantsB;
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * rate;
+    const perStudent = totalOcc > 0 ? (total / totalOcc) : 0;
+
+    html += `<tr>
+      <td style="color:#888;font-size:.75rem">#${row.group}</td>
+      <td><span class="room-tag">${row.roomA}</span>${isAC(row.roomA) ? '<span class="ac-tag">AC</span>' : ''}</td>
+      <td>${row.roomB ? `<span class="room-tag">${row.roomB}</span>${isAC(row.roomB) ? '<span class="ac-tag">AC</span>' : ''}` : '<span class="no-pair">Solo meter</span>'}</td>
+      <td>
+        <span class="occ-tag ${totalOcc === 0 ? 'zero-occ' : ''}">${totalOcc} student${totalOcc !== 1 ? 's' : ''}</span>
+        <span style="font-size:.68rem;color:#888;margin-left:4px">(${row.occupantsA}${row.roomB ? '+' + row.occupantsB : ''})</span>
+      </td>
+      <td><input type="number" id="hIn_${i}" value="${row.meterIn}" min="0" step="0.01" onchange="recalcAll()"></td>
+      <td><input type="number" id="hOut_${i}" value="${row.meterOut}" min="0" step="0.01" onchange="recalcAll()"></td>
+      <td class="computed">${usage.toFixed(2)}</td>
+      <td class="computed">${rate.toFixed(2)}</td>
+      <td class="computed">${total.toFixed(2)}</td>
+      <td class="computed per-student">${totalOcc > 0 ? perStudent.toFixed(2) : '—'}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+// ── Summary render ────────────────────────────────────────────────────
+function renderSummary() {
+  collectFromDOM();
+  const elecRate = parseFloat(document.getElementById('elecRate').value) || 0;
+  const hwRate   = parseFloat(document.getElementById('hwRate').value) || 0;
+
+  let totalElecUsage = 0, totalElecBill = 0, elecRooms = 0;
+  elecRows.forEach(row => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    totalElecUsage += usage;
+    totalElecBill += usage * elecRate;
+    if (row.meterIn || row.meterOut) elecRooms++;
+  });
+
+  let totalHWUsage = 0, totalHWBill = 0, hwGroups = 0;
+  hwRows.forEach(row => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    totalHWUsage += usage;
+    totalHWBill += usage * hwRate;
+    if (row.meterIn || row.meterOut) hwGroups++;
+  });
+
+  document.getElementById('elecSummary').innerHTML = `
+    <div class="sum-card"><div class="label">Total Usage</div><div class="value">${totalElecUsage.toFixed(1)} kWh</div></div>
+    <div class="sum-card"><div class="label">Total Bill</div><div class="value">${totalElecBill.toFixed(2)} ฿</div></div>
+    <div class="sum-card"><div class="label">Rate</div><div class="value">${elecRate} ฿/kWh</div></div>
+    <div class="sum-card"><div class="label">Rooms with readings</div><div class="value">${elecRooms}</div></div>
+  `;
+
+  document.getElementById('hwSummary').innerHTML = `
+    <div class="sum-card"><div class="label">Total Usage</div><div class="value">${totalHWUsage.toFixed(1)} units</div></div>
+    <div class="sum-card"><div class="label">Total Bill</div><div class="value">${totalHWBill.toFixed(2)} ฿</div></div>
+    <div class="sum-card"><div class="label">Rate</div><div class="value">${hwRate} ฿/unit</div></div>
+    <div class="sum-card"><div class="label">Groups with readings</div><div class="value">${hwGroups}</div></div>
+  `;
+
+  // Per-student bill list: combine elec + hotwater per student
+  const studentBills = {};
+
+  elecRows.forEach(row => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * elecRate;
+    const occ = row.occupants || 0;
+    const per = occ > 0 ? total / occ : 0;
+    const slots = getStudentSlots(row.room);
+    if (slots.length === 0 && occ === 0) return;
+    const displaySlots = slots.length ? slots : [{ name: '(Vacant — ' + row.room + ')', studentId: '' }];
+    displaySlots.forEach(slot => {
+      const key = row.room + '|' + slot.name;
+      if (!studentBills[key]) studentBills[key] = { room: row.room, name: slot.name, studentId: slot.studentId || '', elec: 0, hw: 0 };
+      studentBills[key].elec = per;
+    });
+  });
+
+  hwRows.forEach(row => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * hwRate;
+    const totalOcc = row.occupantsA + row.occupantsB;
+    const per = totalOcc > 0 ? total / totalOcc : 0;
+    [row.roomA, row.roomB].filter(Boolean).forEach(roomName => {
+      const slots = getStudentSlotsFlexible(roomName);
+      slots.forEach(slot => {
+        const key = slot.room + '|' + slot.name;
+        if (!studentBills[key]) studentBills[key] = { room: slot.room, name: slot.name, studentId: slot.studentId || '', elec: 0, hw: 0 };
+        studentBills[key].hw = per;
+      });
+    });
+  });
+
+  const billRows = Object.values(studentBills).sort((a, b) => {
+    const na = parseInt(a.room.match(/\d+/)[0]);
+    const nb = parseInt(b.room.match(/\d+/)[0]);
+    return na - nb || a.name.localeCompare(b.name);
+  });
+
+  const tbody = document.getElementById('billListBody');
+  tbody.innerHTML = billRows.length ? billRows.map((b, i) => `
+    <tr style="${i % 2 ? 'background:#f8faff' : ''}">
+      <td style="border-bottom:1px solid #eee;padding:5px 10px"><span class="room-tag">${b.room}</span></td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px">${b.name}</td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px;color:#888;font-size:.75rem">${b.studentId || '—'}</td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px;text-align:right">${b.elec.toFixed(2)}</td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px;text-align:right">${b.hw.toFixed(2)}</td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px;text-align:right;font-weight:700;color:#1e3a5f">${(b.elec + b.hw).toFixed(2)}</td>
+    </tr>`).join('') : '<tr><td colspan="6" style="color:#aaa;text-align:center;padding:14px">No data yet. Enter meter readings and save.</td></tr>';
+}
+
+// ── Fill meter IN from previous period OUT ────────────────────────────
+function fillMeterIn(type) {
+  if (!currentPeriod) return;
+  const [y, m] = currentPeriod.split('-').map(Number);
+  const prev = new Date(y, m - 1, 1);
+  prev.setMonth(prev.getMonth() - 1);
+  const prevPeriod = prev.getFullYear() + '-' + String(prev.getMonth() + 1).padStart(2, '0');
+  const prevData = utilitiesData.filter(r => r.period === prevPeriod && r.type === (type === 'elec' ? 'electricity' : 'hotwater'));
+  if (!prevData.length) { showToast('No saved data for ' + prevPeriod); return; }
+
+  if (type === 'elec') {
+    elecRows.forEach((row, i) => {
+      const prev = prevData.find(r => r.roomA === row.room);
+      if (prev) { row.meterIn = prev.meterOut; document.getElementById('eIn_' + i).value = prev.meterOut; }
+    });
+  } else {
+    hwRows.forEach((row, i) => {
+      const prev = prevData.find(r => r.roomA === row.roomA && r.roomB === (row.roomB || ''));
+      if (prev) { row.meterIn = prev.meterOut; document.getElementById('hIn_' + i).value = prev.meterOut; }
+    });
+  }
+  recalcAll();
+  showToast('Meter IN filled from ' + prevPeriod);
+}
+
+// ── Tab switch ────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  document.getElementById('panelElec').style.display = tab === 'elec' ? 'block' : 'none';
+  document.getElementById('panelHW').style.display = tab === 'hw' ? 'block' : 'none';
+  document.getElementById('panelSummary').style.display = tab === 'summary' ? 'block' : 'none';
+  if (tab === 'summary') { collectFromDOM(); renderSummary(); }
+}
+
+// ── Print ─────────────────────────────────────────────────────────────
+function printBills() {
+  collectFromDOM();
+  renderSummary();
+
+  const elecRate = parseFloat(document.getElementById('elecRate').value) || 0;
+  const hwRate   = parseFloat(document.getElementById('hwRate').value) || 0;
+
+  let elecHtml = `<table><thead><tr>
+    <th>Room</th><th>Occ.</th><th>Meter IN</th><th>Meter OUT</th><th>Usage</th><th>Rate</th><th>Total (฿)</th><th>Per Student (฿)</th>
+  </tr></thead><tbody>`;
+  elecRows.forEach(row => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * elecRate;
+    const per = row.occupants > 0 ? (total / row.occupants).toFixed(2) : '—';
+    elecHtml += `<tr><td>${row.room}</td><td>${row.occupants}</td><td>${row.meterIn}</td><td>${row.meterOut}</td><td>${usage.toFixed(2)}</td><td>${elecRate}</td><td>${total.toFixed(2)}</td><td class="per-student">${per}</td></tr>`;
+  });
+  elecHtml += '</tbody></table>';
+
+  let hwHtml = `<table><thead><tr>
+    <th>Grp</th><th>Room A</th><th>Room B</th><th>Students</th><th>Meter IN</th><th>Meter OUT</th><th>Usage</th><th>Rate</th><th>Total (฿)</th><th>Per Student (฿)</th>
+  </tr></thead><tbody>`;
+  hwRows.forEach(row => {
+    const totalOcc = row.occupantsA + row.occupantsB;
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * hwRate;
+    const per = totalOcc > 0 ? (total / totalOcc).toFixed(2) : '—';
+    hwHtml += `<tr><td>#${row.group}</td><td>${row.roomA}</td><td>${row.roomB || '—'}</td><td>${totalOcc}</td><td>${row.meterIn}</td><td>${row.meterOut}</td><td>${usage.toFixed(2)}</td><td>${hwRate}</td><td>${total.toFixed(2)}</td><td class="per-student">${per}</td></tr>`;
+  });
+  hwHtml += '</tbody></table>';
+
+  document.getElementById('printSection').innerHTML = `
+    <div class="pr-title">⚡ ${DormDB.getDormName()} — Utility Bills</div>
+    <div class="pr-sub">Period: ${currentPeriod} &nbsp;·&nbsp; Printed: ${new Date().toLocaleString()}</div>
+    <div class="pr-section"><div class="pr-section-title">Electricity</div>${elecHtml}</div>
+    <div class="pr-section"><div class="pr-section-title">Hot Water</div>${hwHtml}</div>
+  `;
+  window.print();
+}
+
+// ── Excel export ──────────────────────────────────────────────────────
+function exportExcel() {
+  if (typeof XLSX === 'undefined') { showToast('SheetJS not loaded.'); return; }
+  collectFromDOM();
+  const elecRate = parseFloat(document.getElementById('elecRate').value) || 0;
+  const hwRate   = parseFloat(document.getElementById('hwRate').value) || 0;
+
+  const elecSheet = [['Room', 'AC', 'Occupants', 'Meter IN', 'Meter OUT', 'Usage (kWh)', 'Rate', 'Total Bill (฿)', 'Per Student (฿)']];
+  elecRows.forEach(row => {
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * elecRate;
+    elecSheet.push([row.room, isAC(row.room) ? 'Yes' : 'No', row.occupants, row.meterIn, row.meterOut, +usage.toFixed(2), elecRate, +total.toFixed(2), row.occupants > 0 ? +(total / row.occupants).toFixed(2) : 0]);
+  });
+
+  const hwSheet = [['Group', 'Room A', 'Room B', 'Total Occupants', 'Meter IN', 'Meter OUT', 'Usage', 'Rate', 'Total Bill (฿)', 'Per Student (฿)']];
+  hwRows.forEach(row => {
+    const totalOcc = row.occupantsA + row.occupantsB;
+    const usage = Math.max(0, row.meterOut - row.meterIn);
+    const total = usage * hwRate;
+    hwSheet.push([row.group, row.roomA, row.roomB || '—', totalOcc, row.meterIn, row.meterOut, +usage.toFixed(2), hwRate, +total.toFixed(2), totalOcc > 0 ? +(total / totalOcc).toFixed(2) : 0]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(elecSheet), 'Electricity');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hwSheet), 'HotWater');
+  XLSX.writeFile(wb, 'UtilityBills_' + currentPeriod + '.xlsx');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// Boot
+DormDB.on('dormData', () => { rooms = DormDB.getRooms(); buildRows(); renderElec(); renderHW(); });
+DormDB.on('dormFloorPlan', () => { floorPlan = DormDB.getFloorPlan(); buildRows(); renderElec(); renderHW(); });
+init();
+</script>
+</body>
+</html>

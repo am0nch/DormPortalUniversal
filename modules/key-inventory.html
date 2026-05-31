@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Key Inventory — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+.nav{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.nav a{color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px}
+.nav h1{color:#1e3a5f;font-size:1.3rem;font-weight:800;flex:1}
+.toolbar{background:#e9ecef;padding:10px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+.btn:hover{opacity:.88}
+.btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-red{background:#c0392b}.btn-gray{background:#666}.btn-teal{background:#16a085}
+.btn-sm{padding:3px 8px;font-size:.72rem;cursor:pointer;background:#1e3a5f;color:#fff;border:none;border-radius:4px}
+.btn-sm:hover{opacity:.85}
+.btn-sm-orange{background:#e67e22}.btn-sm-red{background:#c0392b}.btn-sm-green{background:#2c7a4d}.btn-sm-gray{background:#888}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #d9e6f5;padding-bottom:0}
+.tab-btn{background:none;border:none;padding:8px 16px;cursor:pointer;font-size:.82rem;font-weight:700;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab-btn.active{color:#1e3a5f;border-bottom-color:#1e3a5f}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* Cards */
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center}
+.stat-card .num{font-size:2rem;font-weight:800;line-height:1}
+.stat-card .lbl{font-size:.72rem;color:#888;margin-top:4px}
+.stat-available .num{color:#2e7d32}
+.stat-checked .num{color:#1565c0}
+.stat-overdue .num{color:#e65100}
+.stat-lost .num{color:#c62828}
+
+/* Key rows */
+.key-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #e0e0e0;margin-bottom:8px;flex-wrap:wrap}
+.key-row:hover{border-color:#1e3a5f}
+.key-room{font-weight:800;color:#1e3a5f;font-size:.9rem;min-width:70px}
+.key-type-badge{font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+.type-a{background:#e8f5e9;color:#2e7d32}
+.type-b{background:#e3f2fd;color:#1565c0}
+.type-monitor{background:#fff3e0;color:#e65100}
+.type-spare{background:#f3e5f5;color:#6a1b9a}
+.type-gm{background:#fce4ec;color:#880e4f}
+.status-badge{font-size:.68rem;padding:2px 9px;border-radius:10px;font-weight:700;white-space:nowrap}
+.st-available{background:#e8f5e9;color:#2e7d32}
+.st-out{background:#e3f2fd;color:#1565c0}
+.st-overdue{background:#fff3e0;color:#c62828;animation:pulse .8s infinite alternate}
+.st-lost{background:#fdecea;color:#c62828}
+@keyframes pulse{from{opacity:1}to{opacity:.6}}
+.key-meta{font-size:.72rem;color:#888;flex:1;min-width:120px}
+.key-borrower{font-size:.78rem;color:#333;font-weight:600}
+.key-actions{display:flex;gap:6px;flex-shrink:0}
+.timer{font-size:.7rem;font-weight:700;color:#e65100}
+
+/* Modal */
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.45);overflow-y:auto}
+.modal-content{background:#fff;margin:4% auto;padding:22px;width:520px;max-width:calc(100vw - 24px);border-radius:14px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.close-modal{float:right;font-size:26px;cursor:pointer;line-height:1;color:#666}
+.close-modal:hover{color:#c0392b}
+.fg{margin-bottom:10px;display:flex;flex-direction:column;gap:3px}
+.fg label{font-size:.78rem;color:#555;font-weight:600}
+.fg input,.fg select,.fg textarea{padding:6px 8px;border:1px solid #ccc;border-radius:5px;font-size:.82rem}
+.fg textarea{resize:vertical;min-height:56px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid #eee}
+
+/* Filters */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filter-row select,.filter-row input{padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.8rem}
+
+/* Table */
+.key-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.key-table th{background:#f0f4f8;padding:7px 10px;text-align:left;border:1px solid #e0e0e0;font-weight:700;font-size:.73rem;white-space:nowrap}
+.key-table td{border:1px solid #e0e0e0;padding:6px 10px;vertical-align:middle}
+.key-table tr:nth-child(even) td{background:#fafafa}
+.key-table tr:hover td{background:#eef5fb}
+.key-table .actions-cell{display:flex;gap:5px;flex-wrap:wrap}
+
+/* Settings */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.settings-grid{grid-template-columns:1fr}.modal-content{margin:0 auto;border-radius:0}}
+.sec-label{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#1e3a5f;padding:3px 10px;border-radius:3px;margin:14px 0 8px;display:block}
+
+.empty-msg{color:#aaa;font-size:.85rem;text-align:center;padding:32px 0}
+.toast{position:fixed;bottom:24px;right:24px;background:#1e3a5f;color:#fff;padding:10px 18px;border-radius:8px;font-size:.88rem;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:9999;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+
+/* Print */
+@media print{
+  body{background:#fff}
+  .no-print,.nav,.toolbar,.tabs,.filter-row,.modal,.btn,.btn-sm{display:none!important}
+  .print-only{display:block!important}
+  .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+  @page{size:A4;margin:14mm}
+}
+.print-only{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="nav">
+    <a id="backLink" href="../index.html">← Menu</a>
+    <h1>🔑 Key Inventory — <span id="dormNameSpan">Elijah Hall</span></h1>
+    <span style="font-size:.78rem;color:#888">User: <strong id="userSpan"></strong></span>
+  </div>
+
+  <div class="toolbar no-print">
+    <button class="btn btn-green" onclick="openCheckOutModal()">🔑 Check Out Key</button>
+    <button class="btn" onclick="printShiftSheet()">🖨️ Print Shift Sheet</button>
+    <button class="btn btn-teal" onclick="printLedger()">🖨️ Print Ledger</button>
+  </div>
+
+  <div class="tabs no-print">
+    <button class="tab-btn active" onclick="switchTab('dashboard')">📋 Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('active')">🔑 Active</button>
+    <button class="tab-btn" onclick="switchTab('inventory')">🗝️ Inventory</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+    <button class="tab-btn" onclick="switchTab('agreement')">📄 Agreement</button>
+  </div>
+
+  <!-- DASHBOARD TAB -->
+  <div id="tab-dashboard" class="tab-panel active">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong style="color:#1e3a5f">⚠️ Overdue Keys</strong>
+      </div>
+      <div id="overdueList"><p class="empty-msg">No overdue keys</p></div>
+    </div>
+  </div>
+
+  <!-- ACTIVE TAB -->
+  <div id="tab-active" class="tab-panel">
+    <div class="filter-row no-print">
+      <select id="activeFilterStatus" onchange="renderActive()">
+        <option value="">All Active</option>
+        <option value="Checked Out">Checked Out</option>
+        <option value="Overdue">Overdue</option>
+      </select>
+      <select id="activeFilterType" onchange="renderActive()">
+        <option value="">All Types</option>
+        <option value="A">Key A</option>
+        <option value="B">Key B</option>
+        <option value="Monitor">Monitor</option>
+        <option value="Spare">Spare</option>
+        <option value="Grand Master">Grand Master</option>
+      </select>
+      <input type="text" id="activeSearch" placeholder="Search borrower / room…" oninput="renderActive()" style="width:180px">
+    </div>
+    <div id="activeList"></div>
+  </div>
+
+  <!-- INVENTORY TAB -->
+  <div id="tab-inventory" class="tab-panel">
+    <div class="filter-row no-print">
+      <button class="btn btn-green" onclick="openAddKeyModal()">➕ Add Key</button>
+      <button class="btn" onclick="generateFromRooms()">🏗️ Generate from Rooms</button>
+      <select id="invFilterFloor" onchange="renderInventory()">
+        <option value="">All Floors</option>
+        <option value="1">Floor 1</option>
+        <option value="2">Floor 2</option>
+        <option value="3">Floor 3</option>
+        <option value="4">Floor 4</option>
+      </select>
+      <select id="invFilterType" onchange="renderInventory()">
+        <option value="">All Types</option>
+        <option value="A">Key A</option>
+        <option value="B">Key B</option>
+        <option value="Monitor">Monitor</option>
+        <option value="Spare">Spare</option>
+        <option value="Grand Master">Grand Master</option>
+      </select>
+      <select id="invFilterStatus" onchange="renderInventory()">
+        <option value="">All Statuses</option>
+        <option value="Available">Available</option>
+        <option value="Checked Out">Checked Out</option>
+        <option value="Overdue">Overdue</option>
+        <option value="Lost">Lost</option>
+      </select>
+      <input type="text" id="invSearch" placeholder="Search room…" oninput="renderInventory()" style="width:140px">
+    </div>
+    <div id="inventoryTable"></div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="tab-panel">
+    <div class="card">
+      <strong style="color:#1e3a5f;display:block;margin-bottom:14px">⚙️ Key Control Settings</strong>
+      <div class="settings-grid">
+        <div>
+          <span class="sec-label">Return Time Limits</span>
+          <div class="fg">
+            <label>Student return time (minutes)</label>
+            <input type="number" id="s_studentMins" min="1" max="120" value="15">
+          </div>
+          <div class="fg">
+            <label>Worker return time (hours)</label>
+            <input type="number" id="s_workerHrs" min="1" max="24" value="8">
+          </div>
+        </div>
+        <div>
+          <span class="sec-label">Fine Amounts (Baht)</span>
+          <div class="fg">
+            <label>Lost key — cash fine</label>
+            <input type="number" id="s_fineCash" min="0" value="50">
+          </div>
+          <div class="fg">
+            <label>Lost key — account charge (if unpaid)</label>
+            <input type="number" id="s_fineAcct" min="0" value="100">
+          </div>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:8px">
+        <label>Semester label (for print headers)</label>
+        <input type="text" id="s_semester" placeholder="e.g. 2nd Semester 2025–26">
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn btn-green" onclick="saveSettings()">💾 Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGREEMENT TAB -->
+  <div id="tab-agreement" class="tab-panel">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <strong style="color:#1e3a5f;font-size:1rem">📄 Borrower Rules &amp; Responsibilities Agreement</strong>
+        <button class="btn" onclick="printAgreement()">🖨️ Print Agreement</button>
+      </div>
+      <div id="agreementPreview"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHECK OUT MODAL -->
+<div id="checkOutModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('checkOutModal')">&times;</span>
+    <h3 style="margin-bottom:14px;color:#1e3a5f">🔑 Check Out Key</h3>
+    <input type="hidden" id="co_keyId">
+    <div class="fg">
+      <label>Key *</label>
+      <select id="co_keySelect" onchange="onCoKeyChange()">
+        <option value="">— Select key —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Borrower Name *</label>
+      <input type="text" id="co_name" placeholder="Full name">
+    </div>
+    <div class="fg">
+      <label>Borrower Type *</label>
+      <select id="co_type" onchange="onCoBorrowerTypeChange()">
+        <option value="student">Student</option>
+        <option value="worker">Worker</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Student ID (optional)</label>
+      <input type="text" id="co_studentId" placeholder="e.g. 12345">
+    </div>
+    <div class="fg">
+      <label>Purpose / Reason *</label>
+      <input type="text" id="co_purpose" placeholder="e.g. Locked out, Maintenance visit">
+    </div>
+    <div class="fg">
+      <label>Expected Return</label>
+      <input type="datetime-local" id="co_expectedReturn">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('checkOutModal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveCheckOut()">✔ Issue Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINE MODAL -->
+<div id="fineModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('fineModal')">&times;</span>
+    <h3 style="margin-bottom:14px;color:#c62828">💸 Record Fine Payment</h3>
+    <input type="hidden" id="fm_keyId">
+    <div id="fm_summary" style="background:#fdecea;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.82rem;line-height:1.6"></div>
+    <div class="fg">
+      <label>Fine Amount (Baht)</label>
+      <input type="number" id="fm_amount" min="0">
+    </div>
+    <div class="fg">
+      <label>Payment Method</label>
+      <select id="fm_method">
+        <option value="Cash">Cash</option>
+        <option value="Account">Charged to Account</option>
+        <option value="Waived">Waived</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="fm_notes" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('fineModal')">Close (Pay Later)</button>
+      <button class="btn btn-red" onclick="saveFine()">✔ Record Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD / EDIT KEY MODAL -->
+<div id="addKeyModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('addKeyModal')">&times;</span>
+    <h3 id="addKeyTitle" style="margin-bottom:14px;color:#1e3a5f">➕ Add Key</h3>
+    <input type="hidden" id="ak_originalId">
+    <div class="fg">
+      <label>Room *</label>
+      <input type="text" id="ak_room" placeholder="e.g. 312AC">
+    </div>
+    <div class="fg">
+      <label>Key Type *</label>
+      <select id="ak_type">
+        <option value="A">A (door side)</option>
+        <option value="B">B (balcony side)</option>
+        <option value="Monitor">Monitor / Spare</option>
+        <option value="Spare">Spare</option>
+        <option value="Grand Master">Grand Master</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Total Copies</label>
+      <input type="number" id="ak_copies" min="1" value="2">
+    </div>
+    <div class="fg">
+      <label>Storage Location</label>
+      <input type="text" id="ak_location" placeholder="e.g. Key Cabinet, Dean's Office">
+    </div>
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="ak_notes" placeholder="Optional notes…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('addKeyModal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveKey()">💾 Save Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT SHEET (hidden until print) -->
+<div id="printSheet" class="print-only">
+  <div style="text-align:center;margin-bottom:12px">
+    <strong style="font-size:1.1rem" id="ps_dorm"></strong>
+    <div style="font-size:.85rem;color:#444">Key Inventory — Shift Sheet &nbsp;·&nbsp; <span id="ps_time"></span></div>
+    <div style="font-size:.78rem;color:#666" id="ps_sem"></div>
+  </div>
+  <div id="ps_content"></div>
+</div>
+
+<div id="toastEl" class="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let keys = [];
+let cfg  = {};
+let _currentFineKeyId = null;
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const back = params.get('back');
+  if (back) {
+    const el = document.getElementById('backLink');
+    const labels = { 'room-reservations': '← Room Reservations', 'floor-plan': '← Floor Plan' };
+    el.textContent = labels[back] || '← Menu';
+    el.href = '../' + (back === 'room-reservations' ? 'modules/room-reservations.html' : back + '.html');
+  }
+  document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
+  document.getElementById('userSpan').textContent = DormDB.getCurrentUser();
+
+  keys = DormDB.getKeys();
+  cfg  = DormDB.getKeysConfig();
+
+  checkOverdue();
+  loadSettings();
+  renderAll();
+
+  DormDB.on(DormDB.KEYS.KEYS_INV, () => { keys = DormDB.getKeys(); checkOverdue(); renderAll(); });
+  setInterval(() => { checkOverdue(); renderAll(); }, 60000);
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' ' +
+         d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
+}
+
+function timeUntil(iso) {
+  if (!iso) return '';
+  const diff = new Date(iso) - Date.now();
+  if (diff <= 0) {
+    const mins = Math.abs(Math.round(diff / 60000));
+    return mins < 60 ? mins + 'm overdue' : Math.floor(mins/60) + 'h ' + (mins%60) + 'm overdue';
+  }
+  const mins = Math.round(diff / 60000);
+  return mins < 60 ? 'Due in ' + mins + 'm' : 'Due in ' + Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+}
+
+function getFloor(room) {
+  const m = String(room).match(/^(\d)/);
+  return m ? m[1] : '';
+}
+
+function typeBadge(type) {
+  const cls = { A:'type-a', B:'type-b', Monitor:'type-monitor', Spare:'type-spare', 'Grand Master':'type-gm' };
+  return `<span class="key-type-badge ${cls[type]||''}">${escapeHtml(type)}</span>`;
+}
+
+function statusBadge(status) {
+  const cls = { Available:'st-available', 'Checked Out':'st-out', Overdue:'st-overdue', Lost:'st-lost' };
+  return `<span class="status-badge ${cls[status]||''}">${escapeHtml(status)}</span>`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toastEl');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Tab control ────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const names = ['dashboard','active','inventory','settings','agreement'];
+    b.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'active')    renderActive();
+  if (name === 'inventory') renderInventory();
+  if (name === 'agreement') renderAgreement();
+}
+
+// ── Overdue checker ────────────────────────────────────────────────────────────
+function checkOverdue() {
+  let changed = false;
+  const now = Date.now();
+  keys.forEach(k => {
+    if (k.status === 'Checked Out' && k.expectedReturn && new Date(k.expectedReturn).getTime() < now) {
+      k.status = 'Overdue';
+      changed = true;
+    }
+  });
+  if (changed) DormDB.saveKeys(keys);
+}
+
+// ── Render all ─────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderDashboard();
+  const activeTab = document.querySelector('.tab-panel.active');
+  if (activeTab && activeTab.id === 'tab-active')    renderActive();
+  if (activeTab && activeTab.id === 'tab-inventory') renderInventory();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const avail   = keys.filter(k => k.status === 'Available').length;
+  const out     = keys.filter(k => k.status === 'Checked Out').length;
+  const overdue = keys.filter(k => k.status === 'Overdue').length;
+  const lost    = keys.filter(k => k.status === 'Lost').length;
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card stat-available"><div class="num">${avail}</div><div class="lbl">Available</div></div>
+    <div class="stat-card stat-checked"><div class="num">${out}</div><div class="lbl">Checked Out</div></div>
+    <div class="stat-card stat-overdue"><div class="num">${overdue}</div><div class="lbl">Overdue</div></div>
+    <div class="stat-card stat-lost"><div class="num">${lost}</div><div class="lbl">Lost</div></div>
+  `;
+
+  const overdueKeys = keys.filter(k => k.status === 'Overdue');
+  const ol = document.getElementById('overdueList');
+  if (!overdueKeys.length) {
+    ol.innerHTML = '<p class="empty-msg">No overdue keys</p>';
+    return;
+  }
+  ol.innerHTML = overdueKeys.map(k => `
+    <div class="key-row">
+      <span class="key-room">${escapeHtml(k.room)}</span>
+      ${typeBadge(k.type)}
+      ${statusBadge(k.status)}
+      <span class="key-borrower">${escapeHtml(k.borrowerName)}</span>
+      <span class="key-meta">${escapeHtml(k.borrowerType)} · ${escapeHtml(k.purpose)}<br>
+        Out: ${formatTime(k.timeOut)} &nbsp;<span class="timer">${timeUntil(k.expectedReturn)}</span></span>
+      <div class="key-actions">
+        <button class="btn-sm btn-sm-green" onclick="returnKey(${escapeHtml(JSON.stringify(k.keyId))})">✔ Return</button>
+        <button class="btn-sm btn-sm-red" onclick="markLost(${escapeHtml(JSON.stringify(k.keyId))})">✘ Lost</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Active tab ─────────────────────────────────────────────────────────────────
+function renderActive() {
+  const statusF = document.getElementById('activeFilterStatus').value;
+  const typeF   = document.getElementById('activeFilterType').value;
+  const search  = (document.getElementById('activeSearch').value || '').toLowerCase();
+
+  let list = keys.filter(k => k.status === 'Checked Out' || k.status === 'Overdue');
+  if (statusF) list = list.filter(k => k.status === statusF);
+  if (typeF)   list = list.filter(k => k.type === typeF);
+  if (search)  list = list.filter(k =>
+    k.room.toLowerCase().includes(search) ||
+    (k.borrowerName||'').toLowerCase().includes(search) ||
+    (k.studentId||'').toLowerCase().includes(search)
+  );
+
+  const el = document.getElementById('activeList');
+  if (!list.length) { el.innerHTML = '<p class="empty-msg">No active checkouts</p>'; return; }
+
+  el.innerHTML = `
+    <table class="key-table">
+      <thead><tr>
+        <th>Room</th><th>Type</th><th>Status</th><th>Borrower</th><th>Type</th><th>Purpose</th>
+        <th>Time Out</th><th>Expected Return</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(k => `<tr>
+          <td><strong>${escapeHtml(k.room)}</strong></td>
+          <td>${typeBadge(k.type)}</td>
+          <td>${statusBadge(k.status)}</td>
+          <td>${escapeHtml(k.borrowerName)}${k.studentId ? `<br><small style="color:#aaa">${escapeHtml(k.studentId)}</small>` : ''}</td>
+          <td style="text-transform:capitalize">${escapeHtml(k.borrowerType)}</td>
+          <td>${escapeHtml(k.purpose)}</td>
+          <td style="white-space:nowrap">${formatTime(k.timeOut)}</td>
+          <td style="white-space:nowrap">${formatTime(k.expectedReturn)}<br><span class="timer">${timeUntil(k.expectedReturn)}</span></td>
+          <td><div class="actions-cell">
+            <button class="btn-sm btn-sm-green" onclick="returnKey(${escapeHtml(JSON.stringify(k.keyId))})">✔ Return</button>
+            <button class="btn-sm btn-sm-red" onclick="markLost(${escapeHtml(JSON.stringify(k.keyId))})">✘ Lost</button>
+          </div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ── Inventory tab ──────────────────────────────────────────────────────────────
+function renderInventory() {
+  const floorF  = document.getElementById('invFilterFloor').value;
+  const typeF   = document.getElementById('invFilterType').value;
+  const statusF = document.getElementById('invFilterStatus').value;
+  const search  = (document.getElementById('invSearch').value || '').toLowerCase();
+
+  let list = [...keys];
+  if (floorF)  list = list.filter(k => getFloor(k.room) === floorF);
+  if (typeF)   list = list.filter(k => k.type === typeF);
+  if (statusF) list = list.filter(k => k.status === statusF);
+  if (search)  list = list.filter(k => k.room.toLowerCase().includes(search));
+
+  const el = document.getElementById('inventoryTable');
+  if (!list.length) { el.innerHTML = '<p class="empty-msg">No keys found. Use "Generate from Rooms" or "Add Key" to start.</p>'; return; }
+
+  el.innerHTML = `
+    <table class="key-table">
+      <thead><tr>
+        <th>Room</th><th>Type</th><th>Status</th><th>Copies</th><th>Location</th>
+        <th>Borrower</th><th>Time Out</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(k => `<tr>
+          <td><strong>${escapeHtml(k.room)}</strong></td>
+          <td>${typeBadge(k.type)}</td>
+          <td>${statusBadge(k.status)}</td>
+          <td style="text-align:center">${k.totalCopies||1}</td>
+          <td>${escapeHtml(k.location||'')}</td>
+          <td>${k.status !== 'Available' ? escapeHtml(k.borrowerName||'') : '<span style="color:#aaa">—</span>'}</td>
+          <td style="white-space:nowrap">${k.status !== 'Available' ? formatTime(k.timeOut) : '<span style="color:#aaa">—</span>'}</td>
+          <td><div class="actions-cell">
+            ${k.status === 'Available' ? `<button class="btn-sm btn-sm-green" onclick="openCheckOutModal('${escapeHtml(k.keyId)}')">🔑 Out</button>` : ''}
+            ${k.status === 'Checked Out' || k.status === 'Overdue' ? `<button class="btn-sm" onclick="returnKey('${escapeHtml(k.keyId)}')">✔ Return</button>` : ''}
+            ${k.status === 'Checked Out' || k.status === 'Overdue' ? `<button class="btn-sm btn-sm-red" onclick="markLost('${escapeHtml(k.keyId)}')">✘ Lost</button>` : ''}
+            ${k.status === 'Lost' ? `<button class="btn-sm btn-sm-orange" onclick="openFineModal('${escapeHtml(k.keyId)}')">💸 Fine</button>` : ''}
+            ${k.status === 'Lost' ? `<button class="btn-sm btn-sm-green" onclick="foundKey('${escapeHtml(k.keyId)}')">🔍 Found</button>` : ''}
+            <button class="btn-sm btn-sm-gray" onclick="openAddKeyModal('${escapeHtml(k.keyId)}')">✎ Edit</button>
+            <button class="btn-sm btn-sm-red" onclick="removeKey('${escapeHtml(k.keyId)}')">✕</button>
+          </div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ── Generate from rooms ────────────────────────────────────────────────────────
+function generateFromRooms() {
+  const rooms = DormDB.getRooms();
+  const roomNames = [...new Set(rooms.map(s => s.room).filter(r => r && r.trim()))];
+  if (!roomNames.length) {
+    alert('No rooms found in Room Reservations. Please set up rooms first.');
+    return;
+  }
+  const existingIds = new Set(keys.map(k => k.keyId));
+  let added = 0;
+  roomNames.forEach(room => {
+    ['A', 'B'].forEach(type => {
+      const keyId = room + '-' + type;
+      if (!existingIds.has(keyId)) {
+        keys.push(emptyKey(room, type));
+        existingIds.add(keyId);
+        added++;
+      }
+    });
+  });
+  DormDB.saveKeys(keys);
+  renderInventory();
+  showToast('Generated ' + added + ' new key record' + (added !== 1 ? 's' : '') + ' from ' + roomNames.length + ' rooms');
+}
+
+function emptyKey(room, type) {
+  return {
+    keyId: room + '-' + type,
+    room, type,
+    totalCopies: 2,
+    location: 'Key Cabinet',
+    status: 'Available',
+    borrowerName: '', borrowerType: '', studentId: '',
+    purpose: '', timeOut: '', expectedReturn: '',
+    fineAmount: 0, finePaid: false, notes: '',
+    history: []
+  };
+}
+
+// ── Check-out flow ─────────────────────────────────────────────────────────────
+function openCheckOutModal(keyId) {
+  const sel = document.getElementById('co_keySelect');
+  // Populate dropdown with available keys
+  const available = keys.filter(k => k.status === 'Available');
+  sel.innerHTML = '<option value="">— Select key —</option>' +
+    available.map(k => `<option value="${escapeHtml(k.keyId)}">${escapeHtml(k.room)} — Key ${escapeHtml(k.type)}</option>`).join('');
+  if (keyId) sel.value = keyId;
+
+  document.getElementById('co_name').value = '';
+  document.getElementById('co_type').value = 'student';
+  document.getElementById('co_studentId').value = '';
+  document.getElementById('co_purpose').value = '';
+  onCoBorrowerTypeChange();
+  document.getElementById('checkOutModal').style.display = 'block';
+}
+
+function onCoKeyChange() {
+  // no extra logic needed currently
+}
+
+function onCoBorrowerTypeChange() {
+  const type = document.getElementById('co_type').value;
+  const now = new Date();
+  const mins = cfg.studentReturnMinutes || 15;
+  const hrs  = cfg.workerReturnHours || 8;
+  if (type === 'student') {
+    now.setMinutes(now.getMinutes() + mins);
+  } else {
+    now.setHours(now.getHours() + hrs);
+  }
+  // Format for datetime-local (YYYY-MM-DDTHH:MM)
+  const pad = n => String(n).padStart(2, '0');
+  const local = now.getFullYear() + '-' + pad(now.getMonth()+1) + '-' + pad(now.getDate()) +
+    'T' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  document.getElementById('co_expectedReturn').value = local;
+}
+
+function saveCheckOut() {
+  const keyId   = document.getElementById('co_keySelect').value;
+  const name    = document.getElementById('co_name').value.trim();
+  const type    = document.getElementById('co_type').value;
+  const sid     = document.getElementById('co_studentId').value.trim();
+  const purpose = document.getElementById('co_purpose').value.trim();
+  const ret     = document.getElementById('co_expectedReturn').value;
+
+  if (!keyId)   { alert('Please select a key.'); return; }
+  if (!name)    { alert('Borrower name is required.'); return; }
+  if (!purpose) { alert('Purpose / reason is required.'); return; }
+
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) { alert('Key not found.'); return; }
+  if (k.status !== 'Available') { alert('This key is not available.'); return; }
+
+  k.status        = 'Checked Out';
+  k.borrowerName  = name;
+  k.borrowerType  = type;
+  k.studentId     = sid;
+  k.purpose       = purpose;
+  k.timeOut       = new Date().toISOString();
+  k.expectedReturn = ret ? new Date(ret).toISOString() : '';
+  k.fineAmount    = 0;
+  k.finePaid      = false;
+  k.notes         = '';
+
+  DormDB.saveKeys(keys);
+  closeModal('checkOutModal');
+  renderAll();
+  showToast('Key issued to ' + name);
+}
+
+// ── Return flow ────────────────────────────────────────────────────────────────
+function returnKey(keyId) {
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) return;
+  if (k.status !== 'Checked Out' && k.status !== 'Overdue') return;
+
+  k.history.push({
+    borrowerName:  k.borrowerName,
+    borrowerType:  k.borrowerType,
+    studentId:     k.studentId,
+    purpose:       k.purpose,
+    timeOut:       k.timeOut,
+    expectedReturn:k.expectedReturn,
+    timeIn:        new Date().toISOString(),
+    status:        k.status,
+    fineAmount:    0,
+    finePaid:      false,
+    notes:         k.notes
+  });
+
+  k.status = 'Available';
+  k.borrowerName = ''; k.borrowerType = ''; k.studentId = '';
+  k.purpose = ''; k.timeOut = ''; k.expectedReturn = '';
+  k.fineAmount = 0; k.finePaid = false; k.notes = '';
+
+  DormDB.saveKeys(keys);
+  renderAll();
+  showToast('Key returned — ' + k.room + ' Key ' + k.type);
+}
+
+// ── Lost flow ──────────────────────────────────────────────────────────────────
+function markLost(keyId) {
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) return;
+  k.status    = 'Lost';
+  k.fineAmount = cfg.fineAmountCash || 50;
+  k.finePaid  = false;
+  DormDB.saveKeys(keys);
+  renderAll();
+  openFineModal(keyId);
+}
+
+function foundKey(keyId) {
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) return;
+  k.history.push({
+    borrowerName: k.borrowerName, borrowerType: k.borrowerType, studentId: k.studentId,
+    purpose: k.purpose, timeOut: k.timeOut, expectedReturn: k.expectedReturn,
+    timeIn: new Date().toISOString(), status: 'Lost (Found)',
+    fineAmount: k.fineAmount, finePaid: k.finePaid, notes: k.notes
+  });
+  k.status = 'Available';
+  k.borrowerName = ''; k.borrowerType = ''; k.studentId = '';
+  k.purpose = ''; k.timeOut = ''; k.expectedReturn = '';
+  k.fineAmount = 0; k.finePaid = false; k.notes = '';
+  DormDB.saveKeys(keys);
+  renderAll();
+  showToast('Key ' + k.room + '-' + k.type + ' marked as found — returned to Available');
+}
+
+// ── Fine modal ─────────────────────────────────────────────────────────────────
+function openFineModal(keyId) {
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) return;
+  _currentFineKeyId = keyId;
+  document.getElementById('fm_keyId').value = keyId;
+  document.getElementById('fm_summary').innerHTML =
+    `<strong>Room ${escapeHtml(k.room)} — Key ${escapeHtml(k.type)}</strong><br>
+     Borrowed by: ${escapeHtml(k.borrowerName)} (${escapeHtml(k.borrowerType)})<br>
+     Checked out: ${formatTime(k.timeOut)}`;
+  document.getElementById('fm_amount').value = k.fineAmount || cfg.fineAmountCash || 50;
+  document.getElementById('fm_method').value = 'Cash';
+  document.getElementById('fm_notes').value = '';
+  document.getElementById('fineModal').style.display = 'block';
+}
+
+function saveFine() {
+  const keyId  = document.getElementById('fm_keyId').value;
+  const amount = parseFloat(document.getElementById('fm_amount').value) || 0;
+  const method = document.getElementById('fm_method').value;
+  const notes  = document.getElementById('fm_notes').value.trim();
+
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) return;
+
+  k.fineAmount = amount;
+  k.finePaid   = true;
+  k.notes      = notes + (notes ? ' | ' : '') + 'Fine: ' + amount + ' Baht (' + method + ')';
+
+  DormDB.saveKeys(keys);
+  closeModal('fineModal');
+  renderAll();
+  showToast('Fine recorded — ' + amount + ' Baht (' + method + ')');
+}
+
+// ── Add / edit key modal ───────────────────────────────────────────────────────
+function openAddKeyModal(keyId) {
+  document.getElementById('ak_originalId').value = keyId || '';
+  document.getElementById('addKeyTitle').textContent = keyId ? '✎ Edit Key' : '➕ Add Key';
+  if (keyId) {
+    const k = keys.find(k => k.keyId === keyId);
+    if (!k) return;
+    document.getElementById('ak_room').value     = k.room;
+    document.getElementById('ak_type').value     = k.type;
+    document.getElementById('ak_copies').value   = k.totalCopies || 1;
+    document.getElementById('ak_location').value = k.location || '';
+    document.getElementById('ak_notes').value    = k.notes || '';
+  } else {
+    document.getElementById('ak_room').value     = '';
+    document.getElementById('ak_type').value     = 'A';
+    document.getElementById('ak_copies').value   = 2;
+    document.getElementById('ak_location').value = 'Key Cabinet';
+    document.getElementById('ak_notes').value    = '';
+  }
+  document.getElementById('addKeyModal').style.display = 'block';
+}
+
+function saveKey() {
+  const origId   = document.getElementById('ak_originalId').value;
+  const room     = document.getElementById('ak_room').value.trim().toUpperCase();
+  const type     = document.getElementById('ak_type').value;
+  const copies   = parseInt(document.getElementById('ak_copies').value) || 1;
+  const location = document.getElementById('ak_location').value.trim();
+  const notes    = document.getElementById('ak_notes').value.trim();
+
+  if (!room) { alert('Room is required.'); return; }
+
+  const newKeyId = room + '-' + type;
+  if (!origId) {
+    // Add new
+    if (keys.find(k => k.keyId === newKeyId)) {
+      alert('A key with ID "' + newKeyId + '" already exists. Edit it instead.');
+      return;
+    }
+    const k = emptyKey(room, type);
+    k.totalCopies = copies;
+    k.location    = location;
+    k.notes       = notes;
+    keys.push(k);
+  } else {
+    // Edit existing
+    const k = keys.find(k => k.keyId === origId);
+    if (!k) return;
+    if (newKeyId !== origId && keys.find(k => k.keyId === newKeyId)) {
+      alert('Key ID "' + newKeyId + '" already exists.');
+      return;
+    }
+    k.keyId      = newKeyId;
+    k.room       = room;
+    k.type       = type;
+    k.totalCopies = copies;
+    k.location   = location;
+    k.notes      = notes;
+  }
+
+  DormDB.saveKeys(keys);
+  closeModal('addKeyModal');
+  renderInventory();
+  showToast('Key saved — ' + newKeyId);
+}
+
+function removeKey(keyId) {
+  const k = keys.find(k => k.keyId === keyId);
+  if (!k) return;
+  if (k.status !== 'Available') {
+    alert('Cannot remove a key that is currently checked out or lost. Return it first.');
+    return;
+  }
+  if (!confirm('Remove key ' + k.room + ' — ' + k.type + '?\nThis will also delete its history.')) return;
+  keys = keys.filter(k => k.keyId !== keyId);
+  DormDB.saveKeys(keys);
+  renderInventory();
+  showToast('Key removed');
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+function loadSettings() {
+  cfg = DormDB.getKeysConfig();
+  document.getElementById('s_studentMins').value = cfg.studentReturnMinutes || 15;
+  document.getElementById('s_workerHrs').value   = cfg.workerReturnHours || 8;
+  document.getElementById('s_fineCash').value    = cfg.fineAmountCash || 50;
+  document.getElementById('s_fineAcct').value    = cfg.fineAmountAccount || 100;
+  document.getElementById('s_semester').value    = cfg.semesterLabel || '';
+}
+
+function saveSettings() {
+  cfg = {
+    studentReturnMinutes: parseInt(document.getElementById('s_studentMins').value) || 15,
+    workerReturnHours:    parseInt(document.getElementById('s_workerHrs').value)   || 8,
+    fineAmountCash:       parseFloat(document.getElementById('s_fineCash').value)  || 50,
+    fineAmountAccount:    parseFloat(document.getElementById('s_fineAcct').value)  || 100,
+    semesterLabel:        document.getElementById('s_semester').value.trim()
+  };
+  DormDB.saveKeysConfig(cfg);
+  showToast('Settings saved');
+}
+
+// ── Agreement tab ─────────────────────────────────────────────────────────────
+function _agreementHtml(dorm, mins, fine, acct) {
+  return `
+    <div style="border-bottom:3px solid #1e3a5f;padding-bottom:12px;margin-bottom:18px;text-align:center">
+      <div style="font-size:1.15rem;font-weight:800;text-transform:uppercase;color:#1e3a5f">🗝️ ${escapeHtml(dorm)} Key Control System</div>
+      <div style="font-size:.85rem;color:#555;margin-top:4px">Office of the Dormitory Dean | Muak Lek Campus</div>
+      <div style="font-weight:700;margin-top:8px;font-size:.92rem">Borrower Rules &amp; Responsibilities Agreement</div>
+    </div>
+    <p style="margin-bottom:14px;font-size:.85rem;line-height:1.6">By requesting a key from the ${escapeHtml(dorm)} front desk, you agree to strictly adhere to the following security protocols. <strong>The front desk will not issue reminders or retrieve keys.</strong> Returning the key within the designated timeframe is your absolute responsibility.</p>
+    <h2 style="font-size:.92rem;color:#1e3a5f;border-bottom:1px solid #d9e6f5;padding-bottom:5px;margin:16px 0 8px">🪪 1. Identity and Authorization</h2>
+    <ul style="padding-left:20px;font-size:.83rem;line-height:1.8">
+      <li><strong>Mandatory ID:</strong> No key will be issued without presenting a valid physical ID.</li>
+      <li><strong>Authorized Access Only:</strong> Students may only borrow the spare key for their officially assigned room. Staff and maintenance workers must provide a valid work order.</li>
+    </ul>
+    <h2 style="font-size:.92rem;color:#1e3a5f;border-bottom:1px solid #d9e6f5;padding-bottom:5px;margin:16px 0 8px">⏱️ 2. Strict Time Limits &amp; Return Protocol</h2>
+    <ul style="padding-left:20px;font-size:.83rem;line-height:1.8">
+      <li><strong>Student Lockouts (${mins}-Minute Rule):</strong> Spare keys are for immediate re-entry only. You must return the key to the desk within <strong>${mins} minutes</strong>. Staff will not call you or knock on your door if you are late.</li>
+      <li><strong>Staff and Workers:</strong> Keys must be returned immediately upon completion of the task, and strictly before the end of the shift.</li>
+      <li><strong>Direct Handoff:</strong> Keys must be handed directly to a front desk staff member. Dropping the key on an unattended desk is strictly prohibited and will be treated as a lost key.</li>
+    </ul>
+    <h2 style="font-size:.92rem;color:#1e3a5f;border-bottom:1px solid #d9e6f5;padding-bottom:5px;margin:16px 0 8px">🔗 3. Chain of Custody</h2>
+    <ul style="padding-left:20px;font-size:.83rem;line-height:1.8">
+      <li><strong>Sole Responsibility:</strong> You are 100% responsible for the key until the front desk officially logs it back in. You may not hand the key off to a roommate, friend, or co-worker to return for you.</li>
+    </ul>
+    <h2 style="font-size:.92rem;color:#1e3a5f;border-bottom:1px solid #d9e6f5;padding-bottom:5px;margin:16px 0 8px">⚠️ 4. Penalties for Tardiness and Loss</h2>
+    <ul style="padding-left:20px;font-size:.83rem;line-height:1.8">
+      <li><strong>Automatic Overdue Fines:</strong> If the key is not returned by the exact expected time, an automatic late fine will be applied. Repeated violations will result in a permanent ban from the key borrowing service and a formal disciplinary report.</li>
+      <li><strong>Financial Liability for Loss:</strong> If a key is lost, the borrower is immediately responsible for a <strong>${fine} Baht</strong> replacement fee, payable in cash at the front desk. If this cash fee is not paid, the penalty will automatically be charged to your institutional account at double the rate (<strong>${acct} Baht</strong>).</li>
+    </ul>
+    <table style="margin-top:36px;width:100%;border-collapse:collapse">
+      <tr>
+        <td style="padding:20px 10px 0 10px;vertical-align:bottom;width:50%">
+          <span style="border-bottom:1px solid #000;width:100%;height:28px;display:inline-block"></span>
+          <span style="display:block;font-size:.72rem;margin-top:5px;color:#555">Printed Name (Student / Staff)</span>
+        </td>
+        <td style="padding:20px 10px 0 10px;vertical-align:bottom;width:50%">
+          <span style="border-bottom:1px solid #000;width:100%;height:28px;display:inline-block"></span>
+          <span style="display:block;font-size:.72rem;margin-top:5px;color:#555">Room Number / Role</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:28px 10px 0 10px;vertical-align:bottom">
+          <span style="border-bottom:1px solid #000;width:100%;height:28px;display:inline-block"></span>
+          <span style="display:block;font-size:.72rem;margin-top:5px;color:#555">Signature</span>
+        </td>
+        <td style="padding:28px 10px 0 10px;vertical-align:bottom">
+          <span style="border-bottom:1px solid #000;width:100%;height:28px;display:inline-block"></span>
+          <span style="display:block;font-size:.72rem;margin-top:5px;color:#555">Date</span>
+        </td>
+      </tr>
+    </table>`;
+}
+
+function renderAgreement() {
+  const c    = cfg || {};
+  const dorm = DormDB.getDormName();
+  const mins = c.studentReturnMinutes || 15;
+  const fine = c.fineAmountCash || 50;
+  const acct = c.fineAmountAccount || 100;
+  document.getElementById('agreementPreview').innerHTML = _agreementHtml(dorm, mins, fine, acct);
+}
+
+function printAgreement() {
+  const c    = cfg || {};
+  const dorm = DormDB.getDormName();
+  const mins = c.studentReturnMinutes || 15;
+  const fine = c.fineAmountCash || 50;
+  const acct = c.fineAmountAccount || 100;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Borrower Rules — ${dorm}</title>
+    <style>
+        @page { size: A4; margin: 1in; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; line-height: 1.5; font-size: 11pt; margin: 0; }
+        .header { text-align: center; border-bottom: 3px solid #1e3a5f; padding-bottom: 12px; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 16pt; text-transform: uppercase; color: #1e3a5f; }
+        .header p { margin: 5px 0 0 0; font-size: 10pt; color: #444; }
+        .header .title { font-weight: bold; font-size: 11pt; color: #000; margin-top: 10px; }
+        h2 { font-size: 11pt; color: #1e3a5f; border-bottom: 1px solid #b0c4de; padding-bottom: 4px; margin: 18px 0 8px; }
+        ul { padding-left: 20px; margin: 0; }
+        li { margin-bottom: 7px; }
+        .signature-block { margin-top: 48px; width: 100%; border-collapse: collapse; }
+        .signature-block td { padding: 24px 10px 0 10px; vertical-align: bottom; width: 50%; }
+        .line { border-bottom: 1px solid #000; width: 100%; height: 28px; display: inline-block; }
+        .label { display: block; font-size: 9pt; margin-top: 4px; color: #444; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗝️ ${dorm} Key Control System</h1>
+        <p>Office of the Dormitory Dean | Muak Lek Campus</p>
+        <p class="title">Borrower Rules &amp; Responsibilities Agreement</p>
+    </div>
+    <p>By requesting a key from the ${dorm} front desk, you agree to strictly adhere to the following security protocols. <strong>The front desk will not issue reminders or retrieve keys.</strong> Returning the key within the designated timeframe is your absolute responsibility.</p>
+    <h2>🪪 1. Identity and Authorization</h2>
+    <ul>
+        <li><strong>Mandatory ID:</strong> No key will be issued without presenting a valid physical ID.</li>
+        <li><strong>Authorized Access Only:</strong> Students may only borrow the spare key for their officially assigned room. Staff and maintenance workers must provide a valid work order.</li>
+    </ul>
+    <h2>⏱️ 2. Strict Time Limits &amp; Return Protocol</h2>
+    <ul>
+        <li><strong>Student Lockouts (${mins}-Minute Rule):</strong> Spare keys are for immediate re-entry only. You must return the key to the desk within <strong>${mins} minutes</strong>. Staff will not call you or knock on your door if you are late.</li>
+        <li><strong>Staff and Workers:</strong> Keys must be returned immediately upon completion of the task, and strictly before the end of the shift.</li>
+        <li><strong>Direct Handoff:</strong> Keys must be handed directly to a front desk staff member. Dropping the key on an unattended desk is strictly prohibited and will be treated as a lost key.</li>
+    </ul>
+    <h2>🔗 3. Chain of Custody</h2>
+    <ul>
+        <li><strong>Sole Responsibility:</strong> You are 100% responsible for the key until the front desk officially logs it back in. You may not hand the key off to a roommate, friend, or co-worker to return for you.</li>
+    </ul>
+    <h2>⚠️ 4. Penalties for Tardiness and Loss</h2>
+    <ul>
+        <li><strong>Automatic Overdue Fines:</strong> If the key is not returned by the exact expected time, an automatic late fine will be applied. Repeated violations will result in a permanent ban from the key borrowing service and a formal disciplinary report.</li>
+        <li><strong>Financial Liability for Loss:</strong> If a key is lost, the borrower is immediately responsible for a <strong>${fine} Baht</strong> replacement fee, payable in cash at the front desk. If this cash fee is not paid, the penalty will automatically be charged to your institutional account at double the rate (<strong>${acct} Baht</strong>).</li>
+    </ul>
+    <table class="signature-block">
+        <tr>
+            <td><span class="line"></span><span class="label">Printed Name (Student / Staff)</span></td>
+            <td><span class="line"></span><span class="label">Room Number / Role</span></td>
+        </tr>
+        <tr>
+            <td><span class="line"></span><span class="label">Signature</span></td>
+            <td><span class="line"></span><span class="label">Date</span></td>
+        </tr>
+    </table>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+// ── Modal helpers ──────────────────────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+});
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+});
+
+// ── Print ledger ───────────────────────────────────────────────────────────────
+function printLedger() {
+  const c    = cfg || {};
+  const dorm = DormDB.getDormName();
+  const fine = c.fineAmountCash || 50;
+  const acct = c.fineAmountAccount || 100;
+
+  function rows(from, to) {
+    let html = '';
+    for (let i = from; i <= to; i++) {
+      html += `<tr><td style="text-align:center">${i}</td><td></td><td></td><td></td><td></td></tr>`;
+    }
+    return html;
+  }
+
+  const thead = `<thead><tr><th>#</th><th>Date</th><th>Printed Name</th><th>Room # / Role</th><th>Signature</th></tr></thead>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Master Signature Ledger — ${dorm}</title>
+    <style>
+        @page { size: A4 portrait; margin: 0.5in; }
+        body { font-family: 'Arial', sans-serif; margin: 0; color: #000; }
+        .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+        .header h1 { margin: 0; font-size: 18pt; text-transform: uppercase; }
+        .header p { margin: 5px 0 0 0; font-size: 11pt; font-weight: bold; }
+        .metadata { display: flex; justify-content: space-between; font-size: 11pt; font-weight: bold; margin-bottom: 15px; padding: 0 10px; }
+        .box { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; margin-right: 4px; position: relative; top: 2px; }
+        .semester-options span { margin-right: 15px; }
+        .agreement-text { font-size: 10pt; margin-bottom: 15px; background-color: #f8f9fa; padding: 12px; border: 1px solid #000; text-align: justify; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 8px; font-size: 10pt; vertical-align: middle; }
+        th { background-color: #e9ecef; font-weight: bold; text-align: center; }
+        tbody tr { height: 32px; }
+        th:nth-child(1), td:nth-child(1) { width: 6%; text-align: center; }
+        th:nth-child(2), td:nth-child(2) { width: 12%; text-align: center; }
+        th:nth-child(3), td:nth-child(3) { width: 34%; text-align: left; }
+        th:nth-child(4), td:nth-child(4) { width: 18%; text-align: center; }
+        th:nth-child(5), td:nth-child(5) { width: 30%; text-align: left; }
+        .page-break { page-break-before: always; }
+        .minimal-header { display: flex; justify-content: space-between; font-size: 11pt; font-weight: bold; margin-bottom: 10px; color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗝️ ${dorm} Key Control System</h1>
+        <p>Master Borrower Agreement - Signature Ledger</p>
+    </div>
+    <div class="metadata">
+        <div>Month / Year: ______________________</div>
+        <div class="semester-options">
+            Semester:
+            <span><span class="box"></span> 1</span>
+            <span><span class="box"></span> 2</span>
+            <span><span class="box"></span> Summer</span>
+        </div>
+    </div>
+    <div class="agreement-text">
+        <strong>BINDING ACKNOWLEDGMENT:</strong> By signing below, I certify that I have read the "Borrower Rules &amp; Responsibilities Agreement" provided on this clipboard. I agree to return all borrowed keys within the designated timeframe (15 minutes for students, end-of-shift for staff). <strong>I explicitly accept financial liability for any lost keys:</strong> I agree to pay a <strong>${fine} Baht</strong> cash replacement fee immediately upon loss, and I understand that failure to pay this cash fee will result in an automatic <strong>${acct} Baht</strong> penalty charged directly to my institutional account.
+    </div>
+    <table>${thead}<tbody>${rows(1, 20)}</tbody></table>
+    <div class="page-break"></div>
+    <div class="minimal-header">
+        <span>${dorm} Signature Ledger - Continued</span>
+        <span>Month/Year: _______________</span>
+        <span>Page: 2</span>
+    </div>
+    <table>${thead}<tbody>${rows(21, 48)}</tbody></table>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+// ── Print shift sheet ──────────────────────────────────────────────────────────
+function printShiftSheet() {
+  const nonAvail = keys.filter(k => k.status !== 'Available');
+  const dorm = DormDB.getDormName();
+  const now  = new Date().toLocaleString('en-US', { dateStyle:'medium', timeStyle:'short' });
+
+  document.getElementById('ps_dorm').textContent = dorm;
+  document.getElementById('ps_time').textContent = now;
+  document.getElementById('ps_sem').textContent  = cfg.semesterLabel || '';
+
+  if (!nonAvail.length) {
+    document.getElementById('ps_content').innerHTML = '<p style="text-align:center;color:#888;margin:24px 0">All keys are currently available.</p>';
+  } else {
+    document.getElementById('ps_content').innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+        <thead><tr style="background:#f0f4f8">
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Room</th>
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Type</th>
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Status</th>
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Borrower</th>
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Purpose</th>
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Time Out</th>
+          <th style="border:1px solid #ccc;padding:5px 8px;text-align:left">Expected Return</th>
+        </tr></thead>
+        <tbody>
+          ${nonAvail.map(k => `<tr>
+            <td style="border:1px solid #ccc;padding:5px 8px"><strong>${escapeHtml(k.room)}</strong></td>
+            <td style="border:1px solid #ccc;padding:5px 8px">${escapeHtml(k.type)}</td>
+            <td style="border:1px solid #ccc;padding:5px 8px">${escapeHtml(k.status)}</td>
+            <td style="border:1px solid #ccc;padding:5px 8px">${escapeHtml(k.borrowerName)}</td>
+            <td style="border:1px solid #ccc;padding:5px 8px">${escapeHtml(k.purpose)}</td>
+            <td style="border:1px solid #ccc;padding:5px 8px">${formatTime(k.timeOut)}</td>
+            <td style="border:1px solid #ccc;padding:5px 8px">${formatTime(k.expectedReturn)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+  window.print();
+}
+
+// ── Run ────────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,291 @@
+/**
+ * DormDB — Central data API for Dorm Manager
+ * All modules read/write through this file. localStorage is the current backend;
+ * swap _r/_w internals to IndexedDB when data grows past ~5 MB.
+ */
+const DormDB = (() => {
+
+  // ── Storage key constants ──────────────────────────────────────────────────
+  const K = {
+    // Room reservations (existing keys — must not change)
+    ROOMS:       'dormData',
+    QUEUE:       'dormQueue',
+    HISTORY:     'dormHistory',
+    AWAY:        'dormAway',
+    // Shared settings
+    NAME_SEL:    'dormNameSelect',
+    NAME_CUSTOM: 'dormNameCustom',
+    MAX_OCC:     'dormMaxOccupants',
+    USER:        'dormUserName',
+    LAST_UPDATE: 'dormLastUpdate',
+    LAST_USER:   'dormLastUser',
+    ROLE:        'dormRole',
+    FLOOR:       'dormFloor',
+    COLS:        'dormCols',
+    // Auth
+    PWD:         'dormPwdHash',
+    // New modules
+    PROFILES:    'dormProfiles',
+    KEYS_INV:    'dormKeysInv',
+    KEYS_CFG:    'dormKeysConfig',
+    INSPECTIONS: 'dormInspections',
+    INVENTORY:    'dormInventory',
+    INV_TEMPLATE: 'dormInvTemplate',
+    SCHEDULE:    'dormSchedule',
+    MAINTENANCE: 'dormMaintenance',
+    FLOOR_PLAN:      'dormFloorPlan',
+    UTILITIES:       'dormUtilities',
+    PHOTOS_MIGRATED: 'dormPhotosInIDB',
+  };
+
+  // ── Generic read / write ───────────────────────────────────────────────────
+  function _r(key, def) {
+    try {
+      const v = localStorage.getItem(key);
+      return v !== null ? JSON.parse(v) : def;
+    } catch(e) {
+      console.error('DormDB read error:', key, e);
+      return def;
+    }
+  }
+
+  function _w(key, val) {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+      _broadcast(key);
+    } catch(e) {
+      console.error('DormDB write error:', key, e);
+      throw e;
+    }
+  }
+
+  // ── IndexedDB — photo storage ─────────────────────────────────────────────
+  let _idbReady = null;
+  function _openIDB() {
+    if (_idbReady) return _idbReady;
+    _idbReady = new Promise((resolve, reject) => {
+      const req = indexedDB.open('DormManagerDB', 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore('photos', { keyPath: 'id' });
+      req.onsuccess  = e => resolve(e.target.result);
+      req.onerror    = e => reject(e.target.error);
+    });
+    return _idbReady;
+  }
+
+  function _dataURLtoBlob(dataURL) {
+    const [header, b64] = dataURL.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
+  // ── BroadcastChannel — cross-tab sync ─────────────────────────────────────
+  let _channel = null;
+  const _subs = {};
+
+  try { _channel = new BroadcastChannel('dorm-sync'); } catch(e) { /* private mode */ }
+
+  function _broadcast(key) {
+    if (_channel) _channel.postMessage({ key, ts: Date.now() });
+    (_subs[key] || []).forEach(fn => { try { fn(); } catch(e) {} });
+  }
+
+  if (_channel) {
+    _channel.onmessage = (e) => {
+      (_subs[e.data.key] || []).forEach(fn => { try { fn(); } catch(e) {} });
+    };
+  }
+
+  // ── Password — PBKDF2 / SHA-256 ───────────────────────────────────────────
+  async function hashPwd(pwd) {
+    const enc = new TextEncoder();
+    const base = await crypto.subtle.importKey(
+      'raw', enc.encode(pwd), { name: 'PBKDF2' }, false, ['deriveBits']
+    );
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt: enc.encode('APIU-DormPortal-Salt-v4'), iterations: 100000, hash: 'SHA-256' },
+      base, 256
+    );
+    return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+  return {
+
+    // Room reservations
+    getRooms:       ()  => _r(K.ROOMS, []),
+    saveRooms:      (d) => _w(K.ROOMS, d),
+    getQueue:       ()  => _r(K.QUEUE, []),
+    saveQueue:      (d) => _w(K.QUEUE, d),
+    getHistory:     ()  => _r(K.HISTORY, []),
+    saveHistory:    (d) => _w(K.HISTORY, d),
+    getAway:        ()  => _r(K.AWAY, []),
+    saveAway:       (d) => _w(K.AWAY, d),
+
+    // Shared settings (read-only helpers)
+    getDormName() {
+      const sel = localStorage.getItem(K.NAME_SEL) || 'Elijah Hall';
+      return sel === 'Other'
+        ? (localStorage.getItem(K.NAME_CUSTOM) || 'Custom Dorm')
+        : sel;
+    },
+    getMaxOcc:      ()  => parseInt(localStorage.getItem(K.MAX_OCC) || '2'),
+    getCurrentUser: ()  => localStorage.getItem(K.USER) || 'Unknown',
+
+    // New module data
+    getProfiles:     ()  => _r(K.PROFILES, []),
+    saveProfiles:    (d) => _w(K.PROFILES, d),
+    getKeys:         ()  => _r(K.KEYS_INV, []),
+    saveKeys:        (d) => _w(K.KEYS_INV, d),
+    getKeysConfig:   ()  => _r(K.KEYS_CFG, { fineAmountCash:50, fineAmountAccount:100, studentReturnMinutes:15, workerReturnHours:8, semesterLabel:'' }),
+    saveKeysConfig:  (d) => _w(K.KEYS_CFG, d),
+    getInspections:  ()  => _r(K.INSPECTIONS, []),
+    saveInspections: (d) => _w(K.INSPECTIONS, d),
+    getInventory:    ()  => _r(K.INVENTORY, []),
+    saveInventory:   (d) => _w(K.INVENTORY, d),
+    getInvTemplate:  ()  => _r(K.INV_TEMPLATE, []),
+    saveInvTemplate: (d) => _w(K.INV_TEMPLATE, d),
+    getSchedule:     ()  => _r(K.SCHEDULE, []),
+    saveSchedule:    (d) => _w(K.SCHEDULE, d),
+    getMaintenance:  ()  => _r(K.MAINTENANCE, []),
+    saveMaintenance: (d) => _w(K.MAINTENANCE, d),
+    getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
+    saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
+    getUtilities:    ()  => _r(K.UTILITIES, []),
+    saveUtilities:   (d) => _w(K.UTILITIES, d),
+
+    // Cross-module stats for the main menu dashboard
+    getMenuStats() {
+      const rooms    = _r(K.ROOMS, []);
+      const queue    = _r(K.QUEUE, []);
+      const history  = _r(K.HISTORY, []);
+      const away     = _r(K.AWAY, []);
+      const keys     = _r(K.KEYS_INV, []);
+      const maint    = _r(K.MAINTENANCE, []);
+      const inspect  = _r(K.INSPECTIONS, []);
+      const invent   = _r(K.INVENTORY, []);
+      const profiles = _r(K.PROFILES, []);
+      const REQ = ['firstName','surname','studentId','cellPhone','email','birthDate',
+                   'nationality','homeAddress','fatherName','motherName',
+                   'emergencyName','emergencyPhone','bloodType'];
+      const pctOf = p => REQ.filter(f => p[f] && String(p[f]).trim()).length / REQ.length * 100;
+      return {
+        totalStudents:      rooms.filter(s => s.name && s.name.trim()).length,
+        checkingOut:        rooms.filter(s => s.graduating && s.moveOutReason).length,
+        inQueue:            queue.length,
+        awayCount:          away.length,
+        archived:           history.length,
+        keysOverdue:        keys.filter(k => k.status === 'Overdue').length,
+        keysLost:           keys.filter(k => k.status === 'Lost').length,
+        openMaintenance:    maint.filter(m => m.status === 'Open').length,
+        highUrgency:        maint.filter(m => m.urgency === 'High' || m.urgency === 'Emergency').length,
+        failedInspections:  inspect.filter(r => r.type==='move-out' && r.charges && [...(r.charges.sideA||[]),...(r.charges.sideB||[]),...(r.charges.shared||[]),...(r.charges.bathroom||[])].reduce((a,c)=>a+c.amount,0)>0).length,
+        lowStock:           invent.filter(i => typeof i.qty === 'number' && i.isConsumable && i.qty <= (i.reorderAt || 0)).length,
+        maintenanceFlagged: invent.filter(i => i.maintenanceFlag && !i.maintenancePushed).length,
+        profileCount:       profiles.length,
+        profilesComplete:   profiles.filter(p => pctOf(p) >= 90).length,
+      };
+    },
+
+    // Reactive subscriptions — returns unsubscribe fn
+    on(key, fn) {
+      if (!_subs[key]) _subs[key] = [];
+      _subs[key].push(fn);
+      return () => { _subs[key] = _subs[key].filter(f => f !== fn); };
+    },
+
+    // Password helpers
+    hashPwd,
+    getPwdHash:  ()  => localStorage.getItem(K.PWD),
+    savePwdHash: (h) => {
+      if (h) localStorage.setItem(K.PWD, h);
+      else   localStorage.removeItem(K.PWD);
+    },
+
+    // Photo storage — IndexedDB (async)
+    async getPhoto(id) {
+      const db = await _openIDB();
+      return new Promise((res, rej) => {
+        const req = db.transaction('photos', 'readonly').objectStore('photos').get(id);
+        req.onsuccess = () => res(req.result || null);
+        req.onerror   = () => rej(req.error);
+      });
+    },
+    async savePhoto(id, blob) {
+      const db = await _openIDB();
+      return new Promise((res, rej) => {
+        const req = db.transaction('photos', 'readwrite').objectStore('photos').put({ id, blob });
+        req.onsuccess = () => res();
+        req.onerror   = () => rej(req.error);
+      });
+    },
+    async deletePhoto(id) {
+      const db = await _openIDB();
+      return new Promise((res, rej) => {
+        const req = db.transaction('photos', 'readwrite').objectStore('photos').delete(id);
+        req.onsuccess = () => res();
+        req.onerror   = () => rej(req.error);
+      });
+    },
+
+    // Full backup — export / import all managed keys (async: includes IDB photos)
+    async exportAll() {
+      const dump = {};
+      for (const v of Object.values(K)) {
+        const val = localStorage.getItem(v);
+        if (val !== null) {
+          try { dump[v] = JSON.parse(val); }
+          catch { dump[v] = val; }
+        }
+      }
+      try {
+        const db = await _openIDB();
+        const photos = {};
+        await new Promise((res, rej) => {
+          const tx = db.transaction('photos', 'readonly');
+          const req = tx.objectStore('photos').openCursor();
+          const pending = [];
+          req.onsuccess = e => {
+            const cursor = e.target.result;
+            if (cursor) {
+              pending.push(new Promise(r => {
+                const reader = new FileReader();
+                reader.onloadend = () => { photos[cursor.value.id] = reader.result; r(); };
+                reader.readAsDataURL(cursor.value.blob);
+              }));
+              cursor.continue();
+            } else {
+              Promise.all(pending).then(() => { dump._photos = photos; res(); });
+            }
+          };
+          req.onerror = () => rej(req.error);
+        });
+      } catch(e) { console.warn('Photo export skipped:', e); }
+      return dump;
+    },
+    async importAll(dump) {
+      const valid = new Set(Object.values(K));
+      for (const [k, v] of Object.entries(dump)) {
+        if (k === '_photos') continue;
+        if (valid.has(k) && v !== null) {
+        if (typeof v === 'string') localStorage.setItem(k, v);
+        else _w(k, v);
+      }
+      }
+      if (dump._photos) {
+        try {
+          for (const [id, dataURL] of Object.entries(dump._photos)) {
+            await this.savePhoto(id, _dataURLtoBlob(dataURL));
+          }
+          localStorage.setItem(K.PHOTOS_MIGRATED, 'true');
+        } catch(e) { console.warn('Photo restore failed:', e); }
+      }
+    },
+
+    // Expose key constants for modules that need them
+    KEYS: K,
+  };
+
+})();

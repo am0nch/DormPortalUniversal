@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Reports — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;padding:20px}
+.container{max-width:100%;background:#fff;border-radius:16px;padding:20px}
+h1{color:#1e3a5f;margin-bottom:16px}
+.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+.btn:hover{opacity:.88}
+.btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-purple{background:#6f42c1}.btn-red{background:#c0392b}.btn-blue{background:#2980b9}
+.tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
+.tab-btn{background:#d9e6f5;color:#1e3a5f;border:none;padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:.82rem;font-weight:700}
+.tab-btn.active{background:#1e3a5f;color:#fff}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.tab-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:#e9ecef;padding:10px 14px;border-radius:10px}
+.h-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.h-tbl th{background:#6f42c1;color:#fff;padding:6px 8px;text-align:left}
+.h-tbl td{border:1px solid #ccc;padding:5px 7px}
+.h-tbl tr:nth-child(even) td{background:#f8f5ff}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.report-grid fieldset{padding:8px 10px;border-radius:6px;border:1px solid #ccc;font-size:.8rem}
+.report-grid fieldset legend{font-weight:700;color:#1e3a5f;padding:0 4px}
+.report-grid label{display:block;margin:4px 0}
+.pivot-tbl{border-collapse:collapse;width:100%;max-width:560px;font-size:.85rem}
+.pivot-tbl th{background:#1e3a5f;color:#fff;padding:6px 12px;text-align:left}
+.pivot-tbl td{border:1px solid #ccc;padding:6px 12px}
+.pivot-tbl tr:nth-child(even) td{background:#f0f4f8}
+.hold-card{max-width:820px}
+.stat-lbl{font-size:.78rem;color:#888;margin-bottom:6px}
+input[type=text],input[type=date],select{padding:4px 7px;border:1px solid #ccc;border-radius:4px;font-size:.82rem}
+@media print{body{background:#fff;padding:0}.container{border-radius:0;padding:10px}.tabs,.tab-toolbar,.no-print{display:none!important}}
+/* ── Clearance form builder ── */
+input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:4px;font-size:.82rem}
+.cl-sec{font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#1e3a5f;padding:2px 8px;border-radius:3px;margin:8px 0 6px;display:inline-block}
+.cl-fld label{font-size:.72rem;font-weight:700;color:#555;display:block;margin-bottom:2px}
+.cl-fld input,.cl-fld select,.cl-fld textarea{width:100%}
+.cl-g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 14px;margin-bottom:8px}
+.cl-g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px 14px;margin-bottom:8px}
+.cl-g5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px 14px;margin-bottom:8px}
+.cl-g2{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-bottom:8px}
+.fee-rg{display:grid;grid-template-columns:22px 1fr 130px;padding:5px 8px;border-top:1px solid #eee;align-items:center;gap:6px}
+.fee-rg input[type=number]{text-align:right;width:100%}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div style="margin-bottom:10px">
+  <a id="navBack" href="../index.html" style="color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px">← Menu</a>
+  <script>(function(){const from=new URLSearchParams(location.search).get('back');if(from==='room-reservations'){const l=document.getElementById('navBack');l.href='room-reservations.html';l.textContent='← Room Reservations';}})()</script>
+</div>
+
+<h1>📊 Reports — <span id="dormNameSpan"></span></h1>
+
+<div class="tabs no-print">
+  <button class="tab-btn active" data-tab="archive" onclick="switchTab('archive')">📜 Archive</button>
+  <button class="tab-btn" data-tab="room" onclick="switchTab('room')">📋 Room Report</button>
+  <button class="tab-btn" data-tab="custom" onclick="switchTab('custom')">📄 Custom Report</button>
+  <button class="tab-btn" data-tab="pivot" onclick="switchTab('pivot')">📊 Pivot</button>
+  <button class="tab-btn" data-tab="holds" onclick="switchTab('holds')">🏠 Holds</button>
+  <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">📦 Storage</button>
+  <button class="tab-btn" data-tab="clearance" onclick="switchTab('clearance')">📋 Clearance</button>
+  <button class="tab-btn" data-tab="fees" onclick="switchTab('fees')">💰 Fee Collection</button>
+</div>
+
+<!-- ── ARCHIVE TAB ── -->
+<div id="tab-archive" class="tab-panel active">
+  <div class="tab-toolbar">
+    <input type="text" id="archSearch" placeholder="Search name, room, or ID…" style="width:220px" oninput="renderArchive()">
+    <select id="archFilterType" onchange="renderArchive()" style="width:190px">
+      <option value="">All move-out types</option>
+      <option value="Graduating">🎓 Graduating</option>
+      <option value="Going Home">🏠 Going Home</option>
+      <option value="Leaving Dorm">🚪 Leaving Dorm</option>
+      <option value="Internship">💼 Internship</option>
+      <option value="storage">📦 Outstanding storage</option>
+    </select>
+    <button class="btn btn-orange" onclick="printArchive()">🖨️ Print</button>
+    <span id="archCount" class="stat-lbl" style="margin:0"></span>
+  </div>
+  <div style="overflow-x:auto;max-height:70vh"><div id="archBody"></div></div>
+</div>
+
+<!-- ── ROOM REPORT TAB ── -->
+<div id="tab-room" class="tab-panel">
+  <div class="tab-toolbar">
+    <label>Floor:</label>
+    <select id="roomRptFloor" onchange="renderRoomReport()" style="width:130px">
+      <option value="all">All floors</option>
+      <option value="1,2">1st &amp; 2nd</option>
+      <option value="3">3rd</option>
+      <option value="4">4th</option>
+    </select>
+    <button class="btn btn-orange" onclick="printRoomReport()">🖨️ Print Report</button>
+  </div>
+  <div style="overflow-x:auto;max-height:70vh"><div id="roomRptBody"></div></div>
+</div>
+
+<!-- ── CUSTOM REPORT TAB ── -->
+<div id="tab-custom" class="tab-panel">
+  <div class="report-grid">
+    <fieldset><legend>📋 Columns</legend>
+      <label><input type="checkbox" value="room" class="rpt-col" checked> Room</label>
+      <label><input type="checkbox" value="name" class="rpt-col" checked> Name</label>
+      <label><input type="checkbox" value="student_id" class="rpt-col"> Student ID</label>
+      <label><input type="checkbox" value="student_type" class="rpt-col"> Student Type</label>
+      <label><input type="checkbox" value="requested_room" class="rpt-col" checked> Req. Room</label>
+      <label><input type="checkbox" value="reservation" class="rpt-col" checked> Reservation</label>
+      <label><input type="checkbox" value="summer" class="rpt-col" checked> Summer</label>
+      <label><input type="checkbox" value="first_sem" class="rpt-col" checked> 1st Semester</label>
+      <label><input type="checkbox" value="move_out" class="rpt-col" checked> Move Out</label>
+      <label><input type="checkbox" value="move_out_reason" class="rpt-col"> Move Out Reason</label>
+      <label><input type="checkbox" value="off_campus_type" class="rpt-col"> Off Campus Type</label>
+      <label><input type="checkbox" value="leave_date" class="rpt-col" checked> Leave Date</label>
+      <label><input type="checkbox" value="return_date" class="rpt-col" checked> Return Date</label>
+      <label><input type="checkbox" value="keys" class="rpt-col"> Keys Returned</label>
+      <label><input type="checkbox" value="storage" class="rpt-col"> Storage</label>
+      <label><input type="checkbox" value="solo" class="rpt-col"> Solo</label>
+      <label><input type="checkbox" value="clearance" class="rpt-col"> Clearance Status</label>
+      <label><input type="checkbox" value="transfer_from" class="rpt-col"> Transfer From Dorm</label>
+      <label><input type="checkbox" value="transfer_room" class="rpt-col"> Transfer From Room</label>
+      <label><input type="checkbox" value="transfer_date" class="rpt-col"> Transfer Date</label>
+    </fieldset>
+    <div>
+      <fieldset style="margin-bottom:8px"><legend>🏢 Floor</legend>
+        <label><input type="radio" name="rptFloor" value="all" checked> All floors</label>
+        <label><input type="radio" name="rptFloor" value="1,2"> 1st &amp; 2nd</label>
+        <label><input type="radio" name="rptFloor" value="3"> 3rd</label>
+        <label><input type="radio" name="rptFloor" value="4"> 4th</label>
+      </fieldset>
+      <fieldset style="margin-bottom:8px"><legend>🚪 Student Type / Filter</legend>
+        <label><input type="checkbox" name="rptType" value="summer" checked> Summer</label>
+        <label><input type="checkbox" name="rptType" value="firstSem" checked> 1st Semester</label>
+        <label><input type="checkbox" name="rptType" value="graduating" checked> 🎓 Graduating</label>
+        <label><input type="checkbox" name="rptType" value="goingHome" checked> 🏠 Going Home</label>
+        <label><input type="checkbox" name="rptType" value="leavingDorm" checked> 🚪 Leaving Dorm</label>
+        <label><input type="checkbox" name="rptType" value="internship" checked> 💼 Internship</label>
+        <label><input type="checkbox" name="rptType" value="waiting"> ⏳ Waiting list only</label>
+        <label><input type="checkbox" name="rptType" value="queueOnly"> 📥 Incoming queue only</label>
+        <label><input type="checkbox" name="rptType" value="historyOnly"> 📜 Room history only</label>
+      </fieldset>
+      <fieldset><legend>📅 Date Filters</legend>
+        <label style="display:block;margin:4px 0">Return from: <input type="date" id="rptReturnFrom"></label>
+        <label style="display:block;margin:4px 0">Return to: <input type="date" id="rptReturnTo"></label>
+        <label style="display:block;margin:4px 0">Leave from: <input type="date" id="rptLeaveFrom"></label>
+        <label style="display:block;margin:4px 0">Leave to: <input type="date" id="rptLeaveTo"></label>
+      </fieldset>
+    </div>
+  </div>
+  <button class="btn btn-green no-print" onclick="generateCustomReport()">Generate PDF / Print</button>
+</div>
+
+<!-- ── PIVOT TAB ── -->
+<div id="tab-pivot" class="tab-panel">
+  <div class="tab-toolbar">
+    <button class="btn btn-orange" onclick="printPivotReport()">🖨️ Print Pivot</button>
+  </div>
+  <div id="pivotBody"></div>
+</div>
+
+<!-- ── HOLDS TAB ── -->
+<div id="tab-holds" class="tab-panel">
+  <div class="tab-toolbar">
+    <button class="btn btn-orange" onclick="printHoldReport()">🖨️ Print Hold Report</button>
+  </div>
+  <div id="holdsBody"></div>
+</div>
+
+<!-- ── STORAGE TAB ── -->
+<div id="tab-storage" class="tab-panel">
+  <div class="tab-toolbar">
+    <button class="btn btn-orange" onclick="printStorageReport()">🖨️ Print Storage Report</button>
+  </div>
+  <div id="storageBody"></div>
+</div>
+
+<!-- ── CLEARANCE TAB ── -->
+<div id="tab-clearance" class="tab-panel">
+  <!-- Section A: Active cases overview -->
+  <div class="tab-toolbar">
+    <strong style="font-size:.82rem;color:#1e3a5f">Active Clearance Cases</strong>
+    <button class="btn btn-orange" onclick="printClearanceOverview()">🖨️ Print Overview</button>
+  </div>
+  <div style="overflow-x:auto;max-height:35vh;margin-bottom:18px"><div id="clOverviewBody"></div></div>
+
+  <!-- Section B: Form builder -->
+  <div style="background:#f0f4f8;border:1px solid #dce3ea;border-radius:10px;padding:16px 20px">
+    <div style="font-size:.88rem;font-weight:700;color:#1e3a5f;margin-bottom:12px">📄 Print Finance Form — Form Builder</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
+      <div class="cl-fld">
+        <label>Room</label>
+        <select id="clRmSel" onchange="populateClearanceOccupants()" style="min-width:140px">
+          <option value="">— Select Room —</option>
+        </select>
+      </div>
+      <div class="cl-fld">
+        <label>Occupant</label>
+        <select id="clOccSel" onchange="onClOccChange()" style="min-width:230px">
+          <option value="">— Select Occupant —</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Both-occupants print area -->
+    <div id="clBothWrap" style="display:none;background:#fff3e0;border:1px solid #ffcc02;border-radius:8px;padding:14px;text-align:center;margin-bottom:10px">
+      <p style="color:#795548;font-size:.83rem;margin-bottom:10px">Both occupants' saved clearance data will be used to generate two separate finance forms (one per occupant, page-break between).</p>
+      <button class="btn btn-orange" onclick="printClearanceForm()">🖨️ Print Both Finance Forms</button>
+    </div>
+
+    <!-- Single occupant / blank template form -->
+    <div id="clFormWrap" style="display:none">
+      <div class="cl-sec">📋 Student Information</div>
+      <div class="cl-g3">
+        <div class="cl-fld"><label>Student ID</label><input type="text" id="clRptId"></div>
+        <div class="cl-fld" style="grid-column:span 2"><label>Full Name</label><input type="text" id="clRptName"></div>
+        <div class="cl-fld"><label>Student Type</label>
+          <select id="clRptType"><option value="regular">🎓 Regular</option><option value="new">🆕 New</option><option value="visitor">👤 Visitor</option><option value="guest">🏨 Guest</option></select>
+        </div>
+        <div class="cl-fld"><label>Mobile</label><input type="tel" id="clRptMobile"></div>
+        <div class="cl-fld"><label>Email</label><input type="email" id="clRptEmail"></div>
+      </div>
+
+      <div class="cl-sec">🔄 Transfer Details</div>
+      <div class="cl-g4">
+        <div class="cl-fld"><label>From Dorm</label><input type="text" id="clRptFromDorm"></div>
+        <div class="cl-fld"><label>From Room</label><input type="text" id="clRptFromRoom"></div>
+        <div class="cl-fld"><label>To Dorm</label><input type="text" id="clRptToDorm"></div>
+        <div class="cl-fld"><label>To Room</label><input type="text" id="clRptToRoom"></div>
+      </div>
+
+      <div class="cl-sec">⚡ Utility Meter Readings</div>
+      <div class="cl-g5">
+        <div class="cl-fld"><label>Elec IN</label><input type="number" id="clRptElecIn" placeholder="0"></div>
+        <div class="cl-fld"><label>Elec OUT</label><input type="number" id="clRptElecOut" placeholder="0"></div>
+        <div class="cl-fld"><label>Hot Water IN</label><input type="number" id="clRptHotIn" placeholder="0"></div>
+        <div class="cl-fld"><label>Hot Water OUT</label><input type="number" id="clRptHotOut" placeholder="0"></div>
+        <div class="cl-fld"><label>Departure Date</label><input type="date" id="clRptLeaveDate"></div>
+      </div>
+
+      <div class="cl-sec">💰 Fee Assessment</div>
+      <div style="border:1px solid #dee2e6;border-radius:6px;overflow:hidden;margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:22px 1fr 130px;background:#f0f4f8;padding:5px 8px;font-size:.7rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.04em"><span></span><span>Description</span><span style="text-align:right;padding-right:4px">Amount (฿)</span></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee1" onchange="clRptFeeToggle(1)"><label for="clRptFee1" style="font-size:.81rem">Required dorm / room moving fees</label><input type="number" id="clRptAmt1" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee2" onchange="clRptFeeToggle(2)"><label for="clRptFee2" style="font-size:.81rem">Cleaning fees</label><input type="number" id="clRptAmt2" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee3" onchange="clRptFeeToggle(3)"><label for="clRptFee3" style="font-size:.81rem">Room key not returned</label><input type="number" id="clRptAmt3" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee4" onchange="clRptFeeToggle(4)"><label for="clRptFee4" style="font-size:.81rem">Broken or missing drawer(s)</label><input type="number" id="clRptAmt4" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee5" onchange="clRptFeeToggle(5)"><label for="clRptFee5" style="font-size:.81rem">Broken or missing chair</label><input type="number" id="clRptAmt5" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee6" onchange="clRptFeeToggle(6)"><label for="clRptFee6" style="font-size:.81rem">Broken or missing stool</label><input type="number" id="clRptAmt6" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div class="fee-rg"><input type="checkbox" id="clRptFee7" onchange="clRptFeeToggle(7)"><label for="clRptFee7" style="font-size:.81rem">Other fees: <input type="text" id="clRptOtherDesc" placeholder="describe…" style="width:110px;border:none;border-bottom:1px solid #ccc;font-size:.78rem;background:transparent;outline:none;padding:0 2px"></label><input type="number" id="clRptAmt7" min="0" step="1" placeholder="0" disabled oninput="clRptRecalc()"></div>
+        <div style="display:grid;grid-template-columns:22px 1fr 130px;padding:6px 8px;background:#1e3a5f;color:#fff;align-items:center;gap:6px"><span></span><span style="font-weight:700;font-size:.82rem">TOTAL CHARGES</span><span style="text-align:right;font-weight:700;padding-right:4px">฿ <span id="clRptTotal">0.00</span></span></div>
+      </div>
+
+      <div class="cl-sec">📝 Remarks &amp; Status</div>
+      <div class="cl-g2" style="margin-bottom:14px">
+        <div class="cl-fld" style="grid-column:span 2"><label>Remarks</label><textarea id="clRptRemarks" rows="2"></textarea></div>
+        <div class="cl-fld"><label>Form No.</label><input type="text" id="clRptFormNo" placeholder="e.g. DC-2026-001"></div>
+      </div>
+
+      <button class="btn btn-orange" onclick="printClearanceForm()">🖨️ Print Finance Form</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEE COLLECTION TAB ── -->
+<div id="tab-fees" class="tab-panel">
+  <div class="tab-toolbar">
+    <span style="font-size:.82rem;font-weight:700;color:#1e3a5f">Outstanding Fee Summary</span>
+    <button class="btn btn-orange" onclick="printFeesReport()">🖨️ Print Report</button>
+    <span id="feesTotalSpan" style="margin-left:auto;font-size:.8rem;font-weight:700;color:#c0392b"></span>
+  </div>
+  <div id="feesSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:16px"></div>
+  <div style="overflow-x:auto"><div id="feesBody"></div></div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// ── Utilities ──────────────────────────────────────────────────────────────
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getFloor(room){const m=String(room).trim().match(/\d+/);if(m){const d=m[0].charAt(0);if(d==='1'||d==='2')return'1,2';if(d==='3')return'3';if(d==='4')return'4';}return'unknown';}
+function matchesFloor(room,f){return f==='all'||getFloor(room)===f;}
+function isHoldActive(s){return!!(s.roomHold&&s.roomHold.active&&(s.summer||s.firstSem)&&s.moveOutReason!=='Graduating'&&!(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm'));}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
+  if (name === 'archive') renderArchive();
+  if (name === 'room')    renderRoomReport();
+  if (name === 'pivot')   renderPivot();
+  if (name === 'holds')     renderHolds();
+  if (name === 'storage')   renderStorage();
+  if (name === 'clearance') { renderClearance(); populateClearanceRooms(); }
+  if (name === 'fees') renderFees();
+}
+
+// ── ARCHIVE ────────────────────────────────────────────────────────────────
+function storageSubRow(h) {
+  if (!h.storageRental) return '';
+  const boxes = [];
+  for (let i = 1; i <= (h.storageQty || 1); i++) {
+    const c = h[`box${i}Color`], n = h[`box${i}No`];
+    if (c || n) boxes.push(`Box ${i}: ${[c, n].filter(Boolean).join(' #')}`);
+  }
+  const boxStr = boxes.length ? boxes.join(' · ') : 'No box details recorded';
+  const refDate = h.leaveDate ? new Date(h.leaveDate) : new Date(h.archivedAt);
+  const days = Math.floor((Date.now() - refDate) / 86400000);
+  const dayStr = days > 0 ? `${days} day${days !== 1 ? 's' : ''} since leave date` : 'Left today';
+  if (h.storageResolved) {
+    const rd = h.storageResolvedAt ? ` on ${new Date(h.storageResolvedAt).toLocaleDateString()}` : '';
+    return `<tr style="background:#f0fff4"><td colspan="10" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#27ae60">📦 ✅ Storage retrieved${rd} &nbsp;·&nbsp; ${escapeHtml(boxStr)}</td></tr>`;
+  }
+  return `<tr style="background:#fff8e1"><td colspan="10" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#856404">📦 <strong>${h.storageQty || 1} box${(h.storageQty || 1) !== 1 ? 'es' : ''} outstanding</strong> &nbsp;·&nbsp; ${escapeHtml(boxStr)} &nbsp;·&nbsp; ⏱ ${escapeHtml(dayStr)} &nbsp;<button onclick="resolveStorage('${h.archivedAt}')" style="padding:1px 8px;font-size:.72rem;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer">✓ Mark Retrieved</button></td></tr>`;
+}
+
+function resolveStorage(archivedAt) {
+  const history = DormDB.getHistory();
+  const h = history.find(r => r.archivedAt === archivedAt);
+  if (!h) return;
+  if (!confirm(`Mark storage boxes for "${h.name}" as retrieved?`)) return;
+  h.storageResolved = true;
+  h.storageResolvedAt = new Date().toISOString();
+  DormDB.saveHistory(history);
+  renderArchive();
+}
+
+function renderArchive() {
+  const history = DormDB.getHistory();
+  const term = (document.getElementById('archSearch').value || '').toLowerCase();
+  const typeFilter = document.getElementById('archFilterType').value;
+  const typeIcon = { regular: '🎓', new: '🆕', visitor: '👤', guest: '🏨' };
+  const entries = history.filter(h => {
+    const reason = (h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '')).toLowerCase();
+    const matchSearch = !term || (h.name || '').toLowerCase().includes(term) || (h.room || '').toLowerCase().includes(term) || (h.studentId || '').toLowerCase().includes(term);
+    const matchType = !typeFilter || (typeFilter === 'storage' ? (h.storageRental && !h.storageResolved) : reason.toLowerCase().includes(typeFilter.toLowerCase()));
+    return matchSearch && matchType;
+  });
+  document.getElementById('archCount').textContent = `${entries.length} record${entries.length !== 1 ? 's' : ''}`;
+  if (!entries.length) {
+    document.getElementById('archBody').innerHTML = '<p style="color:#888;font-size:.85rem;padding:8px 0">No archived records match your search.</p>';
+    return;
+  }
+  let html = `<table class="h-tbl" style="min-width:780px"><thead><tr>
+    <th>Room</th><th>Name</th><th>ID</th><th>Type</th><th>Move-Out</th>
+    <th>Leave Date</th><th>To Dorm</th><th>Fees (฿)</th><th>Form</th><th>Archived</th>
+  </tr></thead><tbody>`;
+  for (const h of entries) {
+    const reason = h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '');
+    const storageBadge = h.storageRental && !h.storageResolved ? ` <span style="background:#e67e22;color:#fff;border-radius:10px;padding:1px 5px;font-size:.63rem">📦</span>` : '';
+    html += `<tr>
+      <td><strong>${escapeHtml(h.room)}</strong></td>
+      <td>${escapeHtml(h.name)}${storageBadge}<br><small style='color:#888'>${escapeHtml(h.email || '')}${h.mobile ? ' · ' + escapeHtml(h.mobile) : ''}</small></td>
+      <td style='font-size:.75rem'>${escapeHtml(h.studentId || '—')}</td>
+      <td>${typeIcon[h.studentType] || '🎓'} ${escapeHtml(h.studentType || 'regular')}</td>
+      <td>${escapeHtml(reason || '—')}</td>
+      <td>${escapeHtml(h.leaveDate || '—')}</td>
+      <td style='font-size:.75rem'>${escapeHtml(h.toDorm || '—')}</td>
+      <td>${h.totalFees ? Number(h.totalFees).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '—'}</td>
+      <td style='text-align:center'>${h.formCompleted ? '✅' : '⏳'}</td>
+      <td style='font-size:.72rem'>${new Date(h.archivedAt).toLocaleDateString()}</td>
+    </tr>${storageSubRow(h)}`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById('archBody').innerHTML = html;
+}
+
+function printArchive() {
+  const history = DormDB.getHistory();
+  const term = (document.getElementById('archSearch').value || '').toLowerCase();
+  const typeFilter = document.getElementById('archFilterType').value;
+  const entries = history.filter(h => {
+    const reason = (h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '')).toLowerCase();
+    const matchSearch = !term || (h.name || '').toLowerCase().includes(term) || (h.room || '').toLowerCase().includes(term);
+    const matchType = !typeFilter || (typeFilter === 'storage' ? (h.storageRental && !h.storageResolved) : reason.toLowerCase().includes(typeFilter.toLowerCase()));
+    return matchSearch && matchType;
+  });
+  const dormName = DormDB.getDormName();
+  const rows = entries.map(h => {
+    const reason = h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '');
+    const storageNote = h.storageRental ? (h.storageResolved ? 'Retrieved' : '⚠ Outstanding') : '—';
+    return `<tr><td>${escapeHtml(h.room)}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.studentId || '')}</td><td>${escapeHtml(reason || '—')}</td><td>${escapeHtml(h.leaveDate || '—')}</td><td>${escapeHtml(h.toDorm || '—')}</td><td>${h.totalFees ? Number(h.totalFees).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '—'}</td><td>${h.formCompleted ? 'Yes' : 'No'}</td><td>${escapeHtml(storageNote)}</td><td>${new Date(h.archivedAt).toLocaleDateString()}</td></tr>`;
+  }).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Archive — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:20px}h1{font-size:1.2rem;border-bottom:2px solid #1e3a5f;padding-bottom:5px}table{border-collapse:collapse;width:100%;font-size:.8rem}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}td{border:1px solid #aaa;padding:5px 7px}tr:nth-child(even)td{background:#f5f5f5}@media print{body{margin:5px}}</style></head><body><h1>${escapeHtml(dormName)} — Room Archive History</h1><p style='font-size:.8rem'>${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Records: ${entries.length}</p><table><thead><tr><th>Room</th><th>Name</th><th>Student ID</th><th>Move-Out</th><th>Leave Date</th><th>To Dorm</th><th>Total Fees</th><th>Clearance</th><th>Storage</th><th>Archived</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── ROOM REPORT ────────────────────────────────────────────────────────────
+function renderRoomReport() {
+  const rooms = DormDB.getRooms();
+  const floor = document.getElementById('roomRptFloor').value;
+  const data = rooms.filter(s => s.name && s.name.trim() && matchesFloor(s.room, floor));
+  if (!data.length) { document.getElementById('roomRptBody').innerHTML = '<p style="color:#888;font-size:.85rem">No students found for the selected floor.</p>'; return; }
+  let html = `<table class="h-tbl"><thead><tr><th>Room</th><th>Name</th><th>ID</th><th>Req. Room</th><th>Reservation</th><th>☀️ Summer</th><th>📖 1st Sem</th><th>Move Out</th><th>Leave Date</th><th>Return Date</th></tr></thead><tbody>`;
+  data.forEach((s, i) => {
+    const moveOut = s.graduating ? (s.moveOutReason + (s.offCampusType ? ' — ' + s.offCampusType : '')) : '—';
+    html += `<tr style="background:${i % 2 === 0 ? '#f9f9f9' : '#fff'}">
+      <td>${escapeHtml(s.room)}${s.solo ? ' <small>(Solo)</small>' : ''}</td>
+      <td>${escapeHtml(s.name)}</td>
+      <td style="font-size:.75rem;color:#888">${escapeHtml(s.studentId || '—')}</td>
+      <td>${escapeHtml(s.requestedRoom || '—')}</td>
+      <td>${escapeHtml(s.requestStatus || '—')}</td>
+      <td style="text-align:center">${s.summer ? '✓' : ''}</td>
+      <td style="text-align:center">${s.firstSem ? '✓' : ''}</td>
+      <td>${escapeHtml(moveOut)}</td>
+      <td>${escapeHtml((s.clearance && s.clearance.leaveDate) || '—')}</td>
+      <td>${escapeHtml(s.returnDate || '—')}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('roomRptBody').innerHTML = html;
+}
+
+function printRoomReport() {
+  const rooms = DormDB.getRooms();
+  const floor = document.getElementById('roomRptFloor').value;
+  const data = rooms.filter(s => s.name && s.name.trim() && matchesFloor(s.room, floor));
+  const dormName = DormDB.getDormName();
+  const flLabel = floor === 'all' ? 'All Floors' : `Floor ${floor}`;
+  const bRows = data.map(s => {
+    const moveOut = s.graduating ? (s.moveOutReason + (s.offCampusType ? ' — ' + s.offCampusType : '')) : '—';
+    return `<tr><td>${escapeHtml(s.room)}${s.solo ? ' (Solo)' : ''}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.studentId || '—')}</td><td>${escapeHtml(s.requestedRoom || '—')}</td><td>${escapeHtml(s.requestStatus || '—')}</td><td>${s.summer ? '✓' : ''}</td><td>${s.firstSem ? '✓' : ''}</td><td>${escapeHtml(moveOut)}</td><td>${escapeHtml((s.clearance && s.clearance.leaveDate) || '—')}</td><td>${escapeHtml(s.returnDate || '—')}</td></tr>`;
+  }).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Report — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:20px}table{border-collapse:collapse;width:100%;font-size:.8rem}th{background:#1e3a5f;color:#fff;padding:6px 8px}td{border:1px solid #aaa;padding:5px 6px}tr:nth-child(even)td{background:#f5f5f5}@media print{body{margin:5px}}</style></head><body><h2>${escapeHtml(dormName)} — Dorm Report</h2><p style="font-size:.8rem">Floor: ${flLabel} | ${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Rows: ${data.length}</p><table><thead><tr><th>Room</th><th>Name</th><th>ID</th><th>Req.</th><th>Reservation</th><th>☀️</th><th>📖</th><th>Move Out</th><th>Leave</th><th>Return</th></tr></thead><tbody>${bRows}</tbody></table><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── CUSTOM REPORT ──────────────────────────────────────────────────────────
+function generateCustomReport() {
+  const rooms    = DormDB.getRooms();
+  const queue    = DormDB.getQueue();
+  const history  = DormDB.getHistory();
+  const dormName = DormDB.getDormName();
+  const selCols  = Array.from(document.querySelectorAll('input.rpt-col:checked')).map(c => c.value);
+  const rptFloor = document.querySelector('input[name="rptFloor"]:checked').value;
+  const selTypes = Array.from(document.querySelectorAll('input[name="rptType"]:checked')).map(c => c.value);
+  const onlyWaiting = selTypes.includes('waiting');
+  const onlyQueue   = selTypes.includes('queueOnly');
+  const onlyHistory = selTypes.includes('historyOnly');
+  const returnFrom = document.getElementById('rptReturnFrom').value;
+  const returnTo   = document.getElementById('rptReturnTo').value;
+  const leaveFrom  = document.getElementById('rptLeaveFrom').value;
+  const leaveTo    = document.getElementById('rptLeaveTo').value;
+
+  let rows = [];
+  if (onlyQueue) {
+    rows = queue.map(q => ({ _type: 'queue', room: q.targetRoom || '—', name: q.name, studentType: q.studentType, requestedRoom: q.targetRoom, requestStatus: 'Incoming', summer: false, firstSem: false, graduating: false, moveOutReason: '', offCampusType: '', clearance: { leaveDate: q.expectedMoveIn }, returnDate: '', keysReturned: false, storageRental: false, solo: false, transferIn: { fromDorm: q.fromDorm, fromRoom: q.fromRoom, transferDate: q.expectedMoveIn, notes: q.notes } }));
+  } else if (onlyHistory) {
+    rows = history.map(h => ({ _type: 'history', room: h.room, name: h.name, studentId: h.studentId || '', studentType: h.studentType, requestedRoom: '', requestStatus: 'Archived', summer: false, firstSem: false, graduating: true, moveOutReason: h.moveOutReason, offCampusType: h.offCampusType, clearance: { leaveDate: h.leaveDate }, returnDate: '', keysReturned: false, storageRental: false, solo: false, transferIn: { fromDorm: h.transferFrom } }));
+  } else {
+    rows = rooms.filter(s => {
+      if (!s.name || !s.name.trim()) return false;
+      if (!matchesFloor(s.room, rptFloor)) return false;
+      if (onlyWaiting) { if (s.requestStatus !== 'Waiting') return false; }
+      else if (selTypes.length > 0) {
+        const m = (selTypes.includes('summer') && s.summer) || (selTypes.includes('firstSem') && s.firstSem) || (selTypes.includes('graduating') && s.moveOutReason === 'Graduating') || (selTypes.includes('goingHome') && s.moveOutReason === 'Off Campus' && s.offCampusType === 'Going Home') || (selTypes.includes('leavingDorm') && s.moveOutReason === 'Off Campus' && s.offCampusType === 'Leaving Dorm') || (selTypes.includes('internship') && s.moveOutReason === 'Internship');
+        if (!m) return false;
+      }
+      if (returnFrom && s.returnDate && s.returnDate < returnFrom) return false;
+      if (returnTo   && s.returnDate && s.returnDate > returnTo)   return false;
+      if (leaveFrom  && s.clearance && s.clearance.leaveDate && s.clearance.leaveDate < leaveFrom) return false;
+      if (leaveTo    && s.clearance && s.clearance.leaveDate && s.clearance.leaveDate > leaveTo)   return false;
+      return true;
+    });
+  }
+
+  const colMap = { room: 'Room', name: 'Name', student_id: 'Student ID', student_type: 'Student Type', requested_room: 'Req. Room', reservation: 'Reservation', summer: 'Summer', first_sem: '1st Sem', move_out: 'Move Out', move_out_reason: 'Move Out Reason', off_campus_type: 'Off Campus Type', leave_date: 'Leave Date', return_date: 'Return Date', keys: 'Keys', storage: 'Storage', solo: 'Solo', clearance: 'Clearance', transfer_from: 'Transfer From', transfer_room: 'From Room', transfer_date: 'Transfer Date' };
+  const tIcon = { regular: '🎓 Regular', new: '🆕 New', visitor: '👤 Visitor', guest: '🏨 Guest' };
+  function cv(s, col) {
+    const ti = s.transferIn || {};
+    switch (col) {
+      case 'room':          return escapeHtml(s.room) + (s.solo ? ' (Solo)' : '');
+      case 'name':          return escapeHtml(s.name);
+      case 'student_id':    return escapeHtml(s.studentId || s.clearance?.studentId || '—');
+      case 'student_type':  return tIcon[s.studentType || 'regular'] || '🎓 Regular';
+      case 'requested_room':return escapeHtml(s.requestedRoom || '—');
+      case 'reservation':   return escapeHtml(s.requestStatus || '—');
+      case 'summer':        return s.summer ? '✓' : '';
+      case 'first_sem':     return s.firstSem ? '✓' : '';
+      case 'move_out':      return s.graduating ? '✓' : '';
+      case 'move_out_reason':return escapeHtml(s.moveOutReason || '—');
+      case 'off_campus_type':return escapeHtml(s.offCampusType || '—');
+      case 'leave_date':    return escapeHtml((s.clearance && s.clearance.leaveDate) || '—');
+      case 'return_date':   return escapeHtml(s.returnDate || '—');
+      case 'keys':          return s.keysReturned ? '✓' : '✗';
+      case 'storage':       return s.storageRental ? `${s.storageQty} box · ${escapeHtml(s.paymentMethod)}` : 'No';
+      case 'solo':          return s.solo ? '✓' : '';
+      case 'clearance':     return s.graduating ? (s.clearance && s.clearance.formCompleted ? '✓ Done' : '⏳ Pending') : '—';
+      case 'transfer_from': return escapeHtml(ti.fromDorm || '—');
+      case 'transfer_room': return escapeHtml(ti.fromRoom || '—');
+      case 'transfer_date': return escapeHtml(ti.transferDate || '—');
+      default: return '';
+    }
+  }
+  const hRow  = selCols.map(c => `<th>${colMap[c] || c}</th>`).join('');
+  const bRows = rows.map((s, i) => `<tr style="background:${i % 2 === 0 ? '#f9f9f9' : 'white'}">${selCols.map(c => `<td>${cv(s, c)}</td>`).join('')}</tr>`).join('');
+  const fl     = rptFloor === 'all' ? 'All Floors' : `Floor ${rptFloor}`;
+  const typeTag = onlyQueue ? 'Incoming Queue' : onlyHistory ? 'Room History' : (onlyWaiting ? 'Waiting List' : selTypes.join(', '));
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Custom Report — ${escapeHtml(dormName)}</title><style>body{font-family:'Segoe UI',sans-serif;margin:20px;color:#1e3a5f}h1{font-size:1.25rem;border-bottom:2px solid #1e3a5f;padding-bottom:5px}p{font-size:.8rem;color:#555;margin:5px 0 12px}table{border-collapse:collapse;width:100%;font-size:.8rem}th{background:#1e3a5f;color:#fff;padding:7px 8px;text-align:left}td{border:1px solid #ccc;padding:5px 8px}tr:nth-child(even)td{background:#f5f5f5}.footer{margin-top:18px;text-align:center;font-size:.7rem;color:#888}@media print{body{margin:8px}}</style></head><body><h1>${escapeHtml(dormName)} — Custom Report</h1><p>Floor: ${fl} | Types: ${escapeHtml(typeTag)} | ${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Rows: ${rows.length}</p><table><thead><tr>${hRow}</tr></thead><tbody>${bRows}</tbody></table><div class="footer">Asia-Pacific International University — Dormitory Administration</div><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── PIVOT ──────────────────────────────────────────────────────────────────
+function buildPivotRows() {
+  const rooms   = DormDB.getRooms();
+  const queue   = DormDB.getQueue();
+  const history = DormDB.getHistory();
+  const away    = DormDB.getAway();
+  const fl = {'1st & 2nd': 0, '3rd': 0, '4th': 0}, occ = {'1st & 2nd': 0, '3rd': 0, '4th': 0};
+  for (const s of rooms) {
+    const f = getFloor(s.room);
+    const l = f === '1,2' ? '1st & 2nd' : f === '3' ? '3rd' : '4th';
+    if (fl[l] !== undefined) { fl[l]++; if (s.name && s.name.trim()) occ[l]++; }
+  }
+  const occupied = rooms.filter(s => s.name && s.name.trim()).length;
+  return [
+    ['Total beds',                rooms.length],
+    ['Occupied beds',             occupied],
+    ['1st & 2nd — beds',         fl['1st & 2nd']],
+    ['1st & 2nd — occupied',     occ['1st & 2nd']],
+    ['3rd floor — beds',         fl['3rd']],
+    ['3rd floor — occupied',     occ['3rd']],
+    ['4th floor — beds',         fl['4th']],
+    ['4th floor — occupied',     occ['4th']],
+    ['☀️ Summer',                rooms.filter(s => s.summer).length],
+    ['📖 1st Semester',          rooms.filter(s => s.firstSem).length],
+    ['🚪 Total Move Out',        rooms.filter(s => s.graduating).length],
+    ['  ↳ 🎓 Graduating',        rooms.filter(s => s.moveOutReason === 'Graduating').length],
+    ['  ↳ 🏠 Going Home',        rooms.filter(s => s.moveOutReason === 'Off Campus' && s.offCampusType === 'Going Home').length],
+    ['  ↳ 🚪 Leaving Dorm',      rooms.filter(s => s.moveOutReason === 'Off Campus' && s.offCampusType === 'Leaving Dorm').length],
+    ['  ↳ 💼 Internship',        rooms.filter(s => s.moveOutReason === 'Internship').length],
+    ['📥 In Queue',              queue.length],
+    ['📤 Away',                  away.length],
+    ['📜 Archived (history)',     history.length],
+    ['⏳ Waiting list',          rooms.filter(s => s.requestStatus === 'Waiting').length],
+    ['🧍 Solo rooms',            rooms.filter(s => s.solo).length],
+    ['🏠 Room holds (paid)',      rooms.filter(s => isHoldActive(s)).length],
+    ['📦 Storage',               rooms.filter(s => s.storageRental && s.name && s.name.trim()).length + away.filter(s => s.storageRental).length],
+    ['💰 Revenue',               (rooms.reduce((a, s) => a + (s.storageRental ? (s.totalAmount || (s.storageQty || 1) * 100) : 0), 0) + away.reduce((a, s) => a + (s.storageRental ? (s.totalAmount || (s.storageQty || 1) * 100) : 0), 0) + history.filter(h => h.storageRental && !h.storageResolved).reduce((a, h) => a + (h.storageTotalAmount || (h.storageQty || 0) * 100), 0)).toLocaleString() + ' ฿'],
+    ['🔑 Keys returned',         rooms.filter(s => s.keysReturned).length],
+    ['📋 Clearance completed',   rooms.filter(s => s.clearance && s.clearance.formCompleted).length],
+    ['📥 Transfer-in residents', rooms.filter(s => s.transferIn && s.transferIn.fromDorm).length],
+    ['✅ Confirmed reservations', rooms.filter(s => s.requestedRoom && s.requestedRoom.trim() && s.requestStatus === 'Confirmed').length],
+    ['🏠 Empty beds',            rooms.filter(s => !s.name || !s.name.trim()).length],
+  ];
+}
+
+function renderPivot() {
+  const rows = buildPivotRows();
+  document.getElementById('pivotBody').innerHTML =
+    `<table class="pivot-tbl"><thead><tr><th>Metric</th><th style="text-align:center">Value</th></tr></thead><tbody>` +
+    rows.map(([k, v], i) => `<tr style="background:${i % 2 ? 'white' : '#f0f4f8'}"><td>${k}</td><td style="text-align:center"><strong>${v}</strong></td></tr>`).join('') +
+    `</tbody></table>`;
+}
+
+function printPivotReport() {
+  const rows = buildPivotRows();
+  const dormName = DormDB.getDormName();
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Pivot — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:30px}table{border-collapse:collapse;width:100%}th{background:#1e3a5f;color:#fff;padding:8px 12px;text-align:left}td{border:1px solid #aaa;padding:7px 12px}tr:nth-child(even)td{background:#f0f4f8}.footer{margin-top:22px;text-align:center;font-size:.72rem;color:#888}</style></head><body><h1>${escapeHtml(dormName)} — Pivot Summary</h1><p>Generated: ${new Date().toLocaleString()} by ${escapeHtml(DormDB.getCurrentUser())}</p><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>${rows.map(([k, v]) => `<tr><td>${k}</td><td style="text-align:center">${v}</td></tr>`).join('')}</tbody></table><div class="footer">Asia-Pacific International University</div><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── HOLDS ──────────────────────────────────────────────────────────────────
+function renderHolds() {
+  const rooms = DormDB.getRooms();
+  const holds = rooms.filter(s => isHoldActive(s) && s.name && s.name.trim());
+  if (!holds.length) { document.getElementById('holdsBody').innerHTML = '<p style="color:#888;font-size:.85rem">No active room holds.</p>'; return; }
+  let html = `<table class="h-tbl"><thead><tr><th>Room</th><th>Student Name</th><th>Period</th><th>Return Date</th><th style="text-align:right">Charge Amount</th></tr></thead><tbody>`;
+  let total = 0;
+  holds.forEach(s => {
+    const period = s.summer && s.firstSem ? 'Summer & 1st Sem' : s.summer ? 'Summer Break' : '1st Sem Break';
+    const amt = s.roomHold.amountPaid > 0 ? '฿ ' + Number(s.roomHold.amountPaid).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : 'TBD';
+    total += s.roomHold.amountPaid || 0;
+    html += `<tr><td>${escapeHtml(s.room)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(period)}</td><td>${escapeHtml(s.returnDate || '—')}</td><td style="text-align:right">${amt}</td></tr>`;
+  });
+  html += `<tr style="background:#1e3a5f;color:#fff"><td colspan="4"><strong>TOTAL (${holds.length} student${holds.length === 1 ? '' : 's'})</strong></td><td style="text-align:right"><strong>${total > 0 ? '฿ ' + total.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : 'TBD'}</strong></td></tr>`;
+  html += `</tbody></table>`;
+  document.getElementById('holdsBody').innerHTML = html;
+}
+
+function printHoldReport() {
+  const rooms = DormDB.getRooms();
+  const holds = rooms.filter(s => isHoldActive(s) && s.name && s.name.trim());
+  if (!holds.length) { alert('No active room holds to report.'); return; }
+  const dormName = DormDB.getDormName();
+  const rows = holds.map(s => {
+    const period = s.summer && s.firstSem ? 'Summer & 1st Sem' : s.summer ? 'Summer Break' : '1st Sem Break';
+    const amt = s.roomHold.amountPaid > 0 ? '฿ ' + Number(s.roomHold.amountPaid).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : 'TBD';
+    return `<tr><td>${escapeHtml(s.room)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(period)}</td><td>${escapeHtml(s.returnDate || '—')}</td><td style="text-align:right">${amt}</td></tr>`;
+  }).join('');
+  const total = holds.reduce((a, s) => a + (s.roomHold.amountPaid || 0), 0);
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Room Hold Charges — ${escapeHtml(dormName)}</title><style>*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:20px;background:#e8edf2}.card{max-width:800px;margin:0 auto;background:#fff;border:1px solid #c8cdd4;box-shadow:0 2px 12px rgba(0,0,0,.1)}.hdr{background:#1e3a5f;color:#fff;padding:14px 24px}.hdr h1{font-size:.95rem;margin:0 0 2px}.hdr p{font-size:.72rem;margin:0;opacity:.8}.notice{background:#fff8e1;border-left:4px solid #f9a825;padding:10px 18px;margin:16px 24px 0;font-size:.8rem;color:#5d4037}.body{padding:18px 24px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left}td{border:1px solid #dce3ea;padding:6px 10px}tr:nth-child(even)td{background:#f8f9fa}.total-row td{background:#1e3a5f;color:#fff;font-weight:700;padding:8px 10px}.footer{margin-top:14px;font-size:.68rem;color:#888;text-align:center;padding:0 24px 16px}.pbtn{position:fixed;top:14px;right:14px;background:#1e3a5f;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.82rem}@media print{body{background:#fff;padding:0}.card{box-shadow:none;border:none}.pbtn{display:none}@page{margin:12mm 14mm;size:A4 portrait}}</style></head><body><button class="pbtn" onclick="window.print()">🖨️ Print</button><div class="card"><div class="hdr"><h1>🏠 ${escapeHtml(dormName)} — Room Hold Charges</h1><p>Generated: ${new Date().toLocaleString()} &nbsp;·&nbsp; ${escapeHtml(DormDB.getCurrentUser())}</p></div><div class="notice">📋 The following students are holding their rooms during the break period. Charges are to be <strong>billed to the student account by the Finance Office</strong> — not collected by the dormitory.</div><div class="body"><table><thead><tr><th>Room</th><th>Student Name</th><th>Period</th><th>Return Date</th><th style="text-align:right">Charge Amount</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="4"><strong>TOTAL (${holds.length} student${holds.length === 1 ? '' : 's'})</strong></td><td style="text-align:right"><strong>${total > 0 ? '฿ ' + total.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : 'TBD'}</strong></td></tr></tfoot></table></div><div class="footer">Asia-Pacific International University — Dormitory Administration &nbsp;|&nbsp; ${escapeHtml(dormName)}</div></div><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
+function renderStorage() {
+  const rooms   = DormDB.getRooms();
+  const away    = DormDB.getAway();
+  const history = DormDB.getHistory();
+  const fmtAmt  = n => '฿ ' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+  const boxStr  = s => { const b = []; for (let i = 1; i <= (s.storageQty || 1); i++) { const c = s[`box${i}Color`] || '', n = s[`box${i}No`] || ''; if (c || n) b.push((c && n) ? `${c}#${n}` : c || `#${n}`); } return b.join(', ') || '—'; };
+  const active   = rooms.filter(s => s.storageRental && s.name && s.name.trim());
+  const awayRent = away.filter(s => s.storageRental);
+  const archived = history.filter(h => h.storageRental && !h.storageResolved);
+  const all      = [...active, ...awayRent, ...archived];
+  if (!all.length) { document.getElementById('storageBody').innerHTML = '<p style="color:#888;font-size:.85rem">No storage rentals found.</p>'; return; }
+  const total = active.reduce((a, s) => a + (s.totalAmount || (s.storageQty || 1) * 100), 0)
+              + awayRent.reduce((a, s) => a + (s.totalAmount || (s.storageQty || 1) * 100), 0)
+              + archived.reduce((a, h) => a + (h.storageTotalAmount || (h.storageQty || 0) * 100), 0);
+  let html = `<table class="h-tbl"><thead><tr><th>Room</th><th>Student Name</th><th>Status</th><th style="text-align:center">Qty</th><th>Boxes</th><th>Payment</th><th style="text-align:right">Amount (฿)</th></tr></thead><tbody>`;
+  active.forEach(s => { html += `<tr><td>${escapeHtml(s.room)}</td><td>${escapeHtml(s.name)}</td><td>Active</td><td style="text-align:center">${s.storageQty || 1}</td><td>${escapeHtml(boxStr(s))}</td><td>${escapeHtml(s.paymentMethod || 'Not Paid')}</td><td style="text-align:right">${fmtAmt(s.totalAmount || (s.storageQty || 1) * 100)}</td></tr>`; });
+  awayRent.forEach(s => { html += `<tr><td>${escapeHtml(s.originalRoom || s.room)}</td><td>${escapeHtml(s.name)} <em style="color:#8e44ad;font-size:.75rem">(Away)</em></td><td>Away</td><td style="text-align:center">${s.storageQty || 1}</td><td>${escapeHtml(boxStr(s))}</td><td>${escapeHtml(s.paymentMethod || 'Not Paid')}</td><td style="text-align:right">${fmtAmt(s.totalAmount || (s.storageQty || 1) * 100)}</td></tr>`; });
+  archived.forEach(h => { html += `<tr><td>${escapeHtml(h.room)}</td><td>${escapeHtml(h.name)} <em style="color:#c0392b;font-size:.75rem">(Archived)</em></td><td>Archived</td><td style="text-align:center">${h.storageQty || 1}</td><td>${escapeHtml(boxStr(h))}</td><td>${escapeHtml(h.storagePaymentMethod || '—')}</td><td style="text-align:right">${fmtAmt(h.storageTotalAmount || (h.storageQty || 0) * 100)}</td></tr>`; });
+  html += `<tr style="background:#1e3a5f;color:#fff"><td colspan="6"><strong>TOTAL (${all.length} rental${all.length === 1 ? '' : 's'})</strong></td><td style="text-align:right"><strong>${fmtAmt(total)}</strong></td></tr>`;
+  html += `</tbody></table>`;
+  document.getElementById('storageBody').innerHTML = html;
+}
+
+function printStorageReport() {
+  const rooms   = DormDB.getRooms();
+  const away    = DormDB.getAway();
+  const history = DormDB.getHistory();
+  const dormName = DormDB.getDormName();
+  const fmtAmt  = n => '฿ ' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+  const boxStr  = s => { const b = []; for (let i = 1; i <= (s.storageQty || 1); i++) { const c = s[`box${i}Color`] || '', n = s[`box${i}No`] || ''; if (c || n) b.push((c && n) ? `${c}#${n}` : c || `#${n}`); } return b.join(', ') || '—'; };
+  const active   = rooms.filter(s => s.storageRental && s.name && s.name.trim()).map(s => `<tr><td>${escapeHtml(s.room)}</td><td>${escapeHtml(s.name)}</td><td>Active</td><td style="text-align:center">${s.storageQty || 1}</td><td>${escapeHtml(boxStr(s))}</td><td>${escapeHtml(s.paymentMethod || 'Not Paid')}</td><td style="text-align:right">${fmtAmt(s.totalAmount || (s.storageQty || 1) * 100)}</td></tr>`);
+  const awayRent = away.filter(s => s.storageRental).map(s => `<tr><td>${escapeHtml(s.originalRoom || s.room)}</td><td>${escapeHtml(s.name)} <em style="color:#8e44ad;font-size:.75rem">(Away)</em></td><td>Away</td><td style="text-align:center">${s.storageQty || 1}</td><td>${escapeHtml(boxStr(s))}</td><td>${escapeHtml(s.paymentMethod || 'Not Paid')}</td><td style="text-align:right">${fmtAmt(s.totalAmount || (s.storageQty || 1) * 100)}</td></tr>`);
+  const archived = history.filter(h => h.storageRental && !h.storageResolved).map(h => `<tr><td>${escapeHtml(h.room)}</td><td>${escapeHtml(h.name)} <em style="color:#c0392b;font-size:.75rem">(Archived)</em></td><td>Archived</td><td style="text-align:center">${h.storageQty || 1}</td><td>${escapeHtml(boxStr(h))}</td><td>${escapeHtml(h.storagePaymentMethod || '—')}</td><td style="text-align:right">${fmtAmt(h.storageTotalAmount || (h.storageQty || 0) * 100)}</td></tr>`);
+  const all = [...active, ...awayRent, ...archived];
+  if (!all.length) { alert('No storage rentals found.'); return; }
+  const activeArr = rooms.filter(s => s.storageRental && s.name && s.name.trim());
+  const awayArr   = away.filter(s => s.storageRental);
+  const archArr   = history.filter(h => h.storageRental && !h.storageResolved);
+  const total = activeArr.reduce((a, s) => a + (s.totalAmount || (s.storageQty || 1) * 100), 0)
+              + awayArr.reduce((a, s) => a + (s.totalAmount || (s.storageQty || 1) * 100), 0)
+              + archArr.reduce((a, h) => a + (h.storageTotalAmount || (h.storageQty || 0) * 100), 0);
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Storage Revenue — ${escapeHtml(dormName)}</title><style>*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:20px;background:#e8edf2}.card{max-width:920px;margin:0 auto;background:#fff;border:1px solid #c8cdd4;box-shadow:0 2px 12px rgba(0,0,0,.1)}.hdr{background:#1e3a5f;color:#fff;padding:14px 24px}.hdr h1{font-size:.95rem;margin:0 0 2px}.hdr p{font-size:.72rem;margin:0;opacity:.8}.body{padding:18px 24px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left}td{border:1px solid #dce3ea;padding:6px 10px}tr:nth-child(even)td{background:#f8f9fa}.total-row td{background:#1e3a5f;color:#fff;font-weight:700;padding:8px 10px}.footer{margin-top:14px;font-size:.68rem;color:#888;text-align:center;padding:0 24px 16px}.pbtn{position:fixed;top:14px;right:14px;background:#1e3a5f;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.82rem}@media print{body{background:#fff;padding:0}.card{box-shadow:none;border:none}.pbtn{display:none}@page{margin:12mm 14mm;size:A4 portrait}}</style></head><body><button class="pbtn" onclick="window.print()">🖨️ Print</button><div class="card"><div class="hdr"><h1>📦 ${escapeHtml(dormName)} — Storage Rental Revenue</h1><p>Generated: ${new Date().toLocaleString()} &nbsp;·&nbsp; ${escapeHtml(DormDB.getCurrentUser())}</p></div><div class="body"><table><thead><tr><th>Room</th><th>Student Name</th><th>Status</th><th style="text-align:center">Qty</th><th>Boxes</th><th>Payment</th><th style="text-align:right">Amount (฿)</th></tr></thead><tbody>${all.join('')}</tbody><tfoot><tr class="total-row"><td colspan="6"><strong>TOTAL (${all.length} rental${all.length === 1 ? '' : 's'})</strong></td><td style="text-align:right"><strong>${fmtAmt(total)}</strong></td></tr></tfoot></table></div><div class="footer">Asia-Pacific International University — Dormitory Administration &nbsp;|&nbsp; ${escapeHtml(dormName)}</div></div><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── CLEARANCE ──────────────────────────────────────────────────────────────
+function renderClearance() {
+  const rooms = DormDB.getRooms();
+  const cases = rooms.filter(s => s.graduating && s.moveOutReason && s.name && s.name.trim());
+  const el = document.getElementById('clOverviewBody');
+  if (!cases.length) {
+    el.innerHTML = '<p style="color:#888;font-size:.85rem;padding:8px 0">No active clearance cases. Students with a Move-Out reason in Room Reservations will appear here.</p>';
+    return;
+  }
+  let html = `<table class="h-tbl" style="min-width:720px"><thead><tr>
+    <th>Room</th><th>Name</th><th>ID</th><th>Move-Out</th><th>Leave Date</th><th>Clearance</th><th style="text-align:right">Fees (฿)</th>
+  </tr></thead><tbody>`;
+  for (const s of cases) {
+    const c = s.clearance || {}, f = c.fees || {};
+    const reason = s.moveOutReason + (s.offCampusType ? ' — ' + s.offCampusType : '');
+    let total = 0;
+    ['movingFeeAmt','cleaningFeeAmt','keyFeeAmt','drawerFeeAmt','chairFeeAmt','stoolFeeAmt','otherFeeAmt'].forEach(k => { total += f[k] || 0; });
+    const clStatus = c.formCompleted ? '<span style="color:#27ae60;font-weight:700">✅ Done</span>' : '<span style="color:#e67e22">⏳ Pending</span>';
+    html += `<tr>
+      <td><strong>${escapeHtml(s.room)}</strong></td>
+      <td>${escapeHtml(s.name)}</td>
+      <td style="font-size:.75rem;color:#888">${escapeHtml(s.studentId || (c.studentId) || '—')}</td>
+      <td>${escapeHtml(reason)}</td>
+      <td>${escapeHtml(c.leaveDate || '—')}</td>
+      <td>${clStatus}</td>
+      <td style="text-align:right">${total > 0 ? '฿ ' + Number(total).toLocaleString('th-TH',{minimumFractionDigits:2}) : '—'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function printClearanceOverview() {
+  const rooms = DormDB.getRooms();
+  const cases = rooms.filter(s => s.graduating && s.moveOutReason && s.name && s.name.trim());
+  if (!cases.length) { alert('No active clearance cases to print.'); return; }
+  const dormName = DormDB.getDormName();
+  const rows = cases.map(s => {
+    const c = s.clearance || {}, f = c.fees || {};
+    const reason = s.moveOutReason + (s.offCampusType ? ' — ' + s.offCampusType : '');
+    let total = 0;
+    ['movingFeeAmt','cleaningFeeAmt','keyFeeAmt','drawerFeeAmt','chairFeeAmt','stoolFeeAmt','otherFeeAmt'].forEach(k => { total += f[k] || 0; });
+    return `<tr><td>${escapeHtml(s.room)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.studentId||c.studentId||'—')}</td><td>${escapeHtml(reason)}</td><td>${escapeHtml(c.leaveDate||'—')}</td><td>${c.formCompleted?'Done':'Pending'}</td><td style="text-align:right">${total>0?'฿ '+Number(total).toLocaleString('th-TH',{minimumFractionDigits:2}):'—'}</td></tr>`;
+  }).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Clearance Overview — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:20px}h1{font-size:1.2rem;border-bottom:2px solid #1e3a5f;padding-bottom:5px}p{font-size:.8rem;color:#555;margin:5px 0 12px}table{border-collapse:collapse;width:100%;font-size:.8rem}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}td{border:1px solid #aaa;padding:5px 7px}tr:nth-child(even)td{background:#f5f5f5}@media print{body{margin:5px}}</style></head><body><h1>📋 ${escapeHtml(dormName)} — Active Clearance Cases</h1><p>${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Cases: ${cases.length}</p><table><thead><tr><th>Room</th><th>Name</th><th>Student ID</th><th>Move-Out</th><th>Leave Date</th><th>Clearance</th><th>Fees (฿)</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+function populateClearanceRooms() {
+  const rooms = DormDB.getRooms();
+  const sel = document.getElementById('clRmSel');
+  const cur = sel.value;
+  const distinct = [...new Set(rooms.filter(s => s.name && s.name.trim()).map(s => s.room))].sort();
+  sel.innerHTML = '<option value="">— Select Room —</option>' +
+    distinct.map(r => `<option value="${escapeHtml(r)}"${r===cur?' selected':''}>${escapeHtml(r)}</option>`).join('');
+  if (!distinct.includes(cur)) populateClearanceOccupants();
+}
+
+function populateClearanceOccupants() {
+  const rm = document.getElementById('clRmSel').value;
+  const sel = document.getElementById('clOccSel');
+  sel.innerHTML = '<option value="">— Select Occupant —</option>';
+  document.getElementById('clFormWrap').style.display = 'none';
+  document.getElementById('clBothWrap').style.display = 'none';
+  if (!rm) return;
+  const namedOccs = DormDB.getRooms().filter(s => s.room === rm && s.name && s.name.trim());
+  namedOccs.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name + (s.moveOutReason ? ' (' + s.moveOutReason + ')' : '');
+    sel.appendChild(opt);
+  });
+  if (namedOccs.length >= 2) {
+    const both = document.createElement('option');
+    both.value = '__BOTH__';
+    both.textContent = '— Both occupants —';
+    sel.appendChild(both);
+  }
+  const blank = document.createElement('option');
+  blank.value = '__BLANK__';
+  blank.textContent = '— Blank template —';
+  sel.appendChild(blank);
+}
+
+function onClOccChange() {
+  const rm  = document.getElementById('clRmSel').value;
+  const occ = document.getElementById('clOccSel').value;
+  document.getElementById('clFormWrap').style.display = 'none';
+  document.getElementById('clBothWrap').style.display = 'none';
+  if (!occ) return;
+  if (occ === '__BOTH__') { document.getElementById('clBothWrap').style.display = 'block'; return; }
+  if (occ === '__BLANK__') { resetClearanceForm(); document.getElementById('clFormWrap').style.display = 'block'; return; }
+  const s = DormDB.getRooms().find(x => x.room === rm && x.name === occ);
+  if (!s) return;
+  loadClearanceData(s);
+  document.getElementById('clFormWrap').style.display = 'block';
+}
+
+function resetClearanceForm() {
+  ['clRptId','clRptName','clRptMobile','clRptEmail','clRptFromRoom','clRptToDorm','clRptToRoom','clRptRemarks','clRptFormNo'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('clRptFromDorm').value = DormDB.getDormName();
+  document.getElementById('clRptType').value = 'regular';
+  ['clRptElecIn','clRptElecOut','clRptHotIn','clRptHotOut'].forEach(id => { document.getElementById(id).value = 0; });
+  document.getElementById('clRptLeaveDate').value = '';
+  for (let i = 1; i <= 7; i++) {
+    document.getElementById('clRptFee'+i).checked = false;
+    const am = document.getElementById('clRptAmt'+i);
+    am.disabled = true; am.value = '';
+  }
+  document.getElementById('clRptOtherDesc').value = '';
+  document.getElementById('clRptTotal').textContent = '0.00';
+}
+
+function loadClearanceData(s) {
+  resetClearanceForm();
+  const c = s.clearance || {}, f = c.fees || {};
+  document.getElementById('clRptId').value       = s.studentId || c.studentId || '';
+  document.getElementById('clRptName').value     = s.name || '';
+  document.getElementById('clRptType').value     = s.studentType || 'regular';
+  document.getElementById('clRptMobile').value   = c.mobile || '';
+  document.getElementById('clRptEmail').value    = c.email || '';
+  document.getElementById('clRptFromDorm').value = DormDB.getDormName();
+  document.getElementById('clRptFromRoom').value = s.room || '';
+  document.getElementById('clRptToDorm').value   = c.toDorm || '';
+  document.getElementById('clRptToRoom').value   = c.toRoom || '';
+  document.getElementById('clRptElecIn').value   = c.elecIn  || 0;
+  document.getElementById('clRptElecOut').value  = c.elecOut || 0;
+  document.getElementById('clRptHotIn').value    = c.hotIn   || 0;
+  document.getElementById('clRptHotOut').value   = c.hotOut  || 0;
+  document.getElementById('clRptLeaveDate').value = c.leaveDate || '';
+  const fdata = [['movingFee','movingFeeAmt'],['cleaningFee','cleaningFeeAmt'],['keyFee','keyFeeAmt'],['drawerFee','drawerFeeAmt'],['chairFee','chairFeeAmt'],['stoolFee','stoolFeeAmt'],['otherFee','otherFeeAmt']];
+  fdata.forEach(([ck,ak],i) => {
+    const cb = document.getElementById('clRptFee'+(i+1)), am = document.getElementById('clRptAmt'+(i+1));
+    cb.checked = !!(f[ck]); am.disabled = !cb.checked; am.value = f[ak] || 0;
+  });
+  document.getElementById('clRptOtherDesc').value = f.otherFeeDesc || '';
+  document.getElementById('clRptRemarks').value  = c.remarks || '';
+  document.getElementById('clRptFormNo').value   = c.formNo  || '';
+  if (!f.otherFee) {
+    const ic = _getInspChargesRpt(s.room, s.side || '');
+    if (ic && ic.total > 0) {
+      document.getElementById('clRptFee7').checked = true;
+      document.getElementById('clRptAmt7').disabled = false;
+      document.getElementById('clRptAmt7').value = ic.total;
+      document.getElementById('clRptOtherDesc').value = 'Room inspection damage — see inspection report';
+    }
+  }
+  clRptRecalc();
+}
+
+function _getInspChargesRpt(room, side) {
+  const insp = DormDB.getInspections() || [];
+  const rec = insp.filter(r => r.room === room && r.type === 'move-out')
+                   .sort((a,b) => b.recordedAt.localeCompare(a.recordedAt))[0];
+  if (!rec || !rec.charges) return null;
+  const occupants = (rec.occupants || []).length || 2;
+  const sideKey = side ? `side${side}` : null;
+  const sideAmt   = sideKey ? (rec.charges[sideKey]||[]).reduce((a,c)=>a+c.amount,0) : 0;
+  const sharedAmt = (rec.charges.shared||[]).reduce((a,c)=>a+c.amount,0) / occupants;
+  const bathAmt   = (rec.charges.bathroom||[]).reduce((a,c)=>a+c.amount,0) / ((rec.bathroom&&rec.bathroom.sharedOccupants)||occupants);
+  const total = Math.round(sideAmt + sharedAmt + bathAmt);
+  return total > 0 ? { total } : null;
+}
+
+function clRptFeeToggle(n) {
+  const cb = document.getElementById('clRptFee'+n), am = document.getElementById('clRptAmt'+n);
+  am.disabled = !cb.checked;
+  if (!cb.checked) am.value = '';
+  clRptRecalc();
+}
+
+function clRptRecalc() {
+  let total = 0;
+  for (let i = 1; i <= 7; i++) {
+    if (document.getElementById('clRptFee'+i).checked)
+      total += parseFloat(document.getElementById('clRptAmt'+i).value) || 0;
+  }
+  document.getElementById('clRptTotal').textContent = total.toLocaleString('th-TH',{minimumFractionDigits:2});
+}
+
+function _clCardHtml(d, finBox, copyLabel) {
+  const typeLabel = {regular:'Regular Student',new:'New Student',visitor:'Visitor',guest:'Guest'}[d.studentType||'regular']||'Regular Student';
+  const fno = escapeHtml(d.formNo||('DC-'+new Date().getFullYear()+'-???'));
+  const feeHtml = d.feeRows.map(([ch,amt,desc,note])=>`<tr><td style="width:22px;text-align:center">${ch?'☑':'☐'}</td><td>${escapeHtml(desc)}${note?`<br><small style="color:#888">${escapeHtml(note)}</small>`:''}</td><td style="text-align:right;white-space:nowrap">${ch?'฿ '+Number(amt).toLocaleString('th-TH',{minimumFractionDigits:2}):'—'}</td></tr>`).join('');
+  return `<div class="card">
+<div class="hdr"><div class="logo">APIU<br>DORM</div><div><h1>ASIA-PACIFIC INTERNATIONAL UNIVERSITY</h1><h2>Dormitory Administration — Clearance &amp; Transfer Form</h2></div><div class="hdr-r"><div>FORM NO.</div><div class="fno">${fno}</div><div style="margin-top:3px">DATE ISSUED</div><div>${new Date().toLocaleDateString()}</div></div></div>
+<div class="tbar"><h3>🏠 Clearance &amp; Transfer Form</h3><span class="typ">${escapeHtml(typeLabel)}</span></div>
+<div class="body">
+<span class="sec">📋 Student Information</span><div class="g3"><div class="fld"><label>ID Number</label><div class="val">${escapeHtml(d.studentId||'')}</div></div><div class="fld" style="grid-column:span 2"><label>Full Name</label><div class="val"><strong>${escapeHtml(d.name||'')}</strong></div></div><div class="fld"><label>Mobile</label><div class="val">${escapeHtml(d.mobile||'')}</div></div><div class="fld" style="grid-column:span 2"><label>Email</label><div class="val">${escapeHtml(d.email||'')}</div></div></div>
+<span class="sec">🔄 Transfer Details</span><div class="trf"><div class="trf-col from"><div class="ctitle">⬆ Transferring From</div><div class="fld"><label>Dormitory</label><div class="val">${escapeHtml(d.fromDorm||'')}</div></div><div class="fld"><label>Room Number</label><div class="val">${escapeHtml(d.fromRoom||'')}</div></div></div><div class="arrow">→</div><div class="trf-col to"><div class="ctitle">⬇ Transferring To</div><div class="fld"><label>Dormitory</label><div class="val">${escapeHtml(d.toDorm||'')}</div></div><div class="fld"><label>Room Number</label><div class="val">${escapeHtml(d.toRoom||'')}</div></div></div></div>
+<span class="sec">⚡ Utility Meter Readings</span><div class="g2"><div class="fld"><label>Electricity — Move IN</label><div class="val">${d.elecIn||0}</div></div><div class="fld"><label>Electricity — Move OUT</label><div class="val">${d.elecOut||0}</div></div><div class="fld"><label>Hot Water — Move IN</label><div class="val">${d.hotIn||0}</div></div><div class="fld"><label>Hot Water — Move OUT</label><div class="val">${d.hotOut||0}</div></div><div class="fld"><label>Departure Date</label><div class="val">${escapeHtml(d.leaveDate||'')}</div></div></div>
+<span class="sec">💰 Fee Assessment</span><table class="tbl"><thead><tr><th style="width:20px"></th><th>Description</th><th style="text-align:right;width:100px">Amount</th></tr></thead><tbody>${feeHtml}</tbody><tfoot><tr class="total-row"><td colspan="2"><strong>TOTAL CHARGES</strong></td><td style="text-align:right"><strong>฿ ${Number(d.total).toLocaleString('th-TH',{minimumFractionDigits:2})}</strong></td></tr></tfoot></table>
+<span class="sec">📝 Remarks</span><div style="border:1px solid #dce3ea;border-radius:4px;padding:6px 8px;min-height:36px;font-size:.78rem">${escapeHtml(d.remarks||'')}</div>
+<span class="sec">✍️ Authorisation &amp; Signatures</span><div class="sig-grid"><div class="sig-card dean"><div class="sig-role">🖊️ Dean / Administrator</div><div class="sig-line"></div><div style="font-size:.62rem;color:#888">Signature over printed name</div><div class="sig-date">Date: _______________</div></div><div class="sig-card"><div class="sig-role">Student / Resident</div><div class="sig-line"></div><div style="font-size:.62rem;color:#888">Signature over printed name</div><div class="sig-date">Date: _______________</div></div><div class="sig-card"><div class="sig-role">Finance Officer</div><div class="sig-line"></div><div style="font-size:.62rem;color:#888">Received by</div><div class="sig-date">Date: _______________</div></div></div>
+${finBox?'<div class="finance-box"><div class="finance-box-title">For Finance Office Use Only</div><div class="g3"><div class="fld"><label>Receipt No.</label><div class="val">&nbsp;</div></div><div class="fld"><label>Amount Received (฿)</label><div class="val">&nbsp;</div></div><div class="fld"><label>Processed By</label><div class="val">&nbsp;</div></div></div></div>':''}
+</div>
+<div class="footer"><span>Asia-Pacific International University — Dormitory Administration</span><span>${escapeHtml(d.fromDorm||'')}</span><span>${escapeHtml(copyLabel)}</span></div>
+</div>`;
+}
+
+function _clA4Sheet(d) {
+  return `<div class="a4-sheet"><div class="copy-wrap"><span class="copy-badge badge-student">✂ Student Copy — Keep this</span>${_clCardHtml(d,false,'STUDENT COPY')}</div><div class="cut-line-v"><span>✂</span><div class="cut-label">Cut here — return Office Copy to Finance</div><span>✂</span></div><div class="copy-wrap"><span class="copy-badge badge-office">📋 Office Copy — Submit to Finance</span>${_clCardHtml(d,true,'OFFICE COPY — CONFIDENTIAL')}</div></div>`;
+}
+
+function _clReadFormData() {
+  const fLabels=[['Required dorm / room moving fees',''],['Cleaning fees','Dirty room, balcony, sink, mirror, walls, ceiling fan, bathroom, etc.'],['Room key not returned',''],['Broken or missing drawer(s)',''],['Broken or missing chair',''],['Broken or missing stool',''],['Other fees: '+(document.getElementById('clRptOtherDesc').value||'_______________'),'']];
+  const feeRows=fLabels.map(([desc,note],i)=>{const n=i+1,ch=document.getElementById('clRptFee'+n).checked,amt=parseFloat(document.getElementById('clRptAmt'+n).value)||0;return[ch,amt,desc,note];});
+  let total=0; feeRows.forEach(([ch,amt])=>{if(ch)total+=amt;});
+  return{name:document.getElementById('clRptName').value,studentId:document.getElementById('clRptId').value,studentType:document.getElementById('clRptType').value,mobile:document.getElementById('clRptMobile').value,email:document.getElementById('clRptEmail').value,fromDorm:document.getElementById('clRptFromDorm').value,fromRoom:document.getElementById('clRptFromRoom').value,toDorm:document.getElementById('clRptToDorm').value,toRoom:document.getElementById('clRptToRoom').value,elecIn:parseInt(document.getElementById('clRptElecIn').value)||0,elecOut:parseInt(document.getElementById('clRptElecOut').value)||0,hotIn:parseInt(document.getElementById('clRptHotIn').value)||0,hotOut:parseInt(document.getElementById('clRptHotOut').value)||0,leaveDate:document.getElementById('clRptLeaveDate').value,feeRows,total,remarks:document.getElementById('clRptRemarks').value,formNo:document.getElementById('clRptFormNo').value};
+}
+
+function printClearanceForm() {
+  const occVal = document.getElementById('clOccSel').value;
+  if (!occVal) { alert('Select a room and occupant first.'); return; }
+  const dormName = DormDB.getDormName();
+  let bodyHtml = '', printTitle = 'Finance Form';
+
+  if (occVal === '__BOTH__') {
+    const rm = document.getElementById('clRmSel').value;
+    const namedOccs = DormDB.getRooms().filter(s => s.room === rm && s.name && s.name.trim());
+    if (!namedOccs.length) { alert('No occupants found.'); return; }
+    printTitle = 'Finance Forms — Both Occupants';
+    namedOccs.forEach((s, idx) => {
+      const c = s.clearance || {}, f = c.fees || {};
+      const fkeys=[['movingFee','movingFeeAmt'],['cleaningFee','cleaningFeeAmt'],['keyFee','keyFeeAmt'],['drawerFee','drawerFeeAmt'],['chairFee','chairFeeAmt'],['stoolFee','stoolFeeAmt'],['otherFee','otherFeeAmt']];
+      const fLabels=[['Required dorm / room moving fees',''],['Cleaning fees','Dirty room, balcony, sink, mirror, walls, ceiling fan, bathroom, etc.'],['Room key not returned',''],['Broken or missing drawer(s)',''],['Broken or missing chair',''],['Broken or missing stool',''],['Other fees: '+(f.otherFeeDesc||'_______________'),'']];
+      let feeRows = fkeys.map(([ck,ak],i) => [!!(f[ck]), f[ak]||0, fLabels[i][0], fLabels[i][1]]);
+      let total = 0; feeRows.forEach(([ch,amt]) => { if(ch) total+=amt; });
+      if (!f.otherFee) {
+        const ic = _getInspChargesRpt(s.room, s.side||'');
+        if (ic && ic.total > 0) { feeRows[6]=[true,ic.total,'Other fees: Room inspection damage — see inspection report','']; total+=ic.total; }
+      }
+      const d = {name:s.name,studentId:s.studentId||c.studentId||'',studentType:s.studentType||'regular',mobile:c.mobile||'',email:c.email||'',fromDorm:dormName,fromRoom:s.room,toDorm:c.toDorm||'',toRoom:c.toRoom||'',elecIn:c.elecIn||0,elecOut:c.elecOut||0,hotIn:c.hotIn||0,hotOut:c.hotOut||0,leaveDate:c.leaveDate||'',feeRows,total,remarks:c.remarks||'',formNo:c.formNo||''};
+      if (idx > 0) bodyHtml += '<div class="page-break"></div>';
+      bodyHtml += _clA4Sheet(d);
+    });
+  } else {
+    const d = _clReadFormData();
+    printTitle = d.name || 'Finance Form';
+    bodyHtml = _clA4Sheet(d);
+  }
+
+  const css=`*{box-sizing:border-box;margin:0;padding:0}body{background:#4a5568;font-family:'Segoe UI',Arial,sans-serif;padding:20px;overflow-x:auto}.a4-sheet{width:1120px;min-height:720px;background:#fff;margin:0 auto 20px;box-shadow:0 6px 32px rgba(0,0,0,.5);display:flex;flex-direction:row;padding:14px;gap:0}.copy-wrap{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}.cut-line-v{width:22px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border-left:1.5px dashed #bbb;border-right:1.5px dashed #bbb;background:#fafafa;color:#999;padding:6px 0;margin:0 3px}.cut-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:.6rem;color:#bbb;letter-spacing:.06em;white-space:nowrap}.copy-badge{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:10px;margin-bottom:3px;display:inline-block}.badge-student{background:#e8f4fd;color:#1565c0;border:1px solid #90caf9}.badge-office{background:#fce8e8;color:#b71c1c;border:1px solid #ef9a9a}.page-break{display:none}.card{background:#fff;border:1px solid #c8cdd4;zoom:0.68;width:780px}.hdr{background:#1e3a5f;color:#fff;padding:10px 18px;display:flex;align-items:center;gap:12px;border-bottom:3px solid #e67e22}.logo{width:44px;height:44px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.5rem;color:#1e3a5f;font-weight:700;text-align:center;padding:4px;flex-shrink:0;line-height:1.2}.hdr h1{font-size:.84rem;font-weight:700;margin:0 0 1px}.hdr h2{font-size:.7rem;font-weight:400;margin:0;opacity:.85}.hdr-r{margin-left:auto;text-align:right;font-size:.66rem}.hdr-r .fno{font-size:.82rem;font-weight:700}.tbar{background:#f0f4f8;border-bottom:1px solid #d0d7df;padding:6px 18px;display:flex;align-items:center;justify-content:space-between}.tbar h3{font-size:.88rem;font-weight:700;color:#1e3a5f;margin:0}.typ{background:#1e3a5f;color:#fff;padding:2px 10px;border-radius:20px;font-size:.7rem}.body{padding:10px 18px}.sec{font-size:.62rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#1e3a5f;padding:2px 8px;border-radius:3px;margin:5px 0 3px;display:block}.g2{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 10px}.fld label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#555;display:block;margin-bottom:1px}.fld .val{border-bottom:1.5px solid #b0b8c4;padding:2px 2px;font-size:.8rem;min-height:18px}.tbl{width:100%;border-collapse:collapse;font-size:.76rem;margin-top:3px}.tbl th{background:#f0f4f8;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 6px;border-bottom:2px solid #1e3a5f;text-align:left}.tbl td{padding:4px 6px;border-bottom:1px solid #edf0f4}.tbl tr:last-child td{border-bottom:none}.trf{display:grid;grid-template-columns:1fr 36px 1fr;background:#f8fafc;border:1px solid #dce3ea;border-radius:5px;padding:8px}.trf-col .ctitle{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;padding-bottom:2px;border-bottom:2px solid #1e3a5f}.trf-col.from .ctitle{border-color:#e74c3c;color:#c0392b}.trf-col.to .ctitle{border-color:#27ae60;color:#27ae60}.arrow{display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:1.2rem;color:#aaa}.total-row td{background:#1e3a5f;color:#fff;font-weight:700;padding:6px}.sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:5px}.sig-card{border-top:2px solid #1e3a5f;padding-top:4px;text-align:center}.sig-card.dean{border-top-color:#e67e22}.sig-line{height:22px;border-bottom:1.5px solid #b0b8c4;margin:2px 6px 4px}.sig-role{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#1e3a5f}.sig-card.dean .sig-role{color:#d35400}.sig-date{font-size:.62rem;color:#888;margin-top:3px}.finance-box{margin-top:8px;border:1px dashed #b0b8c4;border-radius:4px;padding:6px 10px;background:#fafbfc}.finance-box-title{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#aaa;margin-bottom:4px}.footer{background:#f0f4f8;border-top:1px solid #dce3ea;padding:5px 18px;display:flex;justify-content:space-between;font-size:.62rem;color:#888}.pbtn{position:fixed;top:14px;right:16px;background:#1e3a5f;color:#fff;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;z-index:99}@media print{body{background:#fff;padding:0}.pbtn{display:none}.a4-sheet{box-shadow:none;width:100%;min-height:auto;padding:0}.copy-badge,.card,.hdr,.tbar,.sec,.total-row td,.footer{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page-break{display:block;page-break-after:always}@page{size:A4 landscape;margin:5mm 6mm}}`;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(printTitle)}</title><style>${css}</style></head><body><button class="pbtn" onclick="window.print()">🖶️ Print</button>${bodyHtml}<script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── FEE COLLECTION ────────────────────────────────────────────────────────
+function renderFees() {
+  const rooms  = DormDB.getRooms();
+  const away   = DormDB.getAway();
+  const keys   = (typeof DormDB.getKeys === 'function') ? (DormDB.getKeys() || []) : [];
+  const fmtAmt = n => n > 0 ? '฿ ' + Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '—';
+  const rows   = [];
+
+  // 1. Storage rentals — active students
+  rooms.filter(s => s.storageRental && s.name && s.name.trim() && s.paymentMethod === 'Not Paid').forEach(s => {
+    const amt = s.totalAmount || (s.storageQty || 1) * 100;
+    rows.push({ room: s.room, name: s.name, category: 'Storage', desc: `${s.storageQty || 1} box rental`, amount: amt, amtKnown: true, status: 'Unpaid' });
+  });
+
+  // 2. Storage rentals — away students
+  away.filter(s => s.storageRental && s.paymentMethod === 'Not Paid').forEach(s => {
+    const amt = s.totalAmount || (s.storageQty || 1) * 100;
+    rows.push({ room: s.originalRoom || s.room, name: s.name, category: 'Storage (Away)', desc: `${s.storageQty || 1} box rental`, amount: amt, amtKnown: true, status: 'Unpaid' });
+  });
+
+  // 3. Room holds — payment not yet recorded
+  rooms.filter(s => isHoldActive(s) && s.name && s.name.trim() && s.roomHold.paymentMethod === 'Not Paid').forEach(s => {
+    const period = s.summer && s.firstSem ? 'Summer & 1st Sem' : s.summer ? 'Summer Break' : '1st Sem Break';
+    rows.push({ room: s.room, name: s.name, category: 'Room Hold', desc: `Hold fee — ${period}`, amount: 0, amtKnown: false, status: 'Pending' });
+  });
+
+  // 4. Clearance fees — students with move-out reason and incomplete clearance form
+  rooms.filter(s => s.graduating && s.moveOutReason && s.name && s.name.trim() && s.clearance && !s.clearance.formCompleted).forEach(s => {
+    const f = s.clearance.fees || {};
+    let total = 0;
+    ['movingFeeAmt','cleaningFeeAmt','keyFeeAmt','drawerFeeAmt','chairFeeAmt','stoolFeeAmt','otherFeeAmt'].forEach(k => { total += f[k] || 0; });
+    const reason = s.moveOutReason + (s.offCampusType ? ' — ' + s.offCampusType : '');
+    const hasFees = total > 0;
+    rows.push({ room: s.room, name: s.name, category: 'Clearance', desc: reason, amount: total, amtKnown: hasFees, status: hasFees ? 'Fees Pending' : 'Needs Assessment' });
+  });
+
+  // 5. Key fines — lost keys with unpaid fine
+  keys.filter(k => k.status === 'Lost' && !k.finePaid && k.fineAmount > 0).forEach(k => {
+    rows.push({ room: k.room || '—', name: k.borrowerName || '—', category: 'Key Fine', desc: `Lost key — ${k.keyId}`, amount: k.fineAmount, amtKnown: true, status: 'Unpaid Fine' });
+  });
+
+  const knownTotal    = rows.filter(r => r.amtKnown).reduce((a, r) => a + r.amount, 0);
+  const storageCount  = rows.filter(r => r.category.startsWith('Storage')).length;
+  const holdCount     = rows.filter(r => r.category === 'Room Hold').length;
+  const clearCount    = rows.filter(r => r.category === 'Clearance').length;
+  const keyFineCount  = rows.filter(r => r.category === 'Key Fine').length;
+
+  const makeCard = (icon, label, val, color) =>
+    `<div style="background:#fff;border:1px solid #dce3ea;border-radius:10px;padding:12px 16px;border-left:4px solid ${color}">
+      <div style="font-size:1.3rem">${icon}</div>
+      <div style="font-size:1.5rem;font-weight:800;color:${color};margin-top:4px">${val}</div>
+      <div style="font-size:.72rem;color:#666;margin-top:3px">${label}</div>
+    </div>`;
+  document.getElementById('feesSummaryCards').innerHTML = [
+    makeCard('💰', 'Total Known Outstanding', knownTotal > 0 ? '฿ ' + Number(knownTotal).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '฿ 0.00', '#c0392b'),
+    makeCard('📦', 'Storage Unpaid', storageCount, '#e67e22'),
+    makeCard('🏠', 'Room Hold Pending', holdCount, '#8e44ad'),
+    makeCard('📋', 'Clearance Pending', clearCount, '#2980b9'),
+    makeCard('🔑', 'Key Fines Unpaid', keyFineCount, '#c0392b'),
+  ].join('');
+
+  document.getElementById('feesTotalSpan').textContent =
+    rows.length > 0 ? `${rows.length} outstanding item${rows.length !== 1 ? 's' : ''}` : '';
+
+  if (!rows.length) {
+    document.getElementById('feesBody').innerHTML = '<p style="color:#888;font-size:.85rem;padding:8px 0">No outstanding fees found. All recorded payments are settled.</p>';
+    return;
+  }
+
+  const catColor = { 'Storage': '#e67e22', 'Storage (Away)': '#d35400', 'Room Hold': '#8e44ad', 'Clearance': '#2980b9', 'Key Fine': '#c0392b' };
+  let html = `<table class="h-tbl" style="min-width:720px"><thead><tr>
+    <th>Room</th><th>Student Name</th><th>Category</th><th>Description</th><th style="text-align:right">Amount (฿)</th><th>Status</th>
+  </tr></thead><tbody>`;
+  rows.forEach(r => {
+    const color  = catColor[r.category] || '#555';
+    const amtStr = r.amtKnown && r.amount > 0 ? '<strong>฿ ' + Number(r.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 }) + '</strong>' : '<em style="color:#aaa">TBD</em>';
+    const sColor = (r.status === 'Unpaid' || r.status === 'Unpaid Fine') ? '#c0392b' : r.status === 'Pending' ? '#8e44ad' : '#2980b9';
+    html += `<tr>
+      <td><strong>${escapeHtml(r.room)}</strong></td>
+      <td>${escapeHtml(r.name)}</td>
+      <td><span style="background:${color};color:#fff;padding:2px 8px;border-radius:10px;font-size:.72rem;white-space:nowrap">${escapeHtml(r.category)}</span></td>
+      <td style="font-size:.8rem">${escapeHtml(r.desc)}</td>
+      <td style="text-align:right">${amtStr}</td>
+      <td style="font-size:.75rem;color:${sColor};font-weight:700">${escapeHtml(r.status)}</td>
+    </tr>`;
+  });
+  const knownItems = rows.filter(r => r.amtKnown && r.amount > 0).length;
+  html += `<tr style="background:#1e3a5f;color:#fff">
+    <td colspan="4"><strong>TOTAL KNOWN OUTSTANDING (${knownItems} item${knownItems !== 1 ? 's' : ''})</strong></td>
+    <td style="text-align:right"><strong>฿ ${Number(knownTotal).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong></td>
+    <td></td>
+  </tr></tbody></table>`;
+  document.getElementById('feesBody').innerHTML = html;
+}
+
+function printFeesReport() {
+  const rooms  = DormDB.getRooms();
+  const away   = DormDB.getAway();
+  const keys   = (typeof DormDB.getKeys === 'function') ? (DormDB.getKeys() || []) : [];
+  const dorm   = DormDB.getDormName();
+  const rows   = [];
+
+  rooms.filter(s => s.storageRental && s.name && s.name.trim() && s.paymentMethod === 'Not Paid').forEach(s => {
+    rows.push([s.room, s.name, 'Storage', `${s.storageQty||1} box rental`, s.totalAmount || (s.storageQty||1)*100, 'Unpaid']);
+  });
+  away.filter(s => s.storageRental && s.paymentMethod === 'Not Paid').forEach(s => {
+    rows.push([s.originalRoom||s.room, s.name, 'Storage (Away)', `${s.storageQty||1} box rental`, s.totalAmount||(s.storageQty||1)*100, 'Unpaid']);
+  });
+  rooms.filter(s => isHoldActive(s) && s.name && s.name.trim() && s.roomHold.paymentMethod === 'Not Paid').forEach(s => {
+    const period = s.summer && s.firstSem ? 'Summer & 1st Sem' : s.summer ? 'Summer Break' : '1st Sem Break';
+    rows.push([s.room, s.name, 'Room Hold', `Hold fee — ${period}`, null, 'Pending']);
+  });
+  rooms.filter(s => s.graduating && s.moveOutReason && s.name && s.name.trim() && s.clearance && !s.clearance.formCompleted).forEach(s => {
+    const f = s.clearance.fees || {};
+    let total = 0;
+    ['movingFeeAmt','cleaningFeeAmt','keyFeeAmt','drawerFeeAmt','chairFeeAmt','stoolFeeAmt','otherFeeAmt'].forEach(k => { total += f[k]||0; });
+    const reason = s.moveOutReason + (s.offCampusType ? ' — ' + s.offCampusType : '');
+    rows.push([s.room, s.name, 'Clearance', reason, total || null, total > 0 ? 'Fees Pending' : 'Needs Assessment']);
+  });
+  keys.filter(k => k.status === 'Lost' && !k.finePaid && k.fineAmount > 0).forEach(k => {
+    rows.push([k.room||'—', k.borrowerName||'—', 'Key Fine', `Lost key — ${k.keyId}`, k.fineAmount, 'Unpaid Fine']);
+  });
+
+  if (!rows.length) { alert('No outstanding fees to print.'); return; }
+  const knownTotal = rows.filter(r => r[4] !== null && r[4] > 0).reduce((a,r) => a + r[4], 0);
+  const bRows = rows.map(r => {
+    const amtStr = (r[4] !== null && r[4] > 0) ? '฿ ' + Number(r[4]).toLocaleString('th-TH',{minimumFractionDigits:2}) : 'TBD';
+    return `<tr><td>${escapeHtml(r[0])}</td><td>${escapeHtml(r[1])}</td><td>${escapeHtml(r[2])}</td><td>${escapeHtml(r[3])}</td><td style="text-align:right">${amtStr}</td><td>${escapeHtml(r[5])}</td></tr>`;
+  }).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fee Collection — ${escapeHtml(dorm)}</title><style>*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;margin:0;padding:20px;background:#e8edf2}.card{max-width:960px;margin:0 auto;background:#fff;border:1px solid #c8cdd4;box-shadow:0 2px 12px rgba(0,0,0,.1)}.hdr{background:#1e3a5f;color:#fff;padding:14px 24px}.hdr h1{font-size:.95rem;margin:0 0 2px}.hdr p{font-size:.72rem;margin:0;opacity:.8}.body{padding:18px 24px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:left}td{border:1px solid #dce3ea;padding:6px 10px}tr:nth-child(even)td{background:#f8f9fa}.total-row td{background:#1e3a5f;color:#fff;font-weight:700;padding:8px 10px}.footer{margin-top:14px;font-size:.68rem;color:#888;text-align:center;padding:0 24px 16px}.pbtn{position:fixed;top:14px;right:14px;background:#1e3a5f;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.82rem}@media print{body{background:#fff;padding:0}.card{box-shadow:none;border:none}.pbtn{display:none}@page{margin:12mm 14mm;size:A4 portrait}}</style></head><body><button class="pbtn" onclick="window.print()">🖨️ Print</button><div class="card"><div class="hdr"><h1>💰 ${escapeHtml(dorm)} — Outstanding Fee Collection</h1><p>Generated: ${new Date().toLocaleString()} &nbsp;·&nbsp; ${escapeHtml(DormDB.getCurrentUser())} &nbsp;·&nbsp; ${rows.length} item${rows.length!==1?'s':''}</p></div><div class="body"><table><thead><tr><th>Room</th><th>Student Name</th><th>Category</th><th>Description</th><th style="text-align:right">Amount (฿)</th><th>Status</th></tr></thead><tbody>${bRows}</tbody><tfoot><tr class="total-row"><td colspan="4"><strong>TOTAL KNOWN OUTSTANDING</strong></td><td style="text-align:right"><strong>฿ ${Number(knownTotal).toLocaleString('th-TH',{minimumFractionDigits:2})}</strong></td><td></td></tr></tfoot></table></div><div class="footer">Asia-Pacific International University — Dormitory Administration &nbsp;|&nbsp; ${escapeHtml(dorm)}</div></div><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── Live reload on data changes ────────────────────────────────────────────
+const _isActive = id => document.getElementById(id).classList.contains('active');
+DormDB.on('dormData',    () => { renderArchive(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-holds')) renderHolds(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-room')) renderRoomReport(); if(_isActive('tab-clearance')){ renderClearance(); populateClearanceRooms(); } if(_isActive('tab-fees')) renderFees(); });
+DormDB.on('dormHistory', () => { renderArchive(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); });
+DormDB.on('dormAway',    () => { if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-fees')) renderFees(); });
+DormDB.on('dormKeysInv', () => { if(_isActive('tab-fees')) renderFees(); });
+
+// Initial render
+renderArchive();
+</script>
+</body>
+</html>

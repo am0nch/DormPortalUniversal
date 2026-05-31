@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dean's User Guide — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<style>
+/* ═══ Reset & base ══════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f4f8;color:#222;overflow-x:hidden}
+
+/* ═══ Layout ════════════════════════════════════════════════════════════════ */
+.guide-wrap{display:flex;min-height:100vh}
+
+/* ═══ Sidebar ═══════════════════════════════════════════════════════════════ */
+.guide-sidebar{
+  width:270px;min-width:270px;background:#1e3a5f;color:#fff;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  transition:left .25s;
+}
+.guide-sidebar::-webkit-scrollbar{width:4px}
+.guide-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
+.sb-header{
+  padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);
+  font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#a8c4e0;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.sb-search{padding:9px 12px;flex-shrink:0}
+.sb-search input{
+  width:100%;padding:6px 10px;border-radius:6px;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:.79rem;
+}
+.sb-search input::placeholder{color:rgba(255,255,255,.38)}
+.sb-search input:focus{outline:none;background:rgba(255,255,255,.16)}
+
+nav.toc{padding:4px 0 24px;overflow-y:auto}
+.toc-group-label{
+  font-size:.63rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:rgba(255,255,255,.38);padding:14px 14px 4px;
+}
+.toc-link,.toc-sub{
+  display:block;text-decoration:none;cursor:pointer;transition:all .14s;
+}
+.toc-link{
+  padding:5px 14px 5px 18px;font-size:.79rem;color:rgba(255,255,255,.72);
+  border-left:3px solid transparent;
+}
+.toc-link:hover{color:#fff;background:rgba(255,255,255,.07)}
+.toc-link.active{color:#fff;border-left-color:#4fc3f7;background:rgba(79,195,247,.1)}
+.toc-sub{
+  padding:3px 14px 3px 30px;font-size:.73rem;color:rgba(255,255,255,.48);
+}
+.toc-sub:hover{color:rgba(255,255,255,.82)}
+.toc-sub.active{color:#81d4fa}
+
+/* ═══ Main content ══════════════════════════════════════════════════════════ */
+.guide-main{flex:1;max-width:900px;padding:28px 40px 60px;overflow-x:hidden}
+
+/* Nav bar */
+.guide-nav{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #d9e6f5;
+}
+.guide-nav-left{display:flex;align-items:center;gap:10px}
+.back-link{text-decoration:none;color:#1e3a5f;font-size:.81rem;font-weight:700}
+.back-link:hover{text-decoration:underline}
+.nav-btns{display:flex;gap:8px}
+.hamburger-btn,.print-btn{
+  border:none;border-radius:7px;padding:7px 13px;cursor:pointer;font-size:.78rem;font-weight:700;
+}
+.hamburger-btn{background:#e8f0f8;color:#1e3a5f;display:none}
+.print-btn{background:#1e3a5f;color:#fff}
+.print-btn:hover,.hamburger-btn:hover{opacity:.88}
+
+/* Guide header block */
+.guide-hero{margin-bottom:36px}
+.guide-hero h1{font-size:1.55rem;font-weight:800;color:#1e3a5f}
+.guide-hero .sub{font-size:.78rem;color:#888;margin-top:3px}
+.guide-hero p{margin-top:10px;font-size:.84rem;color:#666;line-height:1.7;max-width:680px}
+
+/* ═══ Sections ══════════════════════════════════════════════════════════════ */
+.guide-section{margin-bottom:52px;scroll-margin-top:20px}
+.section-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #d9e6f5;
+}
+.section-icon{font-size:1.7rem;line-height:1}
+.section-meta .section-title{font-size:1.2rem;font-weight:800;color:#1e3a5f}
+.section-meta .section-path{font-size:.72rem;color:#999;margin-top:2px;font-family:monospace}
+.section-badge{
+  font-size:.66rem;padding:2px 8px;border-radius:10px;
+  font-weight:700;white-space:nowrap;align-self:flex-start;margin-top:3px;
+}
+.section-badge.ready{background:#e8f5e9;color:#2e7d32}
+.section-badge.coming{background:#f5f5f5;color:#999}
+
+/* Subsections */
+.subsection{margin-bottom:24px;scroll-margin-top:20px}
+.collapse-trigger{
+  font-size:.9rem;font-weight:700;color:#1e3a5f;margin-bottom:0;
+  cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px;
+  padding:8px 12px;border-radius:8px;background:#f0f5fb;transition:background .14s;
+}
+.collapse-trigger:hover{background:#e0ecf8}
+.collapse-trigger .chevron{font-size:.75rem;transition:transform .2s;color:#5580aa}
+.collapse-trigger.closed .chevron{transform:rotate(-90deg)}
+.collapse-body{
+  padding:14px 16px 4px;overflow:hidden;transition:max-height .25s ease;
+}
+.collapse-body.closed{max-height:0!important;padding-top:0;padding-bottom:0}
+
+/* Text */
+p{font-size:.86rem;color:#444;line-height:1.72;margin-bottom:10px}
+ul,ol{margin:8px 0 12px 20px}
+li{font-size:.86rem;color:#444;line-height:1.7;margin-bottom:3px}
+strong{color:#1e3a5f}
+code{font-family:'Consolas','Courier New',monospace;font-size:.8rem;
+  background:#f0f4f8;padding:1px 4px;border-radius:3px;color:#c0392b}
+
+/* Callouts */
+.tip,.note,.warn,.danger{
+  border-radius:8px;padding:10px 14px;font-size:.82rem;line-height:1.65;
+  margin:12px 0;border-left:4px solid;display:flex;gap:9px;align-items:flex-start;
+}
+.tip{background:#e8f5e9;border-color:#43a047;color:#2e7d32}
+.note{background:#e3f2fd;border-color:#1976d2;color:#0d47a1}
+.warn{background:#fff8e1;border-color:#f9a825;color:#6d4c00}
+.danger{background:#fdecea;border-color:#e53935;color:#b71c1c}
+.tip-icon,.note-icon,.warn-icon,.danger-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+
+/* Tables */
+.guide-table{width:100%;border-collapse:collapse;font-size:.8rem;margin:12px 0;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.guide-table th{background:#1e3a5f;color:#fff;padding:8px 12px;text-align:left;font-weight:600}
+.guide-table td{padding:7px 12px;border-bottom:1px solid #e8eef4;color:#444;vertical-align:top}
+.guide-table tr:nth-child(even) td{background:#f7fafc}
+.guide-table tr:last-child td{border-bottom:none}
+
+/* Badges */
+.badge{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:10px;font-weight:600;white-space:nowrap}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-red{background:#fdecea;color:#c62828}
+.badge-orange{background:#fff3e0;color:#e65100}
+.badge-blue{background:#e3f2fd;color:#1565c0}
+.badge-amber{background:#fff8e1;color:#e65100}
+.badge-gray{background:#f5f5f5;color:#616161}
+.badge-coming{background:#f5f5f5;color:#999}
+
+/* Keyboard keys */
+kbd{background:#f0f4f8;border:1px solid #c5d5e8;border-radius:4px;padding:1px 5px;font-size:.76rem;font-family:monospace;color:#1e3a5f;box-shadow:0 1px 0 #b0c4d8}
+
+/* Numbered steps */
+.steps{counter-reset:step;list-style:none;margin-left:0}
+.steps li{
+  counter-increment:step;padding:8px 12px 8px 46px;margin-bottom:6px;
+  background:#f7fafc;border-radius:8px;position:relative;font-size:.85rem;color:#444;border:1px solid #e8eef4;
+}
+.steps li::before{
+  content:counter(step);position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;background:#1e3a5f;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;
+}
+
+/* Two-col info cards */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.info-card{background:#fff;border:1px solid #d9e6f5;border-radius:10px;padding:14px 16px}
+.info-card h4{font-size:.8rem;font-weight:700;color:#1e3a5f;margin-bottom:7px}
+.info-card p,.info-card li{font-size:.79rem;color:#555;margin-bottom:3px}
+
+/* Cross-module flow arrows */
+.flow-row{display:flex;align-items:center;gap:6px;font-size:.82rem;margin:5px 0;color:#444}
+.flow-row .from,.flow-row .to{background:#e8f0f8;padding:2px 8px;border-radius:4px;font-weight:600;color:#1e3a5f;font-size:.78rem}
+.flow-row .arrow{color:#5580aa;font-size:.9rem}
+.flow-row .desc{color:#666;font-size:.78rem}
+
+/* Search highlight */
+mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
+
+/* Mobile overlay */
+.sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:99}
+.sidebar-overlay.show{display:block}
+
+/* ═══ Responsive ════════════════════════════════════════════════════════════ */
+@media(max-width:820px){
+  .guide-sidebar{position:fixed;left:-270px;top:0;height:100vh;z-index:100}
+  .guide-sidebar.open{left:0}
+  .guide-main{padding:18px 18px 48px}
+  .hamburger-btn{display:block}
+}
+
+/* ═══ Print ═════════════════════════════════════════════════════════════════ */
+@media print{
+  .guide-sidebar,.hamburger-btn,.print-btn,.sidebar-overlay,.guide-nav{display:none}
+  .guide-main{padding:0;max-width:100%}
+  .guide-wrap{display:block}
+  .collapse-body{max-height:none!important}
+  .guide-section{page-break-inside:avoid;margin-bottom:24px}
+}
+</style>
+</head>
+<body>
+
+<div class="guide-wrap">
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────── -->
+<aside class="guide-sidebar" id="sidebar">
+  <div class="sb-header">📖 User Guide</div>
+  <div class="sb-search">
+    <input type="text" id="searchInput" placeholder="🔍 Search guide…" oninput="doSearch(this.value)" autocomplete="off">
+  </div>
+  <nav class="toc" id="toc"></nav>
+</aside>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────── -->
+<main class="guide-main" id="guideMain">
+
+  <div class="guide-nav">
+    <div class="guide-nav-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()">☰ Contents</button>
+      <a class="back-link" id="backLink" href="../index.html">← Menu</a>
+    </div>
+    <div class="nav-btns">
+      <button class="print-btn" onclick="window.print()">🖨️ Print Guide</button>
+    </div>
+  </div>
+
+  <div class="guide-hero">
+    <h1>📖 Dean's User Guide</h1>
+    <div class="sub" id="heroSub">DormPortalUniversal v4 &nbsp;·&nbsp; Asia-Pacific International University</div>
+    <p>Complete reference for Dorm Deans managing the Dormitory Administration system. Select a topic from the left panel or use the search box to find specific information.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 1 ─ GETTING STARTED                                              -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-getting-started">
+    <div class="section-header">
+      <span class="section-icon">🏛️</span>
+      <div class="section-meta">
+        <div class="section-title">Getting Started</div>
+        <div class="section-path">index.html · All modules</div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> System Overview</div>
+      <div class="collapse-body">
+        <p>The Dormitory Administration system is a <strong>browser-based application</strong> — no internet connection, no server, and no login required after the files are opened. All data is saved automatically to your browser's local storage and can be exported as a JSON backup file.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>🔒 Data Storage</h4>
+            <p>Data is saved in your browser's <strong>localStorage</strong> — it persists across browser restarts but is tied to the specific browser and computer. Always export a backup before clearing browser data or switching computers.</p>
+          </div>
+          <div class="info-card">
+            <h4>📂 File Structure</h4>
+            <p>The system consists of <strong>index.html</strong> (the menu), <strong>dorm-db.js</strong> (shared data API), and individual module HTML files inside the <strong>modules/</strong> folder. Keep all files in the same folder.</p>
+          </div>
+        </div>
+        <div class="note"><span class="note-icon">ℹ️</span><span>All modules share the same data layer (<code>dorm-db.js</code>). Changes made in one module are instantly visible in all others — even in other browser tabs via BroadcastChannel sync.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-first-launch">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> First Launch</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Open <strong>index.html</strong> in a modern web browser (Chrome or Edge recommended).</li>
+          <li>When prompted for your name, enter it — this is shown as the current user and stamped on every save.</li>
+          <li>Select your dorm from the <strong>🏢 Dorm</strong> dropdown (top-right of the menu). Choose "Other" to type a custom name.</li>
+          <li>Click any module card to open it. All modules share the same data.</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span><strong>Tip:</strong> Keep the index.html tab open while working in module tabs — it updates live as data changes and shows at-a-glance stats for all modules.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-backup">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Backup & Restore</div>
+      <div class="collapse-body">
+        <p>Use the buttons in the menu footer to protect your data:</p>
+        <ul>
+          <li><strong>💾 Export All Data</strong> — Downloads a <code>.json</code> file containing all module data (rooms, profiles, keys, inspections, inventory, history, and photos). Store this on a USB drive or cloud backup.</li>
+          <li><strong>📂 Restore Backup</strong> — Imports a previously exported <code>.json</code> file. <em>This overwrites all current data.</em></li>
+        </ul>
+        <div class="danger"><span class="danger-icon">⚠️</span><span><strong>Important:</strong> localStorage is browser-specific. If you switch to a different browser or computer, use Export/Restore to transfer your data. Export at least once a week — or after any significant data entry session.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-modules-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Available Modules</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Module</th><th>Purpose</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>🛏️ Room Reservations</td><td>Student beds, check-in/out, clearance, room holds, queue</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>👤 Student Profiles</td><td>Full student directory with photos, Registrar/MS Forms import</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🏢 Floor Plan</td><td>Visual room grid with occupancy colors and bathroom pairing</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>⚡ Electricity & Hot Water</td><td>Meter readings and per-student utility bill calculation</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📊 Reports</td><td>8-tab hub: archive, room, custom, pivot, holds, storage, clearance, fees</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🔑 Key Inventory</td><td>Key checkout, return, lost key tracking, fines, shift print</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🔍 Room Inspection</td><td>Move-in/out checklists, damage charges, clearance pre-fill</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📦 Inventory</td><td>Asset tracking, Code 39 barcodes, room template comparison</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📅 Staff Scheduling</td><td>Shift rosters and attendance for dorm staff</td><td><span class="badge badge-coming">Coming soon</span></td></tr>
+            <tr><td>🔧 Maintenance</td><td>Plant Service request tracking from open to resolved</td><td><span class="badge badge-coming">Coming soon</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 2 ─ ROOM RESERVATIONS                                            -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-room-reservations">
+    <div class="section-header">
+      <span class="section-icon">🛏️</span>
+      <div class="section-meta">
+        <div class="section-title">Room Reservations</div>
+        <div class="section-path">modules/room-reservations.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-rr-table">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Understanding the Table</div>
+      <div class="collapse-body">
+        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Columns ▾</strong> in the toolbar to show or hide specific columns. The 17 columns are:</p>
+        <table class="guide-table">
+          <thead><tr><th>#</th><th>Column</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Room & Occup.</td><td>Room number + color badge. Click room number to view history.</td></tr>
+            <tr><td>2</td><td>❄️ AC</td><td>Air-conditioned flag — auto-detected from "AC" room suffix</td></tr>
+            <tr><td>3</td><td>Name</td><td>Student name. Shows 👤 Profile, 🔀 Transfer, and 🅰/🅱 side badges.</td></tr>
+            <tr><td>4</td><td>🪪 ID</td><td>Student ID — hidden by default. Links across all modules.</td></tr>
+            <tr><td>5</td><td>Req. Room</td><td>Room the student is requesting a move to</td></tr>
+            <tr><td>6</td><td>Reservation</td><td>Confirmed or Waiting — auto-calculated by waiting list logic</td></tr>
+            <tr><td>7</td><td>☀️ Summer</td><td>Staying over summer break</td></tr>
+            <tr><td>8</td><td>📖 1st Sem</td><td>Staying over 1st semester break</td></tr>
+            <tr><td>9</td><td>🚪 Move Out</td><td>Graduating / Off Campus / Internship — triggers Clearance button</td></tr>
+            <tr><td>10</td><td>Leave Date</td><td>Expected departure date (set via the Clearance modal)</td></tr>
+            <tr><td>11</td><td>Return Date</td><td>Return date for break-staying students</td></tr>
+            <tr><td>12</td><td>📊 Status</td><td>Computed status: roommate names, hold status, departure info</td></tr>
+            <tr><td>13</td><td>🔑 Keys</td><td>Checkbox — mark when keys are returned at departure</td></tr>
+            <tr><td>14</td><td>📦 Storage</td><td>Storage box rental summary + Manage button</td></tr>
+            <tr><td>15</td><td>🧍 Solo</td><td>Student paying double rate for a private room (blocks roommates)</td></tr>
+            <tr><td>16</td><td>🏠 Hold</td><td>Room Hold (paid absence). Requires ☀️ or 📖 to be checked first.</td></tr>
+            <tr><td>17</td><td>📋 Clearance</td><td>Opens clearance form — appears only when Move Out is set</td></tr>
+          </tbody>
+        </table>
+        <div class="tip"><span class="tip-icon">💡</span><span>The room color badge updates automatically: <span class="badge badge-green">🟢 Available</span> → <span class="badge" style="background:#fff9c4;color:#5d4037">🟡 Leaving Soon</span> → <span class="badge badge-amber">🟠 Held</span> → <span class="badge badge-red">🔴 Full</span></span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-setup">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dorm Setup</div>
+      <div class="collapse-body">
+        <p>On first use, click <strong>🏗️ Generate Dorm Setup</strong> to create the room list. Enter room numbers manually or use a range format (e.g., <code>101AC-106AC, 201AC-227AC</code>). Rooms with the suffix <strong>AC</strong> are auto-flagged as air-conditioned.</p>
+        <p>The <strong>Max Occupants</strong> dropdown (top-right of the toolbar) sets how many bed slots appear per room: 1–4. Default is 2.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Elijah Hall default layout: Floors 1–2 (101AC–106AC, 201AC–227AC), Floors 3–4 (301AC–327AC, 401AC–427AC). All rooms default to 2 beds.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-moveout">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Move-Out Types & Clearance</div>
+      <div class="collapse-body">
+        <p>Set a reason in the <strong>🚪 Move Out</strong> column to start the departure process. The <strong>📋 Clearance</strong> button appears automatically in the last column.</p>
+        <table class="guide-table">
+          <thead><tr><th>Move-Out Reason</th><th>Description</th><th>Sub-type</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Graduating</strong></td><td>Student completing their program. Full clearance + fee assessment.</td><td>—</td></tr>
+            <tr><td><strong>Off Campus</strong></td><td>Student leaving campus</td><td>Going Home (temp) or Leaving Dorm (permanent)</td></tr>
+            <tr><td><strong>Internship</strong></td><td>Away for internship placement</td><td>—</td></tr>
+          </tbody>
+        </table>
+        <p>The <strong>📋 Clearance Modal</strong> captures:</p>
+        <ul>
+          <li>Student ID, Mobile, Email, Leave Date, Form No.</li>
+          <li>Meter readings: Electricity IN/OUT, Hot Water IN/OUT</li>
+          <li>Fees: Moving, Cleaning, Key, Drawer, Chair, Stool, Other (with auto-fill from Room Inspection)</li>
+          <li>Destination dorm/room (for transfers)</li>
+        </ul>
+        <p>Clicking <strong>Archive & Vacate</strong> moves the student to Room History, clears their bed slot, and the record appears in the Archive tab of Reports.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>If a move-out Room Inspection exists for this student's room, the "Other Fee" field is auto-populated with the total damage charges — no double entry needed.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-roomhold">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Room Hold (Paid Absence)</div>
+      <div class="collapse-body">
+        <p>A <strong>Room Hold</strong> lets a student keep their room while temporarily absent (going home for summer/semester break) by paying a hold fee. The room is blocked from new reservations.</p>
+        <ol class="steps">
+          <li>Check ☀️ Summer <em>or</em> 📖 1st Sem for the student — the Hold checkbox activates.</li>
+          <li>Check the 🏠 Hold checkbox. The room badge turns <span class="badge badge-amber">Amber</span>.</li>
+          <li>Click the <strong>💳</strong> button to open the Hold Payment modal. Record payment method (Cash or QR) and amount paid.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>A room on hold shows "🏠 Room Held (away)" in the Status column and blocks new reservations — behaves like a solo lock. Outstanding hold payments appear in the Fee Collection report.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-away">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Away Students Panel</div>
+      <div class="collapse-body">
+        <p>The <strong>Away Students</strong> panel (🏃 button in the toolbar) stores student records that have been temporarily moved out without being permanently archived. Their bed is released but all data is preserved.</p>
+        <ul>
+          <li>Click <strong>Mark Away</strong> from the student's row options to move them to the Away panel.</li>
+          <li>When they return, click <strong>↩️ Restore</strong> and choose the room to place them back into a bed slot.</li>
+          <li>Away students with storage or hold payments appear in the Fee Collection report.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-queue">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Incoming Queue</div>
+      <div class="collapse-body">
+        <p>The <strong>Incoming Queue</strong> panel (🚶 button) manages pre-reservations — students who will move in but don't have a confirmed room yet.</p>
+        <ol class="steps">
+          <li>Click <strong>+ Add Incoming</strong> and fill in: Name, Student Type, Target Room, Expected Move-In Date, Transfer From (if applicable), and Notes.</li>
+          <li>Once a room becomes available, click <strong>✅ Confirm to Room</strong> on the queue entry to place the student in a bed slot directly.</li>
+          <li>To remove a queue entry, click <strong>✕ Remove</strong>.</li>
+        </ol>
+        <p>The queue count badge updates live on the Room Reservations card in the main menu.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-storage">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Storage Rental</div>
+      <div class="collapse-body">
+        <p>Click <strong>📦 Manage</strong> in the Storage column to open the Storage modal for a student. You can track up to 3 storage boxes, each with a color label and box number. Payment method (Cash / QR / Not Paid) and total amount are also recorded.</p>
+        <p>Unpaid storage rentals appear in the <strong>Fee Collection</strong> report under Reports → 💰 Fee Collection.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-transfer">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Transfer In</div>
+      <div class="collapse-body">
+        <p>To record a student transferring from another dorm, click the <strong>🔀</strong> badge (visible when a name is entered) to open the Transfer In modal. Record: source dorm, source room number, transfer date, and notes. A Transfer In badge appears on the name cell afterward.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-side">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Room Side Assignment (A / B)</div>
+      <div class="collapse-body">
+        <p>Each student can be assigned to Side A (door-side) or Side B (balcony-side) of the room. Click the small side badge (🅰/🅱) next to the student's name to cycle through A → B → (unset). This assignment is used by the Room Inspection module to link move-in and move-out records to the correct bed side.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rr-save">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Saving & Loading Data</div>
+      <div class="collapse-body">
+        <ul>
+          <li><strong>Auto-save:</strong> Every change is immediately saved to localStorage. The status bar shows the last save time and current localStorage usage.</li>
+          <li><strong>💾 Save Excel:</strong> Exports all room data to an <code>.xlsx</code> file with three sheets: DormData, IncomingQueue, RoomHistory.</li>
+          <li><strong>📂 Load File:</strong> Import a previously saved <code>.xlsx</code> file to restore room data.</li>
+          <li><strong>Undo / Redo:</strong> Buttons in the toolbar, or <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Loading from an Excel file overwrites all current room data. Always export a backup before loading.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 3 ─ STUDENT PROFILES                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-student-profiles">
+    <div class="section-header">
+      <span class="section-icon">👤</span>
+      <div class="section-meta">
+        <div class="section-title">Student Profiles</div>
+        <div class="section-path">modules/student-profiles.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-sp-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Student Profiles module is the central student directory. It stores full personal, academic, and emergency contact information. A <strong>completeness score</strong> (0–100%) tracks how much of each profile is filled in, based on 13 key fields.</p>
+        <p>Profiles are linked to Room Reservations via <strong>Student ID</strong>. Once a student has both a profile and a reservation with matching IDs, a <strong>👤 Profile</strong> badge appears on their name in the reservations table.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sp-create">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Creating & Editing Profiles</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Click <strong>+ Add Profile</strong> to open the edit modal.</li>
+          <li>Fill in: First Name, Surname, Student ID, Course, Year, Nationality, Birth Date, Cell Phone, Email, Home Address, Father's Name, Mother's Name, Emergency Contact Name & Phone, Blood Type.</li>
+          <li>Optionally upload a <strong>profile photo</strong> (JPEG/PNG). Photos are auto-compressed to ~25–50 KB to save space.</li>
+          <li>Click <strong>Save</strong>. The profile appears in the list with a completeness percentage badge.</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span><strong>Completeness score</strong> is based on 13 fields: First Name, Surname, Student ID, Cell Phone, Email, Birth Date, Nationality, Home Address, Father's Name, Mother's Name, Emergency Name, Emergency Phone, and Blood Type. A profile at ≥90% is counted as "Complete."</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sp-import">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Importing Profiles</div>
+      <div class="collapse-body">
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📥 Import Registrar Excel</h4>
+            <p>Imports an Excel file from the Registrar's office. Creates stub profiles with available columns (name, ID, course, year, etc.). Profiles matched by Student ID are <em>not</em> overwritten — safe to run repeatedly.</p>
+          </div>
+          <div class="info-card">
+            <h4>📋 Import MS Forms CSV</h4>
+            <p>Imports a CSV exported from a Microsoft Forms survey. Flexible header matching — columns like "Full Name", "Student No.", "Emergency Contact" are auto-detected. Updates matching profiles in-place.</p>
+          </div>
+        </div>
+        <p><strong>Recommended workflow:</strong></p>
+        <ol class="steps">
+          <li>Import from Registrar Excel → creates stub profiles for all enrolled students.</li>
+          <li>Share a Microsoft Forms link for students to fill in their own personal details.</li>
+          <li>Export the Forms responses as CSV, then import via "Import MS Forms CSV".</li>
+          <li>Review completeness scores and print A4 cards for complete profiles.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sp-print">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Printing Profile Cards</div>
+      <div class="collapse-body">
+        <p>Click <strong>🖨️ Print Card</strong> on any profile to open a printable A4 portrait card (Style B two-column layout). The card includes the student photo (if uploaded), all profile fields in two columns, and the current room assignment pulled from Room Reservations (matched by Student ID).</p>
+        <p>These cards are suitable for filing in the dorm's physical student binder or posting on the resident bulletin board.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sp-export">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Exporting Profile Data</div>
+      <div class="collapse-body">
+        <p>Click <strong>📤 Export Excel</strong> to download all profiles as an <code>.xlsx</code> file with 47 columns — all fields including room assignment (pulled from Room Reservations via Student ID match). Suitable for sending to the Registrar or Finance office.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 4 ─ FLOOR PLAN                                                   -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-floor-plan">
+    <div class="section-header">
+      <span class="section-icon">🏢</span>
+      <div class="section-meta">
+        <div class="section-title">Floor Plan</div>
+        <div class="section-path">modules/floor-plan.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-fp-grid">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Reading the Room Grid</div>
+      <div class="collapse-body">
+        <p>The Floor Plan shows all rooms as color-coded tiles. Use the floor filter buttons at the top to view one floor at a time, or see all floors at once. Hover over a room tile to see a tooltip with occupant names and Student IDs.</p>
+        <table class="guide-table">
+          <thead><tr><th>Tile Color</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-green">Green</span></td><td>Available — at least one empty bed slot, no lock</td></tr>
+            <tr><td><span class="badge" style="background:#fff9c4;color:#795548">Yellow</span></td><td>Leaving Soon — all slots filled but ≥1 student has a leave date set</td></tr>
+            <tr><td><span class="badge badge-amber">Amber</span></td><td>Room Hold — a student is paying to hold the room while away</td></tr>
+            <tr><td><span class="badge badge-red">Red</span></td><td>Full — all slots occupied, no one leaving; or Solo Lock</td></tr>
+          </tbody>
+        </table>
+        <div class="tip"><span class="tip-icon">💡</span><span>The ❄️ badge on a room tile marks it as an AC room. The grey text below each occupant name is their Student ID (if one is saved).</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-fp-bathroom">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Bathroom Pairing Configuration</div>
+      <div class="collapse-body">
+        <p>Bathroom pairing groups rooms that share a hot water bathroom. This configuration is used by the Electricity & Hot Water module to group students for hot water bill splitting.</p>
+        <ol class="steps">
+          <li>Click <strong>⚙️ Configure Bathroom Pairing</strong>.</li>
+          <li>Select the rooms that share a bathroom (e.g., 301AC + 302AC share one bathroom).</li>
+          <li>Click <strong>+ Add Pair</strong>. Repeat for all bathroom groups on all floors.</li>
+          <li>Click <strong>Save Pairing</strong>. The configuration is stored immediately.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-fp-print">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Printing the Floor Plan</div>
+      <div class="collapse-body">
+        <p>Click <strong>🖨️ Print Floor Plan</strong> to open an A4 landscape print window showing all floor tiles with occupancy colors and room numbers. Useful for posting on the dorm notice board or sharing with administration.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 5 ─ ELECTRICITY & HOT WATER                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-utilities">
+    <div class="section-header">
+      <span class="section-icon">⚡</span>
+      <div class="section-meta">
+        <div class="section-title">Electricity & Hot Water</div>
+        <div class="section-path">modules/utilities.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-util-elec">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Electricity Tab</div>
+      <div class="collapse-body">
+        <p>Records monthly electricity meter readings per room and calculates the per-student bill.</p>
+        <ol class="steps">
+          <li>Select or create a billing period (e.g., "May 2026") using the period selector.</li>
+          <li>Enter the <strong>Previous Reading</strong> and <strong>Current Reading</strong> for each room's electricity meter.</li>
+          <li>Enter the <strong>Rate per kWh</strong> in the rate field.</li>
+          <li>The module auto-calculates usage (kWh), total cost, and splits the bill equally among all current room occupants.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-util-hw">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Hot Water Tab</div>
+      <div class="collapse-body">
+        <p>Hot water billing is based on the <strong>bathroom pairing groups</strong> configured in the Floor Plan module. All students sharing a bathroom split the hot water bill equally.</p>
+        <ol class="steps">
+          <li>Select the billing period (same one used for electricity).</li>
+          <li>For each bathroom group, enter previous and current hot water meter readings.</li>
+          <li>Enter the rate per unit.</li>
+          <li>The module groups students by bathroom pair and calculates each person's share automatically.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Rooms with the "AC" suffix (e.g., 426AC) are automatically matched to their non-suffix equivalent (426) for billing. No manual adjustment needed for AC room naming.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-util-summary">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Summary Tab & Export</div>
+      <div class="collapse-body">
+        <p>The <strong>Summary</strong> tab shows a combined per-student bill (electricity + hot water) for the selected billing period, including Student IDs for easy reference. Click <strong>📤 Export Excel</strong> to download the full billing table as a <code>.xlsx</code> file for distribution or Finance submission.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 6 ─ REPORTS                                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-reports">
+    <div class="section-header">
+      <span class="section-icon">📊</span>
+      <div class="section-meta">
+        <div class="section-title">Reports</div>
+        <div class="section-path">modules/reports.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <p style="margin-bottom:16px">The Reports module has <strong>8 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
+
+    <div class="subsection" id="sub-rpt-archive">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📁 Archive Tab</div>
+      <div class="collapse-body">
+        <p>Shows all students who have been vacated and archived — Graduating, Off Campus, and Internship departures. Displays clearance form completion status, fees collected, meter readings, and contact info. Filterable by floor, searchable by name. Click <strong>🖨️ Print Archive</strong> for an A4 report.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-room">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🛏️ Room Report Tab</div>
+      <div class="collapse-body">
+        <p>Shows the current occupancy snapshot for all rooms: student name, Student ID, move-out reason, solo/storage/hold status, and keys returned. Sorted by room number. Includes an ID column for cross-referencing with Registrar records. Printable as A4.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-custom">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📋 Custom Report Tab</div>
+      <div class="collapse-body">
+        <p>Build a flexible columnar report by checking which fields to include: Name, Room, Student ID, Move Out Reason, Summer, 1st Sem, Leave Date, Return Date, Storage Rental, Solo, Hold Status, Keys Returned. Filter by floor. Click <strong>Generate Report</strong> then <strong>🖨️ Print</strong>.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-pivot">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🔀 Pivot Tab</div>
+      <div class="collapse-body">
+        <p>Shows a summary count of students grouped by Move Out Reason and Off Campus Type. At a glance: how many are graduating, leaving the dorm, going home, or on internship. Printable as A4 landscape.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-holds">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🏠 Holds Report Tab</div>
+      <div class="collapse-body">
+        <p>Lists all currently active room holds: student name, room, payment method, and amount paid. Useful for reconciling hold payments with the Finance Office. Printable as A4.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-storage">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📦 Storage Report Tab</div>
+      <div class="collapse-body">
+        <p>Lists all storage rentals — both active students and away students — with box numbers, colors, payment status, and total amounts. Distinguishes paid vs. unpaid. Printable as A4.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-clearance">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📋 Clearance Tab</div>
+      <div class="collapse-body">
+        <p>This tab has two sections:</p>
+        <ul>
+          <li><strong>Section A — Overview:</strong> All students with a move-out reason in one table. Shows clearance form completion status, leave date, and total fees assessed.</li>
+          <li><strong>Section B — Form Builder:</strong> Select a room and occupant (or "Both occupants" or "Blank form") to generate a printable landscape A4 Finance Office clearance form. If a Room Inspection exists for that student, damage charges are auto-filled.</li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span>Selecting "Both occupants" generates two clearance sheets with a page-break between them — print both sides of a shared room in one click.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-fees">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 💰 Fee Collection Tab</div>
+      <div class="collapse-body">
+        <p>Aggregates all outstanding payments across the system into one view. Five summary stat cards show totals. The detail table lists every unpaid item:</p>
+        <ul>
+          <li>Storage rentals marked "Not Paid" (active and away students)</li>
+          <li>Room holds marked "Not Paid"</li>
+          <li>Pending clearance forms (not yet completed/submitted)</li>
+          <li>Lost key fines not yet collected</li>
+        </ul>
+        <p>Click <strong>🖨️ Print Fee Report</strong> to generate an A4 summary for Finance.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 7 ─ KEY INVENTORY                                                -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-key-inventory">
+    <div class="section-header">
+      <span class="section-icon">🔑</span>
+      <div class="section-meta">
+        <div class="section-title">Key Inventory</div>
+        <div class="section-path">modules/key-inventory.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-ki-setup">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Initial Setup</div>
+      <div class="collapse-body">
+        <p>Before using the module, click the <strong>⚙️ Settings</strong> tab to configure:</p>
+        <ul>
+          <li><strong>Cash Fine Amount</strong> — penalty for a lost key paid in cash</li>
+          <li><strong>Account Deduction Amount</strong> — penalty charged to the student account</li>
+          <li><strong>Student Return Time Limit</strong> — minutes before a student key is overdue</li>
+          <li><strong>Worker Return Time Limit</strong> — hours before a worker key is overdue</li>
+          <li><strong>Semester Label</strong> — e.g., "2nd Semester 2025–2026" (appears on print sheets)</li>
+        </ul>
+        <p>Then click <strong>🔑 Generate from Rooms</strong> (in the Inventory tab toolbar) to auto-create A and B key records for every room currently in the reservation list.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ki-checkout">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Checking Out & Returning Keys</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Go to the <strong>Active</strong> tab or <strong>Inventory</strong> tab and find the key by room number.</li>
+          <li>Click <strong>✅ Check Out</strong>. Enter borrower name, borrower type (Student / Worker / Staff / Guest), and expected return time.</li>
+          <li>The key status changes to <span class="badge badge-orange">Checked Out</span>. It appears in the Active tab.</li>
+          <li>When the key is returned, click <strong>↩️ Return</strong> on its Active tab entry. The return is logged in the key's history.</li>
+        </ol>
+        <p>The system checks for overdue keys automatically every <strong>60 seconds</strong> and updates status to <span class="badge badge-red">Overdue</span> when the return time has passed.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ki-lost">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Recording a Lost Key</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Find the key in the Active tab (it may already be Overdue).</li>
+          <li>Click <strong>❌ Mark Lost</strong>. The Fine modal opens automatically.</li>
+          <li>Choose the resolution: <strong>Cash</strong> (fine collected in person), <strong>Account</strong> (deducted from student account), or <strong>Waived</strong> (no charge).</li>
+          <li>The key status updates to <span class="badge badge-red">Lost</span>. If the fine is not yet paid, it appears in the Fee Collection report.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ki-prints">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Print: Shift Sheet, Ledger & Agreement</div>
+      <div class="collapse-body">
+        <ul>
+          <li><strong>🖨️ Print Shift Sheet</strong> (toolbar button) — A4 sheet listing all currently checked-out keys: room, key type, borrower name, checkout time, due time. Use for handover between duty shifts.</li>
+          <li><strong>🖨️ Print Ledger</strong> (toolbar button) — 2-page A4 Master Borrower Agreement Signature Ledger (48 rows total) for manual sign-in by each borrower. Includes dorm name and fine amounts from Settings.</li>
+          <li><strong>📄 Agreement tab</strong> — On-screen preview of the Borrower Rules & Responsibilities Agreement. Click <strong>🖨️ Print Agreement</strong> for a printed copy to give each new borrower. All values are dynamic (dorm name, time limits, fine amounts).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 8 ─ ROOM INSPECTION                                              -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-room-inspection">
+    <div class="section-header">
+      <span class="section-icon">🔍</span>
+      <div class="section-meta">
+        <div class="section-title">Room Inspection</div>
+        <div class="section-path">modules/room-inspection.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-ri-create">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Creating a New Inspection</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Click <strong>+ New Inspection</strong> in the toolbar.</li>
+          <li>Select the <strong>Room</strong> from the dropdown (populated from Room Reservations).</li>
+          <li>Choose <strong>Inspection Type</strong>: Move-In or Move-Out.</li>
+          <li>Set the <strong>Inspection Date</strong> and <strong>Semester</strong> label.</li>
+          <li>Assign students to <strong>Side A</strong> (door-side) and <strong>Side B</strong> (balcony-side) using the dropdowns. The system prevents two students from being assigned the same side.</li>
+          <li>Click <strong>Start Inspection</strong> to open the full checklist.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ri-checklist">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Filling in the Checklist</div>
+      <div class="collapse-body">
+        <p>The checklist is divided into four sections:</p>
+        <table class="guide-table">
+          <thead><tr><th>Section</th><th>Items Covered</th><th>Cost Split</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Side A</strong> (Door)</td><td>Student A's personal area: bed, mattress, desk, chair, wardrobe, drawers, bookshelf, stool, window</td><td>Charged to Student A</td></tr>
+            <tr><td><strong>Side B</strong> (Balcony)</td><td>Student B's personal area — same item list</td><td>Charged to Student B</td></tr>
+            <tr><td><strong>Shared Fixtures</strong></td><td>Ceiling fan, curtains, door lock, room sign, floor, light fixtures</td><td>Split between both students</td></tr>
+            <tr><td><strong>Bathroom</strong></td><td>Toilet, shower head, mirror, water heater, tiles, floor drain</td><td>Split between both students</td></tr>
+          </tbody>
+        </table>
+        <p>For each item, select a condition:</p>
+        <ul>
+          <li><span class="badge badge-green">Good</span> — No action needed</li>
+          <li><span class="badge badge-blue">Fair</span> — Minor wear, no charge</li>
+          <li><span class="badge badge-orange">Poor</span> — Needs repair, partial charge applies</li>
+          <li><span class="badge badge-red">Damaged</span> — Full replacement cost charged</li>
+          <li><span class="badge badge-gray">N/A</span> — Item not present in this room (e.g., AC unit in non-AC room)</li>
+        </ul>
+        <div class="note"><span class="note-icon">ℹ️</span><span>AC Unit items default to N/A for non-AC rooms automatically. Conditions are graded against the paired Move-In record for Move-Out inspections.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ri-charges">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Charge Calculation & Edit Charges</div>
+      <div class="collapse-body">
+        <p>For <strong>Move-Out</strong> inspections, the system compares current conditions against the paired Move-In record. Deteriorated items trigger a repair/replacement charge based on default costs set in Settings.</p>
+        <p>After saving the inspection, click <strong>✏️ Edit Charges</strong> to adjust any repair amount. This is useful when actual repair costs differ from the defaults.</p>
+        <p>The <strong>Charges tab</strong> shows a per-student summary of all charges from saved inspections.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>When you open a student's clearance form in Room Reservations (or the Clearance tab in Reports), damage charges from the Room Inspection are automatically pre-filled in the "Other Fee" field — no double entry needed.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ri-print">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Printing Inspection Documents</div>
+      <div class="collapse-body">
+        <ul>
+          <li><strong>🖨️ Print Inspection Sheet</strong> — A4 portrait checklist with all items, conditions per section, charge amounts, and signature lines for both students and the inspector. Suitable for filing.</li>
+          <li><strong>🖨️ Print Cost Card</strong> — A5 cost summary card listing all charged items and per-student amounts. Designed to be posted inside the room door or given to students at check-out.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ri-settings">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Settings Tab</div>
+      <div class="collapse-body">
+        <p>The <strong>Settings tab</strong> lets you set the default replacement/repair cost for each item type (bed frame, mattress, desk, etc.) and the current semester label. These costs are used when auto-calculating damage charges.</p>
+        <p>Click <strong>↺ Reset to Code Defaults</strong> to restore the built-in price list if your customized costs need to be reverted.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 9 ─ INVENTORY                                                    -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-inventory">
+    <div class="section-header">
+      <span class="section-icon">📦</span>
+      <div class="section-meta">
+        <div class="section-title">Inventory</div>
+        <div class="section-path">modules/inventory.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-inv-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Inventory module tracks every physical asset in the dorm — furniture, appliances, fixtures, and supplies — across all student rooms and common areas. Each item has a unique barcode ID that can be printed and physically attached to the item.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📍 Locations Tracked</h4>
+            <ul>
+              <li>All student rooms (from Room Reservations)</li>
+              <li>Lobby · Worship Hall · Dean's Office</li>
+              <li>Electricity Rooms F1–F4</li>
+              <li>Storage Rooms F2–F4</li>
+              <li>Corridors F1–F4</li>
+              <li>Laundry Room · Recreation Room</li>
+              <li>Guard Post · Common Kitchen · Sick Bay</li>
+              <li>+ any custom locations you add in Settings</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>🏷️ Barcode System</h4>
+            <p>Each item gets a unique ID in the format <code>INV-XXXXXXXX</code>. Code 39 barcodes are generated entirely in-browser (no internet needed) and are compatible with any standard USB barcode scanner.</p>
+            <p style="margin-top:6px">Scanning the barcode reads the item ID as keyboard input — you can search by ID in the Items tab.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-seed">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Quick Start — Seed All Rooms</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Go to the <strong>⚙️ Settings</strong> tab and review the room template. The default includes: Bed Frame ×2, Mattress ×2, Study Desk ×2, Chair ×2, Wardrobe ×2, Drawer Unit ×2, Bookshelf ×1, Stool ×2, Ceiling Fan ×1, Curtain Set ×1, Door Lock Set ×1, Room Number Sign ×1, Trash Bin ×1, and Air Conditioner Unit ×1 (AC rooms only).</li>
+          <li>Add, remove, or adjust quantities as needed. Check <strong>AC Only</strong> for items that exist only in air-conditioned rooms.</li>
+          <li>Click <strong>🌱 Seed All Rooms</strong>. The system creates inventory records for every room × every template item. Already-existing records are <em>not</em> duplicated — safe to run multiple times.</li>
+          <li>Go to the <strong>📦 Items</strong> tab to review, set conditions, and add serial numbers or brand info.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-items">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Adding & Editing Items</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Click <strong>+ Add Item</strong> in the Items tab, or <strong>+ Add Missing Item</strong> from the By Location tab.</li>
+          <li>Fill in: Name, Category, Location, Condition (Good / Fair / Poor / Damaged / Missing), Description, Serial No., Brand, Purchase Date, and Purchase Price.</li>
+          <li>For supply items (toilet paper, bulbs), check <strong>Is Consumable</strong> and set a <strong>Reorder At</strong> quantity. When stock falls to or below this level, the item is counted in the "Low Stock" stat on the main menu card.</li>
+          <li>To flag the item for repair, check <strong>Flag for Maintenance</strong> and add notes. The item will appear in the Maintenance Flags tab.</li>
+          <li>The modal shows a live Code 39 barcode preview of the item's ID.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-location">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> By Location Tab</div>
+      <div class="collapse-body">
+        <p>Select any location from the dropdown to see:</p>
+        <ul>
+          <li><strong>Present Items</strong> — all items currently recorded at that location, with condition badges</li>
+          <li><strong>Missing Items</strong> (student rooms only) — items in the template that are not found at this location, each with a one-click <strong>+ Add</strong> button to create the record instantly</li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span>This tab is ideal for room walkthrough inspections — go room by room, check what's present, and add missing records on the spot without switching tabs.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-labels">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Printing Barcode Labels</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Go to the <strong>🏷️ Labels</strong> tab.</li>
+          <li>Use the location/category filter to narrow down items if needed.</li>
+          <li>Check the boxes next to the items you want labels for, or click <strong>Select All</strong>.</li>
+          <li>Click <strong>🖨️ Print Selected Labels</strong>. A new window opens with an A4 label sheet — 3 columns, approximately 18 labels per page.</li>
+          <li>Print on label paper or plain paper, cut, and attach labels to each physical item.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Each label shows the Code 39 barcode, the item name in bold, location, and the ID in monospace. Scannable with any standard USB barcode scanner — the scanner types the ID as keyboard input.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-maintenance">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Maintenance Flags</div>
+      <div class="collapse-body">
+        <p>Items with the <strong>Flag for Maintenance</strong> checkbox checked appear in the <strong>🔧 Maintenance Flags</strong> tab.</p>
+        <ul>
+          <li><strong>Push to Maintenance</strong> — Creates a Plant Service request stub in the Maintenance module. Urgency is <span class="badge badge-red">High</span> for Damaged/Missing items, <span class="badge badge-orange">Normal</span> for others. The item is marked as "pushed" so it won't be counted in the menu stat again.</li>
+          <li><strong>Mark Resolved</strong> — Clears the maintenance flag and the "pushed" marker. The item returns to normal tracking.</li>
+        </ul>
+        <p>The main menu Inventory card shows a <span class="badge badge-red">N needs repair</span> pill for items flagged but not yet pushed to Maintenance.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-settings">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Settings Tab</div>
+      <div class="collapse-body">
+        <ul>
+          <li><strong>Room Template Editor</strong> — Add, remove, or adjust the standard item list for student rooms. Used by "Seed All Rooms" and the By Location missing-items comparison.</li>
+          <li><strong>Category Manager</strong> — Add or remove item categories (default: Furniture, Appliances, Fixtures, Electronics, Security, Bathroom, Safety, Supplies, Office).</li>
+          <li><strong>Custom Locations</strong> — Add non-standard locations (e.g., "Prayer Room", "Rooftop") that don't appear in the default common areas list.</li>
+          <li><strong>🌱 Seed All Rooms</strong> — Creates template items for all rooms from Room Reservations data.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 10 ─ TIPS & REFERENCE                                            -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-tips">
+    <div class="section-header">
+      <span class="section-icon">⌨️</span>
+      <div class="section-meta">
+        <div class="section-title">Tips & Reference</div>
+        <div class="section-path">All modules</div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-tips-shortcuts">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Keyboard Shortcuts</div>
+      <div class="collapse-body">
+        <p>Available in Room Reservations:</p>
+        <table class="guide-table">
+          <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo last change to the table</td></tr>
+            <tr><td><kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Redo</td></tr>
+            <tr><td><kbd>Escape</kbd></td><td>Close any open modal dialog</td></tr>
+            <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Navigate between rows in Name and ID columns</td></tr>
+            <tr><td><kbd>Tab</kbd></td><td>Move to the next input in any modal form</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Confirm the focused modal action (e.g., Save)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-tips-crossmodule">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Cross-Module Data Flow</div>
+      <div class="collapse-body">
+        <p>Here is how data flows automatically between modules:</p>
+        <div style="display:flex;flex-direction:column;gap:6px;margin:12px 0">
+          <div class="flow-row"><span class="from">Room Reservations</span><span class="arrow">→</span><span class="to">Student Profiles</span><span class="desc">Student ID → room assignment shown on profile card</span></div>
+          <div class="flow-row"><span class="from">Student Profiles</span><span class="arrow">→</span><span class="to">Room Reservations</span><span class="desc">Student ID → 👤 Profile badge on name cell</span></div>
+          <div class="flow-row"><span class="from">Room Reservations</span><span class="arrow">→</span><span class="to">Utilities</span><span class="desc">Room occupants → per-student electricity bill split</span></div>
+          <div class="flow-row"><span class="from">Floor Plan</span><span class="arrow">→</span><span class="to">Utilities</span><span class="desc">Bathroom pairs → hot water bill grouping</span></div>
+          <div class="flow-row"><span class="from">Room Inspection</span><span class="arrow">→</span><span class="to">Clearance Form</span><span class="desc">Damage charges → auto-fill "Other Fee" in clearance modal</span></div>
+          <div class="flow-row"><span class="from">Room Inspection</span><span class="arrow">→</span><span class="to">Maintenance</span><span class="desc">Poor/Missing items at move-out → maintenance request stubs</span></div>
+          <div class="flow-row"><span class="from">Inventory</span><span class="arrow">→</span><span class="to">Maintenance</span><span class="desc">Flagged items → maintenance stubs (Push to Maintenance)</span></div>
+          <div class="flow-row"><span class="from">Key Inventory</span><span class="arrow">→</span><span class="to">Reports (Fees)</span><span class="desc">Lost key fines not paid → fee aggregation tab</span></div>
+          <div class="flow-row"><span class="from">Storage Rentals</span><span class="arrow">→</span><span class="to">Reports (Fees)</span><span class="desc">Unpaid storage → fee aggregation tab</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-tips-browser">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Browser & Storage Notes</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> for best compatibility.</li>
+          <li>Do <strong>not</strong> use <strong>Private / Incognito mode</strong> — localStorage does not persist after the window closes.</li>
+          <li>Do <strong>not</strong> click "Clear browsing data → Cached images and files" or "Site data" without exporting a backup first. This permanently deletes all system data.</li>
+          <li>The auto-save indicator in Room Reservations shows how much localStorage is currently in use.</li>
+          <li>A <strong>warning appears</strong> when localStorage exceeds 3,500 KB. If you see this, check Student Profiles for large photos — crop or resize them before uploading (aim for under 500×700 px).</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Student profile photos are stored in the browser's IndexedDB (not localStorage). They are included in the Export All Data backup and restored correctly. Do not rely on the browser alone — keep regular JSON backups on an external drive.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-tips-storage-budget">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Storage Size Guidelines</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Data</th><th>Typical Size</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Room reservation data</td><td>10–40 KB</td><td>Low risk. ~50 bytes per student record.</td></tr>
+            <tr><td>Room history (archive)</td><td>Grows unbounded</td><td>Warn if &gt;500 archived records.</td></tr>
+            <tr><td>Student profiles (no photos)</td><td>5–20 KB</td><td>Low risk.</td></tr>
+            <tr><td>Student profile photos</td><td>25–50 KB each</td><td>Photos in IndexedDB. 40 students ≈ 1–2 MB.</td></tr>
+            <tr><td>Inventory data</td><td>20–80 KB</td><td>~100 bytes per item record.</td></tr>
+            <tr><td>Total browser localStorage limit</td><td>~5–10 MB</td><td>System warns at 3,500 KB.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// ── Back-nav ──────────────────────────────────────────────────────────────────
+(function() {
+  const p = new URLSearchParams(location.search).get('back');
+  if (p) {
+    const titles = { 'room-reservations':'Room Reservations', 'reports':'Reports' };
+    const lbl = titles[p] || p.replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+    const el = document.getElementById('backLink');
+    el.textContent = '← ' + lbl;
+    el.href = p + '.html';
+  }
+})();
+
+// ── Header subtitle ───────────────────────────────────────────────────────────
+try {
+  const dn = DormDB.getDormName();
+  if (dn) document.getElementById('heroSub').textContent =
+    'DormPortalUniversal v4 · ' + dn + ' · Asia-Pacific International University';
+} catch(e) {}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TOC data
+// ══════════════════════════════════════════════════════════════════════════════
+const TOC = [
+  { label:'Introduction', items:[
+    { id:'sec-getting-started', text:'🏛️ Getting Started', subs:[
+      { id:'sub-overview',         text:'System Overview' },
+      { id:'sub-first-launch',     text:'First Launch' },
+      { id:'sub-backup',           text:'Backup & Restore' },
+      { id:'sub-modules-overview', text:'Available Modules' },
+    ]},
+  ]},
+  { label:'Modules', items:[
+    { id:'sec-room-reservations', text:'🛏️ Room Reservations', subs:[
+      { id:'sub-rr-table',    text:'Understanding the Table' },
+      { id:'sub-rr-setup',    text:'Dorm Setup' },
+      { id:'sub-rr-moveout',  text:'Move-Out & Clearance' },
+      { id:'sub-rr-roomhold', text:'Room Hold' },
+      { id:'sub-rr-away',     text:'Away Students' },
+      { id:'sub-rr-queue',    text:'Incoming Queue' },
+      { id:'sub-rr-storage',  text:'Storage Rental' },
+      { id:'sub-rr-transfer', text:'Transfer In' },
+      { id:'sub-rr-side',     text:'Side Assignment (A/B)' },
+      { id:'sub-rr-save',     text:'Saving & Loading' },
+    ]},
+    { id:'sec-student-profiles', text:'👤 Student Profiles', subs:[
+      { id:'sub-sp-overview', text:'Overview' },
+      { id:'sub-sp-create',   text:'Creating & Editing' },
+      { id:'sub-sp-import',   text:'Importing Profiles' },
+      { id:'sub-sp-print',    text:'Printing Cards' },
+      { id:'sub-sp-export',   text:'Exporting Data' },
+    ]},
+    { id:'sec-floor-plan', text:'🏢 Floor Plan', subs:[
+      { id:'sub-fp-grid',     text:'Reading the Grid' },
+      { id:'sub-fp-bathroom', text:'Bathroom Pairing' },
+      { id:'sub-fp-print',    text:'Printing' },
+    ]},
+    { id:'sec-utilities', text:'⚡ Electricity & Hot Water', subs:[
+      { id:'sub-util-elec',    text:'Electricity Tab' },
+      { id:'sub-util-hw',      text:'Hot Water Tab' },
+      { id:'sub-util-summary', text:'Summary & Export' },
+    ]},
+    { id:'sec-reports', text:'📊 Reports (8 tabs)', subs:[
+      { id:'sub-rpt-archive',   text:'📁 Archive' },
+      { id:'sub-rpt-room',      text:'🛏️ Room Report' },
+      { id:'sub-rpt-custom',    text:'📋 Custom Report' },
+      { id:'sub-rpt-pivot',     text:'🔀 Pivot' },
+      { id:'sub-rpt-holds',     text:'🏠 Holds' },
+      { id:'sub-rpt-storage',   text:'📦 Storage' },
+      { id:'sub-rpt-clearance', text:'📋 Clearance' },
+      { id:'sub-rpt-fees',      text:'💰 Fee Collection' },
+    ]},
+    { id:'sec-key-inventory', text:'🔑 Key Inventory', subs:[
+      { id:'sub-ki-setup',    text:'Initial Setup' },
+      { id:'sub-ki-checkout', text:'Check Out & Return' },
+      { id:'sub-ki-lost',     text:'Lost Keys' },
+      { id:'sub-ki-prints',   text:'Shift Sheet & Ledger' },
+    ]},
+    { id:'sec-room-inspection', text:'🔍 Room Inspection', subs:[
+      { id:'sub-ri-create',    text:'Creating an Inspection' },
+      { id:'sub-ri-checklist', text:'Filling the Checklist' },
+      { id:'sub-ri-charges',   text:'Charges' },
+      { id:'sub-ri-print',     text:'Printing' },
+      { id:'sub-ri-settings',  text:'Settings' },
+    ]},
+    { id:'sec-inventory', text:'📦 Inventory', subs:[
+      { id:'sub-inv-overview',    text:'Overview' },
+      { id:'sub-inv-seed',        text:'Seed All Rooms' },
+      { id:'sub-inv-items',       text:'Adding & Editing Items' },
+      { id:'sub-inv-location',    text:'By Location Tab' },
+      { id:'sub-inv-labels',      text:'Barcode Labels' },
+      { id:'sub-inv-maintenance', text:'Maintenance Flags' },
+      { id:'sub-inv-settings',    text:'Settings' },
+    ]},
+  ]},
+  { label:'Reference', items:[
+    { id:'sec-tips', text:'⌨️ Tips & Reference', subs:[
+      { id:'sub-tips-shortcuts',      text:'Keyboard Shortcuts' },
+      { id:'sub-tips-crossmodule',    text:'Cross-Module Data Flow' },
+      { id:'sub-tips-browser',        text:'Browser & Storage Notes' },
+      { id:'sub-tips-storage-budget', text:'Storage Size Guidelines' },
+    ]},
+  ]},
+];
+
+// ── Build TOC ─────────────────────────────────────────────────────────────────
+function buildToc() {
+  const nav = document.getElementById('toc');
+  nav.innerHTML = '';
+  TOC.forEach(group => {
+    const grpEl = document.createElement('div');
+    grpEl.className = 'toc-group';
+    const lbl = document.createElement('div');
+    lbl.className = 'toc-group-label';
+    lbl.textContent = group.label;
+    grpEl.appendChild(lbl);
+    group.items.forEach(item => {
+      const a = document.createElement('a');
+      a.className = 'toc-link';
+      a.textContent = item.text;
+      a.dataset.target = item.id;
+      a.onclick = () => { jumpTo(item.id); if (window.innerWidth <= 820) closeSidebar(); };
+      grpEl.appendChild(a);
+      (item.subs || []).forEach(sub => {
+        const s = document.createElement('a');
+        s.className = 'toc-sub';
+        s.textContent = sub.text;
+        s.dataset.target = sub.id;
+        s.onclick = () => { jumpTo(sub.id); if (window.innerWidth <= 820) closeSidebar(); };
+        grpEl.appendChild(s);
+      });
+    });
+    nav.appendChild(grpEl);
+  });
+}
+
+function jumpTo(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Active TOC via IntersectionObserver ───────────────────────────────────────
+function setupObserver() {
+  const els = document.querySelectorAll('.guide-section, .subsection');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        document.querySelectorAll('.toc-link[data-target]').forEach(a =>
+          a.classList.toggle('active', a.dataset.target === id));
+        document.querySelectorAll('.toc-sub[data-target]').forEach(a =>
+          a.classList.toggle('active', a.dataset.target === id));
+      }
+    });
+  }, { rootMargin:'-8% 0px -75% 0px', threshold:0 });
+  els.forEach(el => obs.observe(el));
+}
+
+// ── Collapsible sections ──────────────────────────────────────────────────────
+function toggleSection(trigger) {
+  const body = trigger.nextElementSibling;
+  if (!body || !body.classList.contains('collapse-body')) return;
+  const willClose = !body.classList.contains('closed');
+  trigger.classList.toggle('closed', willClose);
+  if (willClose) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      body.style.maxHeight = '0';
+      body.style.paddingTop = '0';
+      body.style.paddingBottom = '0';
+    });
+    body.addEventListener('transitionend', () => body.classList.add('closed'), { once:true });
+  } else {
+    body.classList.remove('closed');
+    body.style.maxHeight = 'none'; // compute
+    const h = body.scrollHeight;
+    body.style.maxHeight = '0';
+    body.style.paddingTop = '';
+    body.style.paddingBottom = '';
+    requestAnimationFrame(() => { body.style.maxHeight = h + 'px'; });
+    body.addEventListener('transitionend', () => { body.style.maxHeight = 'none'; }, { once:true });
+  }
+}
+
+function expandAll() {
+  document.querySelectorAll('.collapse-body').forEach(b => {
+    b.classList.remove('closed');
+    b.style.maxHeight = 'none';
+    b.style.paddingTop = '';
+    b.style.paddingBottom = '';
+    const trigger = b.previousElementSibling;
+    if (trigger) trigger.classList.remove('closed');
+  });
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+let _st = null;
+function doSearch(raw) {
+  clearTimeout(_st);
+  _st = setTimeout(() => _runSearch(raw.trim().toLowerCase()), 220);
+}
+
+function _runSearch(q) {
+  // Remove old highlights
+  document.querySelectorAll('mark.hl').forEach(m => {
+    const t = document.createTextNode(m.textContent);
+    m.parentNode.replaceChild(t, m);
+  });
+
+  if (!q) {
+    document.querySelectorAll('.toc-link,.toc-sub').forEach(a => a.style.display='');
+    return;
+  }
+
+  // Filter TOC items
+  document.querySelectorAll('.toc-link,.toc-sub').forEach(a => {
+    a.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+
+  // Highlight matching text in main content
+  _highlightNode(document.getElementById('guideMain'), q);
+}
+
+function _highlightNode(node, q) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const txt = node.textContent;
+    const lo  = txt.toLowerCase();
+    const idx = lo.indexOf(q);
+    if (idx === -1) return;
+    const frag = document.createDocumentFragment();
+    frag.appendChild(document.createTextNode(txt.slice(0, idx)));
+    const mark = document.createElement('mark');
+    mark.className = 'hl';
+    mark.textContent = txt.slice(idx, idx + q.length);
+    frag.appendChild(mark);
+    frag.appendChild(document.createTextNode(txt.slice(idx + q.length)));
+    node.parentNode.replaceChild(frag, node);
+    return;
+  }
+  if (['SCRIPT','STYLE','INPUT','BUTTON','MARK'].includes(node.nodeName)) return;
+  [...node.childNodes].forEach(c => _highlightNode(c, q));
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildToc();
+expandAll();
+setupObserver();
+
+// Expand sidebar on desktop, allow keyboard Esc close
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSidebar();
+});
+</script>
+</body>
+</html>

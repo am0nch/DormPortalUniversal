@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Student Profiles — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f4f8;color:#222;font-size:.9rem;min-height:100vh}
+
+/* ── Nav ── */
+.nav-bar{background:#1e3a5f;color:#fff;padding:9px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.nav-back{color:#a8c8f0;text-decoration:none;font-size:.8rem;font-weight:700;padding:4px 11px;background:rgba(255,255,255,.12);border-radius:5px;white-space:nowrap}
+.nav-back:hover{background:rgba(255,255,255,.22)}
+.nav-title{font-size:1rem;font-weight:800}
+.nav-dorm{font-size:.75rem;color:#a8c8f0;margin-left:auto}
+
+/* ── Toolbar ── */
+.toolbar{background:#fff;border-bottom:1px solid #dde6f0;padding:10px 18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.toolbar-title{font-size:.95rem;font-weight:700;color:#1e3a5f;margin-right:4px}
+.search-input{padding:6px 12px;border:1px solid #ccd6e0;border-radius:6px;font-size:.82rem;width:230px;font-family:inherit}
+.search-input:focus{outline:none;border-color:#1e3a5f}
+.spacer{flex:1}
+.btn{padding:6px 13px;border-radius:6px;border:none;cursor:pointer;font-size:.8rem;font-weight:700;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.82}
+.btn-primary{background:#1e3a5f;color:#fff}
+.btn-green{background:#2e7d32;color:#fff}
+.btn-gray{background:#e0e6ef;color:#1e3a5f}
+
+/* ── Stats bar ── */
+.stats-bar{padding:7px 18px;font-size:.78rem;color:#666;background:#f7f9fb;border-bottom:1px solid #e5edf5;display:flex;gap:18px;flex-wrap:wrap}
+.stats-bar strong{color:#1e3a5f}
+
+/* ── Table ── */
+.table-wrap{padding:14px 18px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);font-size:.83rem}
+thead{background:#1e3a5f;color:#fff}
+th{padding:10px 12px;text-align:left;font-weight:700;font-size:.78rem;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #eef2f7;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f4f8fc}
+.badge{padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-yellow{background:#fff8e1;color:#f57f17}
+.badge-red{background:#fdecea;color:#c62828}
+.badge-blue{background:#e8f4fd;color:#1565c0}
+.badge-gray{background:#f0f0f0;color:#555}
+.empty-state{text-align:center;padding:60px 20px;color:#aaa}
+.empty-state .empty-icon{font-size:2.5rem;display:block;margin-bottom:10px}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-box{background:#fff;border-radius:14px;max-width:820px;width:100%;padding:28px;position:relative;margin:auto}
+.modal-title{font-size:1.05rem;font-weight:800;color:#1e3a5f;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:#888;padding:0 4px;flex-shrink:0}
+
+/* Form sections */
+.fs{margin-bottom:18px}
+.fs-title{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#1e3a5f;border-bottom:1px solid #d9e6f5;padding-bottom:5px;margin-bottom:10px}
+.fg{display:grid;gap:10px 14px}
+.fg-2{grid-template-columns:1fr 1fr}
+.fg-3{grid-template-columns:1fr 1fr 1fr}
+.fg-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.ff{display:flex;flex-direction:column;gap:3px}
+.ff label{font-size:.72rem;color:#666;font-weight:600}
+.ff input,.ff select{padding:6px 9px;border:1px solid #ccd6e0;border-radius:5px;font-size:.82rem;font-family:inherit}
+.ff input:focus,.ff select:focus{outline:none;border-color:#1e3a5f}
+
+/* Photo upload */
+.photo-row{display:flex;gap:18px;align-items:flex-start}
+.photo-box{width:96px;flex-shrink:0;cursor:pointer}
+.photo-box img{width:96px;height:124px;object-fit:cover;border:2px solid #d9e6f5;border-radius:6px;display:block}
+.photo-placeholder{width:96px;height:124px;border:2px dashed #ccd6e0;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb;font-size:.7rem;text-align:center;gap:5px}
+.photo-placeholder span{font-size:1.6rem}
+
+.modal-footer{display:flex;gap:10px;margin-top:22px;padding-top:16px;border-top:1px solid #eef2f7;flex-wrap:wrap}
+.btn-danger{background:#fdecea;color:#c62828;border:1px solid #f5c6c6}
+.btn-danger:hover{background:#f5c6c6}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:9px 20px;border-radius:8px;font-size:.83rem;font-weight:600;z-index:999;pointer-events:none;animation:tIn .2s ease}
+.toast.success{background:#2e7d32}
+.toast.error{background:#c62828}
+@keyframes tIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ── Print card (hidden on screen) ── */
+#printCard{display:none}
+
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body>*:not(#printCard){display:none!important}
+  #printCard{display:block!important}
+  @page{size:A4 portrait;margin:10mm 11mm}
+}
+
+/* Print card styles (all in pt for print accuracy) */
+.pc{font-family:'Segoe UI',Arial,sans-serif;font-size:9pt;color:#111;width:100%;line-height:1.3}
+.pc-hdr{text-align:center;border-bottom:2pt solid #1e3a5f;padding-bottom:4pt;margin-bottom:5pt}
+.pc-hdr-main{font-size:13pt;font-weight:800;color:#1e3a5f;letter-spacing:.01em}
+.pc-hdr-uni{font-size:8.5pt;color:#444;margin-top:1pt}
+.pc-hdr-form{font-size:9pt;font-weight:700;margin-top:2pt}
+.pc-row{display:flex;gap:0}
+/* Section wrapper */
+.ps{border:1pt solid #aaa;margin-bottom:3pt}
+.ps-t{font-size:7.5pt;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:2pt 5pt;border-bottom:1pt solid #aaa;color:#111}
+.ps-b{padding:3pt 5pt}
+/* Field */
+.pf{flex:1;min-width:60pt;padding:0 3pt 2pt 0}
+.pf-l{font-size:6.5pt;color:#555;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:0}
+.pf-v{font-size:8.5pt;border-bottom:0.5pt solid #888;min-height:12pt;display:block;padding-bottom:1pt}
+/* Two-column section pair */
+.pc-2col{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:3pt}
+.pc-2col>.ps{margin-bottom:0}
+.pc-2col>.ps:first-child{border-right:none}
+/* Top row: identity + photo */
+.pc-top{display:grid;grid-template-columns:1fr 29mm;gap:3pt;margin-bottom:3pt;align-items:start}
+/* Academic + personal */
+.pc-ap{display:grid;grid-template-columns:80pt 1fr;gap:0;margin-bottom:3pt}
+.pc-ap>.ps:first-child{border-right:none}
+/* Signature */
+.pc-sig{border:1pt solid #aaa;padding:4pt 5pt;margin-bottom:3pt}
+.pc-sig-row{display:flex;gap:10pt}
+.pc-sig-field{flex:1}
+.pc-sig-lbl{font-size:6.5pt;color:#555;text-transform:uppercase;letter-spacing:.03em}
+.pc-sig-line{border-bottom:0.5pt solid #555;min-height:14pt;font-size:8.5pt}
+.pc-footer{font-size:6.5pt;color:#aaa;text-align:center;margin-top:2pt}
+/* Photo box */
+.pc-photo{border:1pt solid #aaa;display:flex;align-items:center;justify-content:center;min-height:30mm}
+.pc-photo img{width:27mm;height:35mm;object-fit:cover}
+.pc-photo-ph{width:27mm;height:35mm;border:0.5pt dashed #bbb;display:flex;align-items:center;justify-content:center;font-size:7pt;color:#bbb;text-align:center;padding:4pt}
+
+@media(max-width:600px){.fg-2,.fg-3,.fg-4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<div class="nav-bar">
+  <a href="../index.html" class="nav-back">← Menu</a>
+  <span class="nav-title">👤 Student Profiles</span>
+  <span class="nav-dorm" id="navDorm"></span>
+</div>
+
+<!-- ── Toolbar ── -->
+<div class="toolbar">
+  <span class="toolbar-title">All Profiles</span>
+  <input class="search-input" id="searchInput" type="text" placeholder="Search name or student ID…" oninput="doSearch()">
+  <div class="spacer"></div>
+  <button class="btn btn-gray" title="Import names &amp; IDs from registrar Excel or CSV" onclick="document.getElementById('regInput').click()">📂 Import Registrar</button>
+  <input type="file" id="regInput" accept=".xlsx,.csv" style="display:none" onchange="importRegistrar(this)">
+  <button class="btn btn-gray" title="Import personal details from Microsoft Forms CSV export" onclick="document.getElementById('msfInput').click()">📥 Import MS Forms</button>
+  <input type="file" id="msfInput" accept=".xlsx,.csv" style="display:none" onchange="importMSForms(this)">
+  <button class="btn btn-gray" onclick="exportExcel()" title="Export all profiles to Excel">📤 Export Excel</button>
+  <button class="btn btn-primary" onclick="openEditModal(null)">➕ Add Profile</button>
+</div>
+
+<!-- ── Stats bar ── -->
+<div class="stats-bar" id="statsBar">Loading…</div>
+
+<!-- ── Profile table ── -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Student ID</th>
+        <th>Room</th>
+        <th>Department</th>
+        <th>Year</th>
+        <th>Complete</th>
+        <th>Source</th>
+        <th style="width:120px">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="profileTbody"></tbody>
+  </table>
+</div>
+
+<!-- ── Edit / Add Modal ── -->
+<div id="editModal" style="display:none">
+  <div class="modal-overlay" id="editOverlay">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span id="modalTitle">Add Profile</span>
+        <button class="modal-close" onclick="closeModal()" title="Close">✕</button>
+      </div>
+      <form id="editForm" onsubmit="saveProfile(event)">
+        <input type="hidden" id="fId">
+
+        <!-- IDENTITY + PHOTO -->
+        <div class="fs">
+          <div class="fs-title">Student Identity</div>
+          <div class="photo-row">
+            <div class="photo-box" id="photoBtnWrap" onclick="document.getElementById('photoInput').click()" title="Click to upload photo">
+              <div class="photo-placeholder" id="photoPlaceholder"><span>📷</span>Click to<br>add photo</div>
+              <img id="photoPreview" src="" alt="Photo" style="display:none">
+            </div>
+            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+            <div style="flex:1">
+              <div class="fg fg-2" style="margin-bottom:10px">
+                <div class="ff"><label>First Name *</label><input id="fFirstName" required></div>
+                <div class="ff"><label>Surname *</label><input id="fSurname" required></div>
+              </div>
+              <div class="fg fg-3" style="margin-bottom:10px">
+                <div class="ff"><label>Student ID</label><input id="fStudentId"></div>
+                <div class="ff"><label>Room No.</label><input id="fRoom" placeholder="e.g. 312AC"></div>
+                <div class="ff"><label>Cell Phone</label><input id="fCellPhone" type="tel"></div>
+              </div>
+              <div class="fg fg-2">
+                <div class="ff"><label>Email</label><input id="fEmail" type="email"></div>
+                <div class="ff"><label>Date came to APIU</label><input id="fDateArrived" type="date"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACADEMIC -->
+        <div class="fs">
+          <div class="fs-title">Academic Information</div>
+          <div class="fg fg-3" style="margin-bottom:10px">
+            <div class="ff"><label>Academic Year</label><input id="fAcademicYear" placeholder="2025-2026"></div>
+            <div class="ff"><label>Department</label><input id="fDepartment"></div>
+            <div class="ff"><label>Major</label><input id="fMajor"></div>
+          </div>
+          <div class="fg fg-3">
+            <div class="ff"><label>Nationality</label><input id="fNationality"></div>
+            <div class="ff"><label>Passport No.</label><input id="fPassportNo"></div>
+            <div class="ff"></div>
+          </div>
+        </div>
+
+        <!-- PERSONAL -->
+        <div class="fs">
+          <div class="fs-title">Personal Information</div>
+          <div class="fg fg-4">
+            <div class="ff"><label>Birth Date</label><input id="fBirthDate" type="date"></div>
+            <div class="ff"><label>Marital Status</label>
+              <select id="fMaritalStatus">
+                <option value="">—</option>
+                <option>Single</option><option>Married</option><option>Other</option>
+              </select>
+            </div>
+            <div class="ff"><label>Religion</label><input id="fReligion"></div>
+            <div class="ff"></div>
+          </div>
+        </div>
+
+        <!-- HOME ADDRESS -->
+        <div class="fs">
+          <div class="fs-title">Home Address</div>
+          <div class="ff" style="margin-bottom:10px"><label>Address</label><input id="fHomeAddress"></div>
+          <div class="fg fg-2">
+            <div class="ff"><label>Home Phone</label><input id="fHomePhone" type="tel"></div>
+            <div class="ff"></div>
+          </div>
+        </div>
+
+        <!-- PARENTS -->
+        <div class="fs">
+          <div class="fs-title">Parents / Guardian</div>
+          <div class="fg fg-3" style="margin-bottom:10px">
+            <div class="ff"><label>Father's Name</label><input id="fFatherName"></div>
+            <div class="ff"><label>Father's Cell</label><input id="fFatherPhone" type="tel"></div>
+            <div class="ff"><label>Father's Email</label><input id="fFatherEmail" type="email"></div>
+          </div>
+          <div class="fg fg-3">
+            <div class="ff"><label>Mother's Name</label><input id="fMotherName"></div>
+            <div class="ff"><label>Mother's Cell</label><input id="fMotherPhone" type="tel"></div>
+            <div class="ff"><label>Mother's Email</label><input id="fMotherEmail" type="email"></div>
+          </div>
+        </div>
+
+        <!-- CAMPUS FRIENDS -->
+        <div class="fs">
+          <div class="fs-title">Campus Friends (up to 3)</div>
+          <div class="fg fg-3" style="margin-bottom:8px">
+            <div class="ff"><label>Friend 1 Name</label><input id="fF1Name"></div>
+            <div class="ff"><label>Cell Phone</label><input id="fF1Phone" type="tel"></div>
+            <div class="ff"><label>Staying at</label><input id="fF1Stay"></div>
+          </div>
+          <div class="fg fg-3" style="margin-bottom:8px">
+            <div class="ff"><label>Friend 2 Name</label><input id="fF2Name"></div>
+            <div class="ff"><label>Cell Phone</label><input id="fF2Phone" type="tel"></div>
+            <div class="ff"><label>Staying at</label><input id="fF2Stay"></div>
+          </div>
+          <div class="fg fg-3">
+            <div class="ff"><label>Friend 3 Name</label><input id="fF3Name"></div>
+            <div class="ff"><label>Cell Phone</label><input id="fF3Phone" type="tel"></div>
+            <div class="ff"><label>Staying at</label><input id="fF3Stay"></div>
+          </div>
+        </div>
+
+        <!-- HEALTH -->
+        <div class="fs">
+          <div class="fs-title">Health Condition</div>
+          <div class="fg fg-4" style="margin-bottom:10px">
+            <div class="ff"><label>Blood Type</label>
+              <select id="fBloodType">
+                <option value="">—</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>O+</option><option>O-</option><option>AB+</option><option>AB-</option>
+                <option>Unknown</option>
+              </select>
+            </div>
+            <div class="ff"><label>Drug Allergy</label><input id="fAllergy"></div>
+            <div class="ff"><label>Medical History</label><input id="fMedHistory"></div>
+            <div class="ff"><label>Medication (if any)</label><input id="fMedication"></div>
+          </div>
+          <div class="ff"><label>Preferred Hospital</label><input id="fHospital"></div>
+        </div>
+
+        <!-- EMERGENCY CONTACT -->
+        <div class="fs">
+          <div class="fs-title">Emergency Contact</div>
+          <div class="fg fg-4" style="margin-bottom:10px">
+            <div class="ff"><label>Name</label><input id="fEName"></div>
+            <div class="ff"><label>Cell Phone</label><input id="fEPhone" type="tel"></div>
+            <div class="ff"><label>Relation</label><input id="fERelation"></div>
+            <div class="ff"></div>
+          </div>
+          <div class="ff"><label>Address</label><input id="fEAddress"></div>
+        </div>
+
+        <!-- ADMIN (dean fills) -->
+        <div class="fs">
+          <div class="fs-title">Administrative</div>
+          <div class="fg fg-4">
+            <div class="ff"><label>Keys Deposit (Baht)</label><input id="fKeysAmt" type="number" min="0" step="1"></div>
+            <div class="ff"><label>Deposit Date</label><input id="fKeysDate" type="date"></div>
+            <div class="ff"><label>Received by (Dean)</label><input id="fReceivedBy"></div>
+            <div class="ff"><label>Remarks</label><input id="fRemarks"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">💾 Save Profile</button>
+          <button type="button" class="btn btn-gray" onclick="closeModal()">Cancel</button>
+          <div style="flex:1"></div>
+          <button type="button" class="btn btn-danger" id="deleteBtn" onclick="deleteCurrentProfile()" style="display:none">🗑 Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Print Card (screen-hidden; shown only by @media print) ── -->
+<div id="printCard">
+  <div class="pc" id="pcContent"></div>
+</div>
+
+<script>
+let profiles = [];
+let editingId = null;
+let photoBlobPending = null;   // Blob staged during upload, saved on form submit
+let currentObjectURL = null;   // Object URL for the preview img — revoked on close
+let searchTerm = '';
+
+// ── Photo compression (Canvas API, no dependencies) ───────────────────────
+function compressPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objURL = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objURL);
+      const MAX_W = 800, MAX_H = 1040;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > MAX_W || h > MAX_H) {
+        const scale = Math.min(MAX_W / w, MAX_H / h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Compression failed')),
+                    'image/jpeg', 0.82);
+    };
+    img.onerror = reject;
+    img.src = objURL;
+  });
+}
+
+// ── One-time migration: base64 photos in localStorage → IndexedDB ─────────
+async function migratePhotosToIDB() {
+  if (localStorage.getItem('dormPhotosInIDB') === 'true') return;
+  const toMigrate = profiles.filter(p => p.photoDataUrl && p.photoDataUrl.startsWith('data:'));
+  for (const p of toMigrate) {
+    try {
+      const [header, b64] = p.photoDataUrl.split(',');
+      const mime = header.match(/:(.*?);/)[1];
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      await DormDB.savePhoto(p.id, new Blob([arr], { type: mime }));
+      delete p.photoDataUrl;
+    } catch(e) { console.warn('Photo migration failed for', p.id, e); }
+  }
+  if (toMigrate.length) {
+    DormDB.saveProfiles(profiles);
+    showToast(`${toMigrate.length} photo${toMigrate.length > 1 ? 's' : ''} moved to IndexedDB`, 'success');
+  }
+  localStorage.setItem('dormPhotosInIDB', 'true');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  profiles = DormDB.getProfiles();
+  await migratePhotosToIDB();
+  renderList();
+}
+
+// ── Render list ────────────────────────────────────────────────────────────
+function renderList() {
+  const rooms = DormDB.getRooms();
+  let data = profiles;
+
+  if (searchTerm) {
+    const t = searchTerm.toLowerCase();
+    data = profiles.filter(p =>
+      (p.firstName + ' ' + p.surname).toLowerCase().includes(t) ||
+      (p.studentId || '').toLowerCase().includes(t)
+    );
+  }
+
+  data = [...data].sort((a, b) => {
+    const sa = (a.surname + a.firstName).toLowerCase();
+    const sb = (b.surname + b.firstName).toLowerCase();
+    return sa < sb ? -1 : sa > sb ? 1 : 0;
+  });
+
+  const tbody = document.getElementById('profileTbody');
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <span class="empty-icon">👤</span>
+      ${searchTerm
+        ? 'No profiles match your search.'
+        : 'No profiles yet. Click <strong>+ Add Profile</strong> or use <strong>📂 Import Registrar</strong> to get started.'}
+    </div></td></tr>`;
+    updateStats();
+    return;
+  }
+
+  tbody.innerHTML = data.map(p => {
+    const pct = calcCompleteness(p);
+    const name = [p.firstName, p.surname].filter(Boolean).join(' ') || '—';
+    const room = p.room || getRoomFromReservations(p, rooms) || '—';
+    const completeCls = pct >= 90 ? 'badge-green' : pct >= 50 ? 'badge-yellow' : 'badge-red';
+    const sourceLbl = { registrar: 'Registrar', msforms: 'MS Forms', manual: 'Manual' }[p.source] || p.source || 'Manual';
+    return `<tr>
+      <td><strong>${esc(name)}</strong></td>
+      <td>${esc(p.studentId || '—')}</td>
+      <td>${esc(room)}</td>
+      <td>${esc(p.department || '—')}</td>
+      <td>${esc(p.academicYear || '—')}</td>
+      <td><span class="badge ${completeCls}">${pct}%</span></td>
+      <td><span class="badge badge-blue">${esc(sourceLbl)}</span></td>
+      <td>
+        <button class="btn btn-gray" style="padding:4px 9px;font-size:.75rem" onclick="openEditModal(${p.id})">✏️ Edit</button>
+        <button class="btn btn-primary" style="padding:4px 9px;font-size:.75rem;margin-left:4px" onclick="printCard(${p.id})" title="Print profile card">🖨️</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  updateStats();
+}
+
+function getRoomFromReservations(profile, rooms) {
+  if (!rooms || !rooms.length) return '';
+  const m = rooms.find(r => {
+    if (!r.name) return false;
+    if (profile.studentId && (r.studentId === profile.studentId || (r.clearance && r.clearance.studentId === profile.studentId))) return true;
+    if (profile.firstName && profile.surname) {
+      const pn = (profile.firstName + ' ' + profile.surname).toLowerCase().trim();
+      return r.name.toLowerCase().trim() === pn;
+    }
+    return false;
+  });
+  return m ? m.room : '';
+}
+
+function updateStats() {
+  const total = profiles.length;
+  const complete = profiles.filter(p => calcCompleteness(p) >= 90).length;
+  const stubs = profiles.filter(p => calcCompleteness(p) < 50).length;
+  const partial = total - complete - stubs;
+  document.getElementById('statsBar').innerHTML =
+    `<span><strong>${total}</strong> profiles</span>` +
+    `<span><strong>${complete}</strong> complete (≥90%)</span>` +
+    (partial > 0 ? `<span><strong>${partial}</strong> partial</span>` : '') +
+    (stubs > 0 ? `<span><strong>${stubs}</strong> stubs (needs data)</span>` : '');
+}
+
+function calcCompleteness(p) {
+  const required = [
+    'firstName','surname','studentId','cellPhone','email',
+    'birthDate','nationality','homeAddress',
+    'fatherName','motherName',
+    'emergencyName','emergencyPhone','bloodType'
+  ];
+  const filled = required.filter(f => p[f] && String(p[f]).trim()).length;
+  return Math.round(filled / required.length * 100);
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+function doSearch() {
+  searchTerm = document.getElementById('searchInput').value.trim();
+  renderList();
+}
+
+// ── Edit modal ─────────────────────────────────────────────────────────────
+async function openEditModal(id) {
+  editingId = id;
+  photoBlobPending = null;
+  if (currentObjectURL) { URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
+  const p = id ? profiles.find(x => x.id === id) : null;
+
+  document.getElementById('modalTitle').textContent = p
+    ? `Edit Profile — ${p.firstName} ${p.surname}`
+    : 'Add New Profile';
+  document.getElementById('deleteBtn').style.display = p ? 'inline-block' : 'none';
+
+  const set = (el, val) => { document.getElementById(el).value = val || ''; };
+  set('fId',           id || '');
+  set('fFirstName',    p?.firstName);
+  set('fSurname',      p?.surname);
+  set('fStudentId',    p?.studentId);
+  set('fRoom',         p?.room);
+  set('fCellPhone',    p?.cellPhone);
+  set('fEmail',        p?.email);
+  set('fDateArrived',  p?.dateArrived);
+  set('fAcademicYear', p?.academicYear);
+  set('fDepartment',   p?.department);
+  set('fMajor',        p?.major);
+  set('fNationality',  p?.nationality);
+  set('fPassportNo',   p?.passportNo);
+  set('fBirthDate',    p?.birthDate);
+  set('fMaritalStatus',p?.maritalStatus);
+  set('fReligion',     p?.religion);
+  set('fHomeAddress',  p?.homeAddress);
+  set('fHomePhone',    p?.homePhone);
+  set('fFatherName',   p?.fatherName);
+  set('fFatherPhone',  p?.fatherPhone);
+  set('fFatherEmail',  p?.fatherEmail);
+  set('fMotherName',   p?.motherName);
+  set('fMotherPhone',  p?.motherPhone);
+  set('fMotherEmail',  p?.motherEmail);
+  set('fF1Name',       p?.friend1Name);
+  set('fF1Phone',      p?.friend1Phone);
+  set('fF1Stay',       p?.friend1Staying);
+  set('fF2Name',       p?.friend2Name);
+  set('fF2Phone',      p?.friend2Phone);
+  set('fF2Stay',       p?.friend2Staying);
+  set('fF3Name',       p?.friend3Name);
+  set('fF3Phone',      p?.friend3Phone);
+  set('fF3Stay',       p?.friend3Staying);
+  set('fBloodType',    p?.bloodType);
+  set('fAllergy',      p?.drugAllergy);
+  set('fMedHistory',   p?.medHistory);
+  set('fMedication',   p?.medication);
+  set('fHospital',     p?.preferredHospital);
+  set('fEName',        p?.emergencyName);
+  set('fEPhone',       p?.emergencyPhone);
+  set('fERelation',    p?.emergencyRelation);
+  set('fEAddress',     p?.emergencyAddress);
+  set('fKeysAmt',      p?.keysDepositAmount || '');
+  set('fKeysDate',     p?.keysDepositDate);
+  set('fReceivedBy',   p?.receivedBy);
+  set('fRemarks',      p?.remarks);
+
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('photoPlaceholder').style.display = 'flex';
+  if (p) {
+    DormDB.getPhoto(p.id).then(rec => {
+      if (rec?.blob) {
+        if (currentObjectURL) URL.revokeObjectURL(currentObjectURL);
+        currentObjectURL = URL.createObjectURL(rec.blob);
+        document.getElementById('photoPreview').src = currentObjectURL;
+        document.getElementById('photoPreview').style.display = 'block';
+        document.getElementById('photoPlaceholder').style.display = 'none';
+      }
+    }).catch(() => {});
+  }
+
+  document.getElementById('editModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('fFirstName').focus(), 80);
+}
+
+function closeModal() {
+  document.getElementById('editModal').style.display = 'none';
+  document.body.style.overflow = '';
+  editingId = null;
+  photoBlobPending = null;
+  if (currentObjectURL) { URL.revokeObjectURL(currentObjectURL); currentObjectURL = null; }
+}
+
+document.getElementById('editOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+async function handlePhotoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    photoBlobPending = await compressPhoto(file);
+    if (currentObjectURL) URL.revokeObjectURL(currentObjectURL);
+    currentObjectURL = URL.createObjectURL(photoBlobPending);
+    document.getElementById('photoPreview').src = currentObjectURL;
+    document.getElementById('photoPreview').style.display = 'block';
+    document.getElementById('photoPlaceholder').style.display = 'none';
+  } catch(e) {
+    showToast('Photo compression failed', 'error');
+  }
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id).value.trim();
+  const now = new Date().toISOString();
+  const existing = editingId ? profiles.find(p => p.id === editingId) : null;
+
+  const profile = {
+    id:             existing?.id ?? Date.now(),
+    firstName:      g('fFirstName'),
+    surname:        g('fSurname'),
+    studentId:      g('fStudentId'),
+    room:           g('fRoom'),
+    cellPhone:      g('fCellPhone'),
+    email:          g('fEmail'),
+    dateArrived:    g('fDateArrived'),
+    academicYear:   g('fAcademicYear'),
+    department:     g('fDepartment'),
+    major:          g('fMajor'),
+    nationality:    g('fNationality'),
+    passportNo:     g('fPassportNo'),
+    birthDate:      g('fBirthDate'),
+    maritalStatus:  g('fMaritalStatus'),
+    religion:       g('fReligion'),
+    homeAddress:    g('fHomeAddress'),
+    homePhone:      g('fHomePhone'),
+    fatherName:     g('fFatherName'),
+    fatherPhone:    g('fFatherPhone'),
+    fatherEmail:    g('fFatherEmail'),
+    motherName:     g('fMotherName'),
+    motherPhone:    g('fMotherPhone'),
+    motherEmail:    g('fMotherEmail'),
+    friend1Name:    g('fF1Name'), friend1Phone: g('fF1Phone'), friend1Staying: g('fF1Stay'),
+    friend2Name:    g('fF2Name'), friend2Phone: g('fF2Phone'), friend2Staying: g('fF2Stay'),
+    friend3Name:    g('fF3Name'), friend3Phone: g('fF3Phone'), friend3Staying: g('fF3Stay'),
+    bloodType:      g('fBloodType'),
+    drugAllergy:    g('fAllergy'),
+    medHistory:     g('fMedHistory'),
+    medication:     g('fMedication'),
+    preferredHospital: g('fHospital'),
+    emergencyName:  g('fEName'),
+    emergencyPhone: g('fEPhone'),
+    emergencyRelation: g('fERelation'),
+    emergencyAddress: g('fEAddress'),
+    keysDepositAmount: parseFloat(g('fKeysAmt')) || 0,
+    keysDepositDate: g('fKeysDate'),
+    receivedBy:     g('fReceivedBy'),
+    remarks:        g('fRemarks'),
+    source:         existing?.source ?? 'manual',
+    createdAt:      existing?.createdAt ?? now,
+    updatedAt:      now,
+  };
+
+  if (photoBlobPending) {
+    try { await DormDB.savePhoto(profile.id, photoBlobPending); } catch(e) { console.warn('Photo save failed:', e); }
+  }
+
+  if (existing) {
+    profiles = profiles.map(p => p.id === existing.id ? profile : p);
+  } else {
+    profiles.push(profile);
+  }
+
+  DormDB.saveProfiles(profiles);
+  closeModal();
+  renderList();
+  showToast(existing ? 'Profile updated' : 'Profile added', 'success');
+}
+
+async function deleteCurrentProfile() {
+  const p = editingId ? profiles.find(x => x.id === editingId) : null;
+  if (!p) return;
+  if (!confirm(`Delete profile for ${p.firstName} ${p.surname}?\nThis cannot be undone.`)) return;
+  try { await DormDB.deletePhoto(p.id); } catch(e) { /* no photo — ignore */ }
+  profiles = profiles.filter(x => x.id !== editingId);
+  DormDB.saveProfiles(profiles);
+  closeModal();
+  renderList();
+  showToast('Profile deleted');
+}
+
+// ── Import: Registrar Excel / CSV ──────────────────────────────────────────
+function importRegistrar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  readFile(file, rows => {
+    let added = 0, updated = 0;
+    const now = new Date().toISOString();
+    rows.forEach(row => {
+      const rec = mapRegistrarRow(row);
+      if (!rec.firstName && !rec.surname) return;
+      const existing = findProfile(rec);
+      if (existing) {
+        // Fill in missing fields only
+        Object.keys(rec).forEach(k => { if (rec[k] && !existing[k]) existing[k] = rec[k]; });
+        existing.updatedAt = now;
+        profiles = profiles.map(p => p.id === existing.id ? existing : p);
+        updated++;
+      } else {
+        profiles.push({ id: Date.now() + added, ...emptyProfile(), ...rec, source: 'registrar', createdAt: now, updatedAt: now });
+        added++;
+      }
+    });
+    DormDB.saveProfiles(profiles);
+    renderList();
+    showToast(`Registrar: ${added} added, ${updated} updated`, 'success');
+  });
+}
+
+function mapRegistrarRow(row) {
+  const g = (...keys) => {
+    for (const k of keys) {
+      for (const rk of Object.keys(row)) {
+        if (rk.trim().toLowerCase() === k.toLowerCase()) return String(row[rk] || '').trim();
+      }
+    }
+    return '';
+  };
+  const fullName = g('Name','Full Name','Student Name','StudentName');
+  const firstName = g('First Name','FirstName','Given Name','Firstname') ||
+                    (fullName ? fullName.split(/\s+/)[0] : '');
+  const surname = g('Surname','Last Name','LastName','Family Name','Lastname') ||
+                  (fullName ? fullName.split(/\s+/).slice(1).join(' ') : '');
+  return {
+    firstName,
+    surname,
+    studentId:    g('Student ID','StudentID','ID','ID Number'),
+    department:   g('Department','Faculty','School'),
+    major:        g('Major','Program','Course'),
+    academicYear: g('Academic Year','AcademicYear','Year','Batch'),
+    nationality:  g('Nationality'),
+    room:         g('Room','Room No','Room Number','RoomNo'),
+  };
+}
+
+// ── Import: MS Forms CSV ───────────────────────────────────────────────────
+function importMSForms(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  readFile(file, rows => {
+    let added = 0, updated = 0;
+    const now = new Date().toISOString();
+    rows.forEach(row => {
+      const rec = mapMSFormsRow(row);
+      if (!rec.firstName && !rec.surname) return;
+      const existing = findProfile(rec);
+      if (existing) {
+        // MS Forms overwrites personal fields (student entered them)
+        Object.assign(existing, rec);
+        existing.source = 'msforms';
+        existing.updatedAt = now;
+        profiles = profiles.map(p => p.id === existing.id ? existing : p);
+        updated++;
+      } else {
+        profiles.push({ id: Date.now() + added, ...emptyProfile(), ...rec, source: 'msforms', createdAt: now, updatedAt: now });
+        added++;
+      }
+    });
+    DormDB.saveProfiles(profiles);
+    renderList();
+    showToast(`MS Forms: ${added} added, ${updated} updated`, 'success');
+  });
+}
+
+function mapMSFormsRow(row) {
+  // Flexible match — MS Forms column headers are the question text
+  const g = (...keys) => {
+    for (const k of keys) {
+      for (const rk of Object.keys(row)) {
+        if (rk.trim().toLowerCase().includes(k.toLowerCase())) return String(row[rk] || '').trim();
+      }
+    }
+    return '';
+  };
+  const fullName = g('full name');
+  const firstName = g('first name','given name','firstname') || (fullName ? fullName.split(/\s+/)[0] : '');
+  const surname   = g('surname','last name','family name','lastname') || (fullName ? fullName.split(/\s+/).slice(1).join(' ') : '');
+  return {
+    firstName, surname,
+    studentId:        g('student id','id number','student number'),
+    cellPhone:        g('cell phone','mobile','phone number','contact number'),
+    email:            g('personal email','student email','email address'),
+    birthDate:        g('birth date','date of birth','birthday'),
+    maritalStatus:    g('marital status','marital'),
+    religion:         g('religion'),
+    nationality:      g('nationality'),
+    passportNo:       g('passport number','passport no','passport'),
+    homeAddress:      g('home address','address'),
+    homePhone:        g('home phone','home telephone'),
+    fatherName:       g("father's name",'father name'),
+    fatherPhone:      g("father's cell","father's phone",'father phone'),
+    fatherEmail:      g("father's email",'father email'),
+    motherName:       g("mother's name",'mother name'),
+    motherPhone:      g("mother's cell","mother's phone",'mother phone'),
+    motherEmail:      g("mother's email",'mother email'),
+    friend1Name:      g('friend 1 name','friend1 name','campus friend 1'),
+    friend1Phone:     g('friend 1 phone','friend1 phone'),
+    friend1Staying:   g('friend 1 staying','friend1 staying'),
+    friend2Name:      g('friend 2 name','friend2 name'),
+    friend2Phone:     g('friend 2 phone','friend2 phone'),
+    friend2Staying:   g('friend 2 staying','friend2 staying'),
+    friend3Name:      g('friend 3 name','friend3 name'),
+    friend3Phone:     g('friend 3 phone','friend3 phone'),
+    friend3Staying:   g('friend 3 staying','friend3 staying'),
+    bloodType:        g('blood type','blood group'),
+    drugAllergy:      g('drug allergy','allergy','allergies'),
+    medHistory:       g('medical history','health history'),
+    medication:       g('medication','medicine'),
+    preferredHospital:g('hospital','preferred hospital'),
+    emergencyName:    g('emergency contact name','emergency name'),
+    emergencyPhone:   g('emergency contact phone','emergency phone','emergency cell'),
+    emergencyRelation:g('relation','relationship'),
+    emergencyAddress: g('emergency address','emergency contact address'),
+  };
+}
+
+// ── File reader ────────────────────────────────────────────────────────────
+function readFile(file, callback) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = e => callback(parseCSV(e.target.result));
+    reader.readAsText(file, 'UTF-8');
+  } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    if (typeof XLSX === 'undefined') {
+      showToast('SheetJS not loaded. Please use CSV format.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      callback(XLSX.utils.sheet_to_json(ws, { defval: '' }));
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    showToast('Unsupported format. Use .xlsx or .csv', 'error');
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitCSVLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').trim(); });
+    return obj;
+  });
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQ = !inQ; }
+    else if (line[i] === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += line[i];
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── Profile matching ───────────────────────────────────────────────────────
+function findProfile(rec) {
+  if (rec.studentId) {
+    const m = profiles.find(p => p.studentId && p.studentId === rec.studentId);
+    if (m) return m;
+  }
+  if (rec.firstName && rec.surname) {
+    const target = (rec.firstName + ' ' + rec.surname).toLowerCase().trim();
+    return profiles.find(p => (p.firstName + ' ' + p.surname).toLowerCase().trim() === target) || null;
+  }
+  return null;
+}
+
+function emptyProfile() {
+  return {
+    firstName:'',surname:'',studentId:'',room:'',
+    cellPhone:'',email:'',dateArrived:'',
+    academicYear:'',department:'',major:'',
+    nationality:'',passportNo:'',
+    birthDate:'',maritalStatus:'',religion:'',
+    homeAddress:'',homePhone:'',
+    fatherName:'',fatherPhone:'',fatherEmail:'',
+    motherName:'',motherPhone:'',motherEmail:'',
+    friend1Name:'',friend1Phone:'',friend1Staying:'',
+    friend2Name:'',friend2Phone:'',friend2Staying:'',
+    friend3Name:'',friend3Phone:'',friend3Staying:'',
+    bloodType:'',drugAllergy:'',medHistory:'',medication:'',preferredHospital:'',
+    emergencyName:'',emergencyPhone:'',emergencyRelation:'',emergencyAddress:'',
+    keysDepositAmount:0,keysDepositDate:'',receivedBy:'',remarks:'',
+  };
+}
+
+// ── Print card ─────────────────────────────────────────────────────────────
+async function printCard(id) {
+  const p = profiles.find(x => x.id === id);
+  if (!p) return;
+
+  const rooms = DormDB.getRooms();
+  const dormName = DormDB.getDormName();
+  const fullName = [p.firstName, p.surname].filter(Boolean).join(' ');
+  const room = p.room || getRoomFromReservations(p, rooms) || '';
+  const e = v => v ? esc(String(v)) : '';
+  const fld = (label, val, flex) =>
+    `<div class="pf"${flex ? ` style="flex:${flex}"` : ''}>
+      <span class="pf-l">${label}</span>
+      <span class="pf-v">${e(val)}&nbsp;</span>
+    </div>`;
+  const flds = (...arr) => `<div class="pc-row">${arr.join('')}</div>`;
+
+  let printPhotoURL = null;
+  try {
+    const rec = await DormDB.getPhoto(p.id);
+    if (rec?.blob) printPhotoURL = URL.createObjectURL(rec.blob);
+  } catch(err) { /* no photo */ }
+  const photoHtml = printPhotoURL
+    ? `<img src="${printPhotoURL}" alt="Photo">`
+    : `<div class="pc-photo-ph">3 × 4 cm<br>Photo</div>`;
+
+  document.getElementById('pcContent').innerHTML = `
+    <div class="pc-hdr">
+      <div class="pc-hdr-main">${esc(dormName)}</div>
+      <div class="pc-hdr-uni">Asia-Pacific International University</div>
+      <div class="pc-hdr-form">Dormitory Application Form &amp; Personal Information</div>
+    </div>
+
+    <div class="pc-top">
+      <div class="ps">
+        <div class="ps-t">▌ Student Identity</div>
+        <div class="ps-b">
+          ${flds(fld('Full Name', fullName, 2), fld('Student ID', p.studentId), fld('Room No.', room))}
+          ${flds(fld('Nationality', p.nationality), fld('Passport No.', p.passportNo), fld('Date came to APIU', p.dateArrived))}
+          ${flds(fld('Cell Phone', p.cellPhone, 1), fld('E-mail', p.email, 2))}
+        </div>
+      </div>
+      <div class="pc-photo">${photoHtml}</div>
+    </div>
+
+    <div class="pc-ap">
+      <div class="ps">
+        <div class="ps-t">▌ Academic</div>
+        <div class="ps-b">
+          ${fld('Year', p.academicYear)}
+          ${fld('Department', p.department)}
+          ${fld('Major', p.major)}
+        </div>
+      </div>
+      <div class="ps">
+        <div class="ps-t">▌ Personal</div>
+        <div class="ps-b">
+          ${flds(fld('Birth Date', p.birthDate), fld('Marital Status', p.maritalStatus), fld('Religion', p.religion))}
+        </div>
+      </div>
+    </div>
+
+    <div class="ps" style="margin-bottom:3pt">
+      <div class="ps-t">▌ Home Address</div>
+      <div class="ps-b">
+        ${flds(fld('Address', p.homeAddress, 3), fld('Home Phone', p.homePhone))}
+      </div>
+    </div>
+
+    <div class="pc-2col">
+      <div class="ps">
+        <div class="ps-t">▌ Father</div>
+        <div class="ps-b">
+          ${fld('Name', p.fatherName)}
+          ${flds(fld('Cell', p.fatherPhone), fld('Email', p.fatherEmail))}
+        </div>
+      </div>
+      <div class="ps">
+        <div class="ps-t">▌ Mother / Guardian</div>
+        <div class="ps-b">
+          ${fld('Name', p.motherName)}
+          ${flds(fld('Cell', p.motherPhone), fld('Email', p.motherEmail))}
+        </div>
+      </div>
+    </div>
+
+    <div class="ps" style="margin-bottom:3pt">
+      <div class="ps-t">▌ Campus Friends</div>
+      <div class="ps-b">
+        ${[1,2,3].map(n => flds(
+          fld(`Friend ${n}`, p[`friend${n}Name`], 2),
+          fld('Cell Phone', p[`friend${n}Phone`]),
+          fld('Staying at', p[`friend${n}Staying`])
+        )).join('')}
+      </div>
+    </div>
+
+    <div class="pc-2col">
+      <div class="ps">
+        <div class="ps-t">▌ Health Condition</div>
+        <div class="ps-b">
+          ${flds(fld('Blood Type', p.bloodType), fld('Drug Allergy', p.drugAllergy))}
+          ${fld('Medical History', p.medHistory)}
+          ${fld('Medication (if any)', p.medication)}
+          ${fld('Preferred Hospital', p.preferredHospital)}
+        </div>
+      </div>
+      <div class="ps">
+        <div class="ps-t">▌ Emergency Contact</div>
+        <div class="ps-b">
+          ${fld('Name', p.emergencyName)}
+          ${flds(fld('Cell Phone', p.emergencyPhone), fld('Relation', p.emergencyRelation))}
+          ${fld('Address', p.emergencyAddress)}
+        </div>
+      </div>
+    </div>
+
+    <div class="pc-sig">
+      <div class="pc-sig-row">
+        <div class="pc-sig-field">
+          <div class="pc-sig-lbl">Student Signature</div>
+          <div class="pc-sig-line">&nbsp;</div>
+        </div>
+        <div class="pc-sig-field" style="max-width:55pt">
+          <div class="pc-sig-lbl">Date</div>
+          <div class="pc-sig-line">&nbsp;</div>
+        </div>
+        <div class="pc-sig-field" style="max-width:75pt">
+          <div class="pc-sig-lbl">Keys Deposit</div>
+          <div class="pc-sig-line">${p.keysDepositAmount ? e(p.keysDepositAmount) + ' Baht' : '&nbsp;'}</div>
+        </div>
+        <div class="pc-sig-field">
+          <div class="pc-sig-lbl">Received by (Dean)</div>
+          <div class="pc-sig-line">${e(p.receivedBy)}&nbsp;</div>
+        </div>
+      </div>
+      ${p.remarks ? `<div style="margin-top:4pt;font-size:8pt"><span class="pc-sig-lbl">Remarks: </span>${e(p.remarks)}</div>` : ''}
+    </div>
+
+    <div class="pc-footer">DormPortalUniversal v4 &nbsp;·&nbsp; Developed using Claude Code by Richmond Ilao</div>
+  `;
+
+  if (printPhotoURL) {
+    window.onafterprint = () => { URL.revokeObjectURL(printPhotoURL); window.onafterprint = null; };
+  }
+  window.print();
+}
+
+// ── Excel export ───────────────────────────────────────────────────────────
+function exportExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('SheetJS not loaded — cannot export.', 'error'); return;
+  }
+  if (!profiles.length) { showToast('No profiles to export.'); return; }
+  const cols = [
+    'firstName','surname','studentId','room','cellPhone','email','dateArrived',
+    'academicYear','department','major','nationality','passportNo','birthDate',
+    'maritalStatus','religion','homeAddress','homePhone',
+    'fatherName','fatherPhone','fatherEmail','motherName','motherPhone','motherEmail',
+    'friend1Name','friend1Phone','friend1Staying',
+    'friend2Name','friend2Phone','friend2Staying',
+    'friend3Name','friend3Phone','friend3Staying',
+    'bloodType','drugAllergy','medHistory','medication','preferredHospital',
+    'emergencyName','emergencyPhone','emergencyRelation','emergencyAddress',
+    'keysDepositAmount','keysDepositDate','receivedBy','remarks','source','createdAt','updatedAt'
+  ];
+  const headers = [
+    'First Name','Surname','Student ID','Room','Cell Phone','Email','Date Arrived',
+    'Academic Year','Department','Major','Nationality','Passport No','Birth Date',
+    'Marital Status','Religion','Home Address','Home Phone',
+    'Father Name','Father Phone','Father Email','Mother Name','Mother Phone','Mother Email',
+    'Friend 1 Name','Friend 1 Phone','Friend 1 Staying',
+    'Friend 2 Name','Friend 2 Phone','Friend 2 Staying',
+    'Friend 3 Name','Friend 3 Phone','Friend 3 Staying',
+    'Blood Type','Drug Allergy','Medical History','Medication','Preferred Hospital',
+    'Emergency Name','Emergency Phone','Emergency Relation','Emergency Address',
+    'Key Deposit Amt','Key Deposit Date','Received By','Remarks','Source','Created At','Updated At'
+  ];
+  const rows = [headers, ...profiles.map(p => cols.map(c => p[c] ?? ''))];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = cols.map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'StudentProfiles');
+  XLSX.writeFile(wb, 'StudentProfiles_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+  showToast('Exported ' + profiles.length + ' profiles to Excel.');
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+init();
+</script>
+</body>
+</html>

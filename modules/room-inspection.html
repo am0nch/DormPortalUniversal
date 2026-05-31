@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Room Inspection — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+.nav{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.nav a{color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px}
+.nav h1{color:#1e3a5f;font-size:1.3rem;font-weight:800;flex:1}
+.toolbar{background:#e9ecef;padding:10px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+.btn:hover{opacity:.88}
+.btn-green{background:#2c7a4d}.btn-blue{background:#2980b9}.btn-orange{background:#e67e22}.btn-red{background:#c0392b}.btn-teal{background:#16a085}.btn-gray{background:#666}
+.btn-sm{padding:3px 8px;font-size:.72rem;cursor:pointer;background:#1e3a5f;color:#fff;border:none;border-radius:4px}
+.btn-sm:hover{opacity:.85}
+.tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #d9e6f5;padding-bottom:0}
+.tab-btn{background:none;border:none;padding:8px 16px;cursor:pointer;font-size:.82rem;font-weight:700;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab-btn.active{color:#1e3a5f;border-bottom-color:#1e3a5f}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:14px}
+.insp-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #e0e0e0;margin-bottom:8px;flex-wrap:wrap}
+.insp-row:hover{border-color:#1e3a5f}
+.insp-tag{font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap}
+.tag-in{background:#e8f5e9;color:#2e7d32}.tag-out{background:#fdecea;color:#c62828}
+.tag-charges{background:#fff3e0;color:#e65100}
+.insp-meta{font-size:.72rem;color:#888;flex:1}
+.insp-room{font-weight:800;color:#1e3a5f;font-size:.9rem;min-width:60px}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.45);overflow-y:auto}
+.modal-content{background:#fff;margin:2% auto;padding:22px;width:800px;max-width:calc(100vw - 24px);border-radius:14px;max-height:94vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal-sm{width:480px}
+.close-modal{float:right;font-size:26px;cursor:pointer;line-height:1;color:#666}
+.close-modal:hover{color:#c0392b}
+.sec-head{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:#1e3a5f;padding:3px 10px;border-radius:3px;margin:14px 0 8px;display:block}
+.sec-head.green{background:#2c7a4d}.sec-head.blue{background:#2980b9}.sec-head.orange{background:#e67e22}.sec-head.purple{background:#6f42c1}
+.item-grid{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:4px}
+.item-grid th{background:#f0f4f8;padding:5px 7px;text-align:left;border:1px solid #e0e0e0;font-weight:700;font-size:.72rem}
+.item-grid td{border:1px solid #e0e0e0;padding:4px 7px;vertical-align:middle}
+.item-grid tr:nth-child(even) td{background:#fafafa}
+.cond-sel{width:100%;border:1px solid #ccc;border-radius:4px;padding:2px 4px;font-size:.75rem}
+.cond-sel.good{background:#e8f5e9;color:#2e7d32}
+.cond-sel.average{background:#fff8e1;color:#f57f17}
+.cond-sel.poor{background:#fdecea;color:#c62828}
+.cond-sel.missing{background:#f3e5f5;color:#6a1b9a}
+.cond-sel.na{background:#f5f5f5;color:#888}
+.notes-inp{width:100%;border:1px solid #e0e0e0;border-radius:3px;padding:2px 4px;font-size:.72rem}
+.qty-inp{width:50px;border:1px solid #e0e0e0;border-radius:3px;padding:2px 4px;font-size:.72rem;text-align:center}
+.charge-inp{width:70px;border:none;border-bottom:1.5px solid #ccc;text-align:right;font-size:.78rem;background:transparent;outline:none;padding:1px 2px;-moz-appearance:textfield}
+.charge-inp::-webkit-outer-spin-button,.charge-inp::-webkit-inner-spin-button{-webkit-appearance:none}
+.charge-inp:focus{border-bottom-color:#1e3a5f}
+.occ-block{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.occ-card{border:1px solid #ccc;border-radius:8px;padding:8px 12px;font-size:.78rem;min-width:180px;background:#f9f9f9}
+.occ-card label{font-size:.72rem;color:#666;display:block;margin-bottom:3px}
+.occ-card select,.occ-card input{width:100%;padding:3px 5px;border:1px solid #ccc;border-radius:4px;font-size:.78rem;margin-top:2px}
+.charge-row{display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px solid #f0f0f0;font-size:.78rem}
+.charge-row:last-child{border-bottom:none}
+.charge-lbl{flex:1}
+.total-row{font-weight:800;color:#1e3a5f;font-size:.85rem;padding:6px 2px;border-top:2px solid #1e3a5f;margin-top:4px}
+.charges-student-block{margin-bottom:16px}
+.charges-student-block h4{color:#1e3a5f;font-size:.85rem;margin-bottom:6px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.settings-grid{grid-template-columns:1fr}.modal-content{margin:0 auto;border-radius:0}}
+.fg{margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.fg label{width:160px;flex-shrink:0;font-size:.8rem;color:#444}
+.fg input,.fg select{flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;font-size:.8rem}
+.empty-msg{color:#aaa;font-size:.85rem;text-align:center;padding:32px 0}
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filter-row select,.filter-row input{padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.8rem}
+.badge-a{display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:1px 6px;font-size:.65rem;font-weight:700}
+.badge-b{display:inline-block;background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 6px;font-size:.65rem;font-weight:700}
+/* Print styles */
+@media print{
+  body{background:#fff}
+  .no-print,.nav,.toolbar,.tabs,.filter-row,.modal,.btn,.btn-sm{display:none!important}
+  .print-only{display:block!important}
+  .card{box-shadow:none;border:1px solid #ccc}
+}
+.print-only{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="nav">
+    <a id="backLink" href="../index.html">← Menu</a>
+    <h1>🔍 Room Inspection — <span id="dormNameSpan">Elijah Hall</span></h1>
+    <span style="font-size:.78rem;color:#888">User: <strong id="userSpan"></strong></span>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-green" onclick="openInspectionForm()">＋ New Inspection</button>
+    <select id="filterRoom" onchange="renderList()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.8rem">
+      <option value="">All Rooms</option>
+    </select>
+    <select id="filterType" onchange="renderList()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.8rem">
+      <option value="">All Types</option>
+      <option value="move-in">Move-In</option>
+      <option value="move-out">Move-Out</option>
+    </select>
+    <button class="btn btn-gray" onclick="window.print()">🖨️ Print</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('inspections')">📋 Inspections</button>
+    <button class="tab-btn" onclick="switchTab('charges')">💰 Charges</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+  </div>
+
+  <!-- Inspections Tab -->
+  <div class="tab-panel active" id="tab-inspections">
+    <div id="inspList"></div>
+  </div>
+
+  <!-- Charges Tab -->
+  <div class="tab-panel" id="tab-charges">
+    <div class="filter-row">
+      <input type="text" id="chargeSearchInp" placeholder="Search student name or room…" oninput="renderCharges()" style="flex:1;max-width:300px">
+    </div>
+    <div id="chargesPanel"></div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="settings-grid">
+      <div class="card">
+        <h3 style="color:#1e3a5f;margin-bottom:12px;font-size:.95rem">Default Replacement Costs (฿)</h3>
+        <p style="font-size:.73rem;color:#888;margin-bottom:12px">Per-side furniture items. Used as the base for auto-calculating damage charges and for printing the Room Cost Sheet.</p>
+        <div id="settingsFurnitureFields"></div>
+        <button class="btn btn-green" style="margin-top:10px" onclick="saveDefaultCharges()">💾 Save Costs</button>
+        <button class="btn btn-gray" style="margin-top:10px" onclick="resetDefaultCharges()">↺ Reset to Code Defaults</button>
+      </div>
+      <div class="card">
+        <h3 style="color:#1e3a5f;margin-bottom:12px;font-size:.95rem">Print Room Cost Sheet</h3>
+        <p style="font-size:.73rem;color:#888;margin-bottom:12px">Prints an A5 sheet for posting inside the room door — lists all items and their replacement costs.</p>
+        <div class="fg">
+          <label>Room</label>
+          <select id="costSheetRoom"></select>
+        </div>
+        <button class="btn btn-teal" onclick="printRoomCostSheet(document.getElementById('costSheetRoom').value)">🖨️ Print Cost Sheet</button>
+        <hr style="margin:16px 0;border:none;border-top:1px solid #eee">
+        <h3 style="color:#1e3a5f;margin-bottom:12px;font-size:.95rem">Semester Label</h3>
+        <div class="fg">
+          <label>Default semester</label>
+          <input type="text" id="defaultSemester" placeholder="e.g. 2nd Semester 2026">
+        </div>
+        <button class="btn" onclick="saveSemesterPref()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Inspection Form Modal ══════════════════════════════════════════════ -->
+<div class="modal" id="inspModal">
+<div class="modal-content">
+  <span class="close-modal" onclick="closeModal('inspModal')">×</span>
+  <h2 id="inspModalTitle" style="color:#1e3a5f;margin-bottom:16px;font-size:1.1rem">New Inspection</h2>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="fg" style="flex:1;min-width:160px;flex-direction:column;align-items:stretch"><label>Room</label>
+      <select id="insp_room" onchange="populateOccupants()"></select></div>
+    <div class="fg" style="flex:1;min-width:160px;flex-direction:column;align-items:stretch"><label>Type</label>
+      <select id="insp_type" onchange="onTypeChange()">
+        <option value="move-in">Move-In</option>
+        <option value="move-out">Move-Out</option>
+      </select></div>
+    <div class="fg" style="flex:1;min-width:160px;flex-direction:column;align-items:stretch"><label>Date</label>
+      <input type="date" id="insp_date"></div>
+    <div class="fg" style="flex:1;min-width:200px;flex-direction:column;align-items:stretch"><label>Semester</label>
+      <input type="text" id="insp_semester" placeholder="2nd Semester 2026"></div>
+  </div>
+
+  <span class="sec-head">Occupants & Side Assignment</span>
+  <div id="occupantBlocks" class="occ-block"></div>
+
+  <div id="moveInRef" style="display:none;margin-bottom:10px">
+    <span style="font-size:.78rem;color:#2c7a4d;background:#e8f5e9;padding:4px 10px;border-radius:6px;display:inline-block">
+      ✅ Paired with move-in inspection: <strong id="moveInRefLabel"></strong>
+    </span>
+  </div>
+
+  <span class="sec-head green">Side A — Near Door (Furniture)</span>
+  <table class="item-grid" id="gridSideA"></table>
+
+  <span class="sec-head blue">Side B — Near Balcony (Furniture)</span>
+  <table class="item-grid" id="gridSideB"></table>
+
+  <span class="sec-head orange">Shared Room Fixtures</span>
+  <table class="item-grid" id="gridShared"></table>
+
+  <span class="sec-head purple">Shared Bathroom</span>
+  <table class="item-grid">
+    <thead><tr><th>Item</th><th style="width:100px">Condition</th><th style="width:120px">Repair Cost (฿)</th><th>Occupants sharing</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Bathroom</td>
+        <td><select class="cond-sel" id="bath_cond" onchange="styleCondSel(this)"><option value="good">Good</option><option value="average">Average</option><option value="poor">Poor</option><option value="missing">Missing / Broken</option></select></td>
+        <td><input type="number" class="charge-inp" id="bath_cost" value="0" min="0" style="width:100%"> ฿</td>
+        <td><input type="number" class="qty-inp" id="bath_occ" value="2" min="1" max="8"></td>
+        <td><input type="text" class="notes-inp" id="bath_notes" placeholder="Notes…"></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div id="chargesPreview" style="display:none;margin-top:16px">
+    <span class="sec-head" style="background:#e65100">Auto-Calculated Charges (editable)</span>
+    <div id="chargesPreviewContent"></div>
+  </div>
+
+  <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-green" onclick="saveInspection()">💾 Save Inspection</button>
+    <button class="btn btn-gray" onclick="closeModal('inspModal')">Cancel</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ Edit Charges Modal ═════════════════════════════════════════════════ -->
+<div class="modal" id="editChargesModal">
+<div class="modal-content modal-sm">
+  <span class="close-modal" onclick="closeModal('editChargesModal')">×</span>
+  <h2 style="color:#1e3a5f;margin-bottom:14px;font-size:1rem">✏️ Edit Charges</h2>
+  <p style="font-size:.75rem;color:#888;margin-bottom:12px">Update any charge amount or the bathroom repair cost. Leave 0 to remove the charge. Changes are saved without re-running the inspection.</p>
+  <div class="fg">
+    <label>Bathroom Repair Cost (฿)</label>
+    <input type="number" id="ec_bathCost" value="0" min="0" class="charge-inp" style="width:80px">
+  </div>
+  <div class="fg">
+    <label>Bathroom occupants sharing</label>
+    <input type="number" id="ec_bathOcc" value="2" min="1" max="8" class="qty-inp">
+  </div>
+  <div id="ec_chargeLines" style="margin:10px 0"></div>
+  <div class="total-row" id="ec_total">Total: 0 ฿</div>
+  <div style="margin-top:14px;display:flex;gap:10px">
+    <button class="btn btn-green" onclick="saveEditedCharges()">💾 Save Charges</button>
+    <button class="btn btn-gray" onclick="closeModal('editChargesModal')">Cancel</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ Print: Inspection Sheet ════════════════════════════════════════════ -->
+<div id="printArea" style="display:none"></div>
+
+<script>
+// ══ Data & defaults ════════════════════════════════════════════════════════
+let rooms=[], awayStudents=[], inspections=[];
+let _editingId=null;
+
+const SIDE_ITEMS=[
+  {key:'bedSheet',    label:'Bed Sheet',            qty:1, base:200},
+  {key:'mattress',    label:'Mattress (Sealy 3ft)', qty:1, base:4637},
+  {key:'mattressPad', label:'Bed Decker',           qty:1, base:4800},
+  {key:'bed',         label:'Wooden Bed',           qty:1, base:4964},
+  {key:'desk',        label:'Study Table',          qty:1, base:6205},
+  {key:'chair',       label:'Chair (Wooden)',       qty:1, base:1986},
+  {key:'stool',       label:'Dressing Stool',       qty:1, base:1490},
+  {key:'bookShelf',   label:'Book Shelf',           qty:1, base:6205},
+  {key:'closet',      label:'Built-in Closet',      qty:1, base:15000},
+  {key:'closetKey',   label:'Closet Key',           qty:1, base:100},
+  {key:'drawerKey',   label:'Drawer Key',           qty:1, base:100},
+];
+
+const SHARED_ITEMS=[
+  {key:'door',          label:'Door',              qty:1, base:0},
+  {key:'walls',         label:'Walls',             qty:1, base:0},
+  {key:'ceiling',       label:'Ceiling',           qty:1, base:0},
+  {key:'window',        label:'Window',            qty:1, base:0},
+  {key:'fan',           label:'Ceiling Fan 48"',   qty:2, base:1659},
+  {key:'balcony',       label:'Balcony',           qty:1, base:0},
+  {key:'mosquitoScreen',label:'Mosquito Screen',   qty:1, base:300},
+  {key:'roomKey',       label:'Room Key',          qty:2, base:100},
+  {key:'acUnit',        label:'AC Unit',           qty:1, base:0},
+];
+
+// Severity multipliers
+const SEVERITY={
+  'good→average':0.30, 'good→poor':0.70, 'good→missing':1.00,
+  'average→poor':0.40, 'average→missing':0.80,
+  'poor→missing':0.50,
+};
+
+function getDefaultCharges(){
+  const saved=localStorage.getItem('dormInspDefaultCharges');
+  if(saved)try{return JSON.parse(saved);}catch(e){}
+  const d={};
+  SIDE_ITEMS.forEach(i=>d[i.key]=i.base);
+  SHARED_ITEMS.forEach(i=>d[i.key]=i.base);
+  return d;
+}
+
+function getSemesterPref(){
+  return localStorage.getItem('dormInspSemester')||
+    new Date().getFullYear()+' Semester';
+}
+
+// ══ Lifecycle ══════════════════════════════════════════════════════════════
+function loadData(){
+  rooms=DormDB.getRooms();
+  awayStudents=DormDB.getAway();
+  inspections=DormDB.getInspections();
+}
+
+function init(){
+  const params=new URLSearchParams(location.search);
+  const back=params.get('back');
+  if(back==='room-reservations')document.getElementById('backLink').href='room-reservations.html';
+  document.getElementById('dormNameSpan').textContent=DormDB.getDormName();
+  document.getElementById('userSpan').textContent=DormDB.getCurrentUser();
+  document.getElementById('insp_date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('insp_semester').value=getSemesterPref();
+  document.getElementById('defaultSemester').value=getSemesterPref();
+  loadData();
+  populateRoomDropdowns();
+  renderList();
+  renderSettings();
+  DormDB.on(DormDB.KEYS.ROOMS,()=>{loadData();populateRoomDropdowns();});
+  DormDB.on(DormDB.KEYS.INSPECTIONS,()=>{loadData();renderList();renderCharges();});
+}
+
+// ══ Tabs ═══════════════════════════════════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick*="'${name}'"]`).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='charges')renderCharges();
+}
+
+// ══ Room dropdowns ═════════════════════════════════════════════════════════
+function populateRoomDropdowns(){
+  const roomNums=[...new Set(rooms.map(s=>s.room))].filter(Boolean).sort();
+  ['filterRoom','insp_room','costSheetRoom'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const prev=el.value;
+    if(id==='filterRoom'){el.innerHTML='<option value="">All Rooms</option>';}
+    else{el.innerHTML='';}
+    roomNums.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;el.appendChild(o);});
+    if(prev)el.value=prev;
+  });
+}
+
+// ══ Inspections list ═══════════════════════════════════════════════════════
+function renderList(){
+  const container=document.getElementById('inspList');
+  const filterRoom=document.getElementById('filterRoom').value;
+  const filterType=document.getElementById('filterType').value;
+  let list=[...inspections];
+  if(filterRoom)list=list.filter(r=>r.room===filterRoom);
+  if(filterType)list=list.filter(r=>r.type===filterType);
+  list.sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt));
+  if(!list.length){container.innerHTML='<div class="empty-msg">No inspections recorded yet. Click "+ New Inspection" to start.</div>';return;}
+  container.innerHTML='';
+  list.forEach(rec=>{
+    const chargeTotal=calcChargeTotal(rec);
+    const div=document.createElement('div');div.className='insp-row';
+    const occupantsSummary=(rec.occupants||[]).map(o=>`${o.name||'—'} <span class="badge-${(o.side||'').toLowerCase()}">${o.side||'—'}</span>`).join(' &nbsp; ');
+    div.innerHTML=`
+      <span class="insp-room">${escapeHtml(rec.room)}</span>
+      <span class="insp-tag ${rec.type==='move-in'?'tag-in':'tag-out'}">${rec.type==='move-in'?'Move-In':'Move-Out'}</span>
+      ${chargeTotal>0?`<span class="insp-tag tag-charges">฿${chargeTotal.toLocaleString()}</span>`:''}
+      <span class="insp-meta">${rec.date||''} · ${escapeHtml(rec.semester||'')} · ${escapeHtml(rec.recordedBy||'')}
+        <br><span style="font-size:.7rem">${occupantsSummary}</span>
+      </span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${rec.type==='move-out'?`<button class="btn-sm" style="background:#e65100" onclick="openEditCharges('${rec.id}')">✏️ Charges</button>`:''}
+        <button class="btn-sm btn-teal" onclick="printInspectionSheet('${rec.id}')">🖨️ Print</button>
+        <button class="btn-sm" style="background:#c0392b" onclick="deleteInspection('${rec.id}')">✕</button>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function calcChargeTotal(rec){
+  if(!rec.charges)return 0;
+  return [...(rec.charges.sideA||[]),...(rec.charges.sideB||[]),...(rec.charges.shared||[]),...(rec.charges.bathroom||[])]
+    .reduce((a,c)=>a+c.amount,0);
+}
+
+function deleteInspection(id){
+  if(!confirm('Delete this inspection record? This cannot be undone.'))return;
+  inspections=inspections.filter(r=>String(r.id)!==String(id));
+  DormDB.saveInspections(inspections);
+}
+
+// ══ Inspection Form ════════════════════════════════════════════════════════
+function openInspectionForm(prefillRoom,prefillType){
+  loadData();
+  populateRoomDropdowns();
+  document.getElementById('inspModalTitle').textContent='New Inspection';
+  document.getElementById('insp_date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('insp_semester').value=getSemesterPref();
+  if(prefillRoom)document.getElementById('insp_room').value=prefillRoom;
+  if(prefillType)document.getElementById('insp_type').value=prefillType;
+  populateOccupants();
+  buildItemGrids();
+  onTypeChange();
+  document.getElementById('chargesPreview').style.display='none';
+  openModal('inspModal');
+}
+
+function populateOccupants(){
+  const room=document.getElementById('insp_room').value;
+  const slots=rooms.filter(s=>s.room===room&&s.name&&s.name.trim());
+  const container=document.getElementById('occupantBlocks');
+  container.innerHTML='';
+  if(!slots.length){container.innerHTML='<p style="font-size:.78rem;color:#888">No occupants found for this room in Room Reservations.</p>';return;}
+  slots.forEach((s,i)=>{
+    const div=document.createElement('div');div.className='occ-card';
+    div.innerHTML=`<label>Occupant ${i+1}</label>
+      <strong>${escapeHtml(s.name)}</strong>${s.studentId?` <span style="font-size:.68rem;color:#888">(${escapeHtml(s.studentId)})</span>`:''}
+      <label style="margin-top:6px">Side</label>
+      <select id="occ_side_${i}" onchange="syncSideDropdowns()">
+        <option value=""${!s.side?' selected':''}>—</option>
+        <option value="A"${s.side==='A'?' selected':''}>A — Near Door</option>
+        <option value="B"${s.side==='B'?' selected':''}>B — Near Balcony</option>
+      </select>
+      <input type="hidden" id="occ_name_${i}" value="${escapeHtml(s.name)}">
+      <input type="hidden" id="occ_id_${i}" value="${escapeHtml(s.studentId||'')}">`;
+    container.appendChild(div);
+  });
+  container.dataset.count=slots.length;
+  syncSideDropdowns();
+}
+
+function getOccupants(){
+  const count=parseInt(document.getElementById('occupantBlocks').dataset.count||0);
+  const list=[];
+  for(let i=0;i<count;i++){
+    const nameEl=document.getElementById(`occ_name_${i}`);
+    const idEl=document.getElementById(`occ_id_${i}`);
+    const sideEl=document.getElementById(`occ_side_${i}`);
+    if(nameEl)list.push({name:nameEl.value,studentId:idEl?idEl.value:'',side:sideEl?sideEl.value:''});
+  }
+  return list;
+}
+
+function buildItemGrids(){
+  const def=getDefaultCharges();
+  ['A','B'].forEach(side=>{
+    const grid=document.getElementById(`gridSide${side}`);
+    grid.innerHTML=`<thead><tr><th>Item</th><th style="width:50px">Qty</th><th style="width:120px">Condition</th><th style="width:80px">Base Cost</th><th>Notes</th></tr></thead>`;
+    const tbody=document.createElement('tbody');
+    SIDE_ITEMS.forEach(item=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${item.label}</td>
+        <td><input type="number" class="qty-inp" id="side${side}_${item.key}_qty" value="${item.qty}" min="0"></td>
+        <td><select class="cond-sel good" id="side${side}_${item.key}_cond" onchange="styleCondSel(this);refreshChargesPreview()">
+          <option value="good" selected>Good</option>
+          <option value="average">Average</option>
+          <option value="poor">Poor</option>
+          <option value="missing">Missing</option>
+        </select></td>
+        <td><input type="number" class="charge-inp" id="side${side}_${item.key}_base" value="${def[item.key]||0}" min="0" style="width:100%">฿</td>
+        <td><input type="text" class="notes-inp" id="side${side}_${item.key}_notes" placeholder="Notes…"></td>`;
+      tbody.appendChild(tr);
+    });
+    grid.appendChild(tbody);
+  });
+
+  const sharedGrid=document.getElementById('gridShared');
+  sharedGrid.innerHTML=`<thead><tr><th>Item</th><th style="width:50px">Qty</th><th style="width:120px">Condition</th><th style="width:80px">Base Cost</th><th>Notes</th></tr></thead>`;
+  const stbody=document.createElement('tbody');
+  SHARED_ITEMS.forEach(item=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${item.label}</td>
+      <td><input type="number" class="qty-inp" id="shared_${item.key}_qty" value="${item.qty}" min="0"></td>
+      <td><select class="cond-sel good" id="shared_${item.key}_cond" onchange="styleCondSel(this);refreshChargesPreview()">
+        <option value="good" selected>Good</option>
+        <option value="average">Average</option>
+        <option value="poor">Poor</option>
+        <option value="missing">Missing</option>
+        <option value="n/a">N/A</option>
+      </select></td>
+      <td><input type="number" class="charge-inp" id="shared_${item.key}_base" value="${def[item.key]||0}" min="0" style="width:100%">฿</td>
+      <td><input type="text" class="notes-inp" id="shared_${item.key}_notes" placeholder="Notes…"></td>`;
+    stbody.appendChild(tr);
+  });
+  sharedGrid.appendChild(stbody);
+  const _selRoom=document.getElementById('insp_room').value||'';
+  const _isAC=_selRoom.toUpperCase().endsWith('AC');
+  const _acSel=document.getElementById('shared_acUnit_cond');
+  if(_acSel&&!_isAC){_acSel.value='n/a';styleCondSel(_acSel);}
+}
+
+function onTypeChange(){
+  const type=document.getElementById('insp_type').value;
+  if(type==='move-out'){
+    const room=document.getElementById('insp_room').value;
+    const paired=inspections.filter(r=>r.room===room&&r.type==='move-in')
+                             .sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt))[0];
+    if(paired){
+      document.getElementById('moveInRef').style.display='block';
+      document.getElementById('moveInRefLabel').textContent=paired.date+' — '+paired.semester;
+    }else{
+      document.getElementById('moveInRef').style.display='none';
+    }
+    refreshChargesPreview();
+  }else{
+    document.getElementById('moveInRef').style.display='none';
+    document.getElementById('chargesPreview').style.display='none';
+  }
+}
+
+function readSideItems(side){
+  const out={};
+  SIDE_ITEMS.forEach(item=>{
+    out[item.key]={
+      qty:parseInt(document.getElementById(`side${side}_${item.key}_qty`).value)||0,
+      condition:document.getElementById(`side${side}_${item.key}_cond`).value,
+      baseCharge:parseFloat(document.getElementById(`side${side}_${item.key}_base`).value)||0,
+      notes:document.getElementById(`side${side}_${item.key}_notes`).value,
+    };
+  });
+  return out;
+}
+
+function readSharedItems(){
+  const out={};
+  SHARED_ITEMS.forEach(item=>{
+    out[item.key]={
+      qty:parseInt(document.getElementById(`shared_${item.key}_qty`).value)||0,
+      condition:document.getElementById(`shared_${item.key}_cond`).value,
+      baseCharge:parseFloat(document.getElementById(`shared_${item.key}_base`).value)||0,
+      notes:document.getElementById(`shared_${item.key}_notes`).value,
+    };
+  });
+  return out;
+}
+
+function computeSeverity(condIn,condOut){
+  if(!condIn||condOut==='n/a'||condIn==='n/a')return 0;
+  const key=`${condIn}→${condOut}`;
+  return SEVERITY[key]||0;
+}
+
+function generateCharges(moveInRec,sideA,sideB,shared){
+  const charges={sideA:[],sideB:[],shared:[],bathroom:[]};
+  const occupants=getOccupants().length||2;
+
+  ['A','B'].forEach(side=>{
+    const sideData=side==='A'?sideA:sideB;
+    const inSide=moveInRec?(side==='A'?moveInRec.sideA:moveInRec.sideB):null;
+    SIDE_ITEMS.forEach(item=>{
+      const cur=sideData[item.key];if(!cur)return;
+      const condIn=inSide&&inSide[item.key]?inSide[item.key].condition:'good';
+      const mult=computeSeverity(condIn,cur.condition);
+      if(mult>0){
+        const base=cur.baseCharge||item.base;
+        const amount=Math.round(base*mult*(cur.qty||1));
+        if(amount>0)charges[`side${side}`].push({item:item.key,label:item.label,baseCharge:base,severity:`${condIn}→${cur.condition}`,amount,note:cur.notes||''});
+      }
+    });
+  });
+
+  SHARED_ITEMS.forEach(item=>{
+    const cur=shared[item.key];if(!cur||cur.condition==='n/a')return;
+    const inShared=moveInRec&&moveInRec.shared?moveInRec.shared[item.key]:null;
+    const condIn=inShared?inShared.condition:'good';
+    const mult=computeSeverity(condIn,cur.condition);
+    if(mult>0){
+      const base=cur.baseCharge||item.base;
+      const amount=Math.round(base*mult*(cur.qty||1));
+      if(amount>0)charges.shared.push({item:item.key,label:item.label,baseCharge:base,severity:`${condIn}→${cur.condition}`,amount,splitBy:occupants,note:cur.notes||''});
+    }
+  });
+
+  const bathCost=parseFloat(document.getElementById('bath_cost').value)||0;
+  if(bathCost>0){
+    const bathOcc=parseInt(document.getElementById('bath_occ').value)||occupants;
+    const perPerson=Math.round(bathCost/bathOcc);
+    if(perPerson>0)charges.bathroom.push({item:'bathroom',label:'Bathroom repair',baseCharge:bathCost,severity:'assessed',amount:bathCost,splitBy:bathOcc,note:document.getElementById('bath_notes').value||''});
+  }
+  return charges;
+}
+
+function syncSideDropdowns(){
+  const count=parseInt(document.getElementById('occupantBlocks').dataset.count||0);
+  const taken={};
+  for(let i=0;i<count;i++){
+    const sel=document.getElementById(`occ_side_${i}`);
+    if(sel&&sel.value)taken[sel.value]=(taken[sel.value]||[]).concat(i);
+  }
+  for(let i=0;i<count;i++){
+    const sel=document.getElementById(`occ_side_${i}`);
+    if(!sel)continue;
+    Array.from(sel.options).forEach(opt=>{
+      if(!opt.value)return;
+      const owners=taken[opt.value]||[];
+      opt.disabled=owners.length>0&&!owners.includes(i);
+    });
+  }
+  refreshChargesPreview();
+}
+
+function refreshChargesPreview(){
+  if(document.getElementById('insp_type').value!=='move-out'){document.getElementById('chargesPreview').style.display='none';return;}
+  const room=document.getElementById('insp_room').value;
+  const moveInRec=inspections.filter(r=>r.room===room&&r.type==='move-in')
+                              .sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt))[0];
+  const sideA=readSideItems('A'),sideB=readSideItems('B'),shared=readSharedItems();
+  const bathroom={condition:document.getElementById('bath_cond').value,repairCost:parseFloat(document.getElementById('bath_cost').value)||0,notes:document.getElementById('bath_notes').value};
+  const charges=generateCharges(moveInRec,sideA,sideB,shared);
+  const container=document.getElementById('chargesPreviewContent');
+  container.innerHTML='';
+  const occupants=getOccupants().length||2;
+  let grandTotal=0;
+  [['sideA','Side A (door)','#2c7a4d'],['sideB','Side B (balcony)','#2980b9'],['shared','Shared (per person)','#e67e22'],['bathroom','Bathroom (per person)','#6f42c1']].forEach(([key,title,color])=>{
+    const items=charges[key];if(!items||!items.length)return;
+    const isSplit=key==='shared'||key==='bathroom';
+    let sectionTotal=0;
+    const rows=items.map(c=>{
+      const displayAmt=isSplit?Math.round(c.amount/(c.splitBy||occupants)):c.amount;
+      sectionTotal+=displayAmt;
+      grandTotal+=displayAmt;
+      return `<div class="charge-row"><span class="charge-lbl">${escapeHtml(c.label)} <span style="font-size:.68rem;color:#888">${c.severity}</span></span><span>฿${displayAmt.toLocaleString()}</span></div>`;
+    }).join('');
+    container.innerHTML+=`<div style="margin-bottom:10px"><strong style="color:${color};font-size:.78rem">${title}</strong>${rows}<div style="text-align:right;font-size:.76rem;color:#666">Subtotal: ฿${sectionTotal.toLocaleString()}</div></div>`;
+  });
+  if(grandTotal>0){container.innerHTML+=`<div class="total-row" style="text-align:right">Total Charges (all sides + per-person splits): ฿${grandTotal.toLocaleString()}</div>`;}
+  else{container.innerHTML='<p style="color:#2c7a4d;font-size:.8rem">No damage charges generated — all items at same or better condition.</p>';}
+  document.getElementById('chargesPreview').style.display='block';
+}
+
+function saveInspection(){
+  const room=document.getElementById('insp_room').value;
+  const type=document.getElementById('insp_type').value;
+  if(!room){alert('Please select a room.');return;}
+  const occupants=getOccupants();
+  const sideA=readSideItems('A'),sideB=readSideItems('B'),shared=readSharedItems();
+  const bathCond=document.getElementById('bath_cond').value;
+  const bathCost=parseFloat(document.getElementById('bath_cost').value)||0;
+  const bathOcc=parseInt(document.getElementById('bath_occ').value)||occupants.length||2;
+  const bathroom={condition:bathCond,repairCost:bathCost,sharedOccupants:bathOcc,notes:document.getElementById('bath_notes').value};
+
+  let charges=null;
+  let moveInId=null;
+  if(type==='move-out'){
+    const moveInRec=inspections.filter(r=>r.room===room&&r.type==='move-in')
+                                .sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt))[0];
+    if(moveInRec)moveInId=moveInRec.id;
+    charges=generateCharges(moveInRec,sideA,sideB,shared);
+    // Flag Poor/Missing items → maintenance stubs
+    pushMaintenanceStubs(room,sideA,sideB,shared,bathCond);
+  }
+
+  const rec={
+    id:Date.now(),
+    room,
+    type,
+    semester:document.getElementById('insp_semester').value,
+    date:document.getElementById('insp_date').value,
+    recordedBy:DormDB.getCurrentUser(),
+    recordedAt:new Date().toISOString(),
+    occupants,
+    sideA,sideB,shared,bathroom,
+    moveInId,
+    charges,
+  };
+  inspections.unshift(rec);
+  DormDB.saveInspections(inspections);
+  closeModal('inspModal');
+  renderList();
+  showToast(`✅ ${type==='move-in'?'Move-In':'Move-Out'} inspection saved for Room ${room}`);
+}
+
+function pushMaintenanceStubs(room,sideA,sideB,shared,bathCond){
+  const maint=DormDB.getMaintenance();
+  const now=new Date().toISOString();
+  const addStub=(label,cond)=>{
+    if(cond==='poor'||cond==='missing'){
+      maint.push({id:Date.now()+Math.random(),room,item:label,reportedAt:now,status:'Open',
+        urgency:cond==='missing'?'High':'Normal',
+        notes:`Move-out inspection: condition is ${cond}`,linkedInspection:true});
+    }
+  };
+  SIDE_ITEMS.forEach(item=>{if(sideA[item.key])addStub('Side A — '+item.label,sideA[item.key].condition);});
+  SIDE_ITEMS.forEach(item=>{if(sideB[item.key])addStub('Side B — '+item.label,sideB[item.key].condition);});
+  SHARED_ITEMS.forEach(item=>{if(shared[item.key])addStub(item.label,shared[item.key].condition);});
+  if(bathCond==='poor'||bathCond==='missing')maint.push({id:Date.now()+Math.random(),room,item:'Bathroom',reportedAt:now,status:'Open',urgency:bathCond==='missing'?'High':'Normal',notes:`Move-out inspection: bathroom condition is ${bathCond}`,linkedInspection:true});
+  DormDB.saveMaintenance(maint);
+}
+
+// ══ Edit Charges ═══════════════════════════════════════════════════════════
+function openEditCharges(id){
+  const rec=inspections.find(r=>String(r.id)===String(id));
+  if(!rec||!rec.charges){alert('No charges found for this inspection.');return;}
+  _editingId=String(id);
+  document.getElementById('ec_bathCost').value=rec.bathroom?rec.bathroom.repairCost||0:0;
+  document.getElementById('ec_bathOcc').value=rec.bathroom?rec.bathroom.sharedOccupants||2:2;
+  const container=document.getElementById('ec_chargeLines');
+  container.innerHTML='';
+  const occupants=(rec.occupants||[]).length||2;
+  const allLines=[
+    ...(rec.charges.sideA||[]).map(c=>({...c,group:'sideA',label:'Side A — '+c.label})),
+    ...(rec.charges.sideB||[]).map(c=>({...c,group:'sideB',label:'Side B — '+c.label})),
+    ...(rec.charges.shared||[]).map(c=>({...c,group:'shared',label:'Shared — '+c.label})),
+  ];
+  allLines.forEach((c,i)=>{
+    const div=document.createElement('div');div.className='charge-row';
+    div.innerHTML=`<span class="charge-lbl">${escapeHtml(c.label)} <span style="font-size:.66rem;color:#888">(${c.severity})</span></span>
+      <input type="number" class="charge-inp" id="ec_line_${i}" data-group="${c.group}" data-item="${c.item}" value="${c.amount}" min="0" oninput="updateEcTotal()"> ฿`;
+    container.appendChild(div);
+  });
+  container.dataset.count=allLines.length;
+  updateEcTotal();
+  openModal('editChargesModal');
+}
+
+function updateEcTotal(){
+  const count=parseInt(document.getElementById('ec_chargeLines').dataset.count||0);
+  let total=0;
+  for(let i=0;i<count;i++){const el=document.getElementById(`ec_line_${i}`);if(el)total+=parseFloat(el.value)||0;}
+  const bathCost=parseFloat(document.getElementById('ec_bathCost').value)||0;
+  // Bath is already in the charges list as 'bathroom' group — recalc per person
+  document.getElementById('ec_total').textContent='Total in record: ฿'+total.toLocaleString();
+}
+
+function saveEditedCharges(){
+  const rec=inspections.find(r=>String(r.id)===String(_editingId));
+  if(!rec)return;
+  const container=document.getElementById('ec_chargeLines');
+  const count=parseInt(container.dataset.count||0);
+  // Rebuild charge arrays from form
+  const grouped={sideA:[],sideB:[],shared:[],bathroom:[]};
+  const allLines=[
+    ...(rec.charges.sideA||[]).map(c=>({...c,group:'sideA'})),
+    ...(rec.charges.sideB||[]).map(c=>({...c,group:'sideB'})),
+    ...(rec.charges.shared||[]).map(c=>({...c,group:'shared'})),
+  ];
+  for(let i=0;i<count;i++){
+    const el=document.getElementById(`ec_line_${i}`);
+    if(!el)continue;
+    const updated={...allLines[i],amount:parseFloat(el.value)||0};
+    grouped[allLines[i].group].push(updated);
+  }
+  // Carry forward bathroom charges; amount controlled by ec_bathCost only
+  grouped.bathroom=(rec.charges.bathroom||[]).map(c=>({...c}));
+  rec.charges=grouped;
+  // Update bathroom repairCost
+  if(rec.bathroom){
+    rec.bathroom.repairCost=parseFloat(document.getElementById('ec_bathCost').value)||0;
+    rec.bathroom.sharedOccupants=parseInt(document.getElementById('ec_bathOcc').value)||2;
+    // Keep bathroom charge in sync with repairCost
+    if(grouped.bathroom.length){grouped.bathroom[0].amount=rec.bathroom.repairCost;}
+  }
+  DormDB.saveInspections(inspections);
+  closeModal('editChargesModal');
+  renderList();
+  showToast('✅ Charges updated.');
+}
+
+// ══ Charges Tab ════════════════════════════════════════════════════════════
+function renderCharges(){
+  const container=document.getElementById('chargesPanel');
+  const search=(document.getElementById('chargeSearchInp').value||'').toLowerCase().trim();
+  const moveOuts=inspections.filter(r=>r.type==='move-out'&&r.charges);
+  if(!moveOuts.length){container.innerHTML='<div class="empty-msg">No move-out inspections with charges yet.</div>';return;}
+  const studentMap={};
+  moveOuts.forEach(rec=>{
+    const occupants=(rec.occupants||[]);
+    const totalOcc=occupants.length||2;
+    occupants.forEach(occ=>{
+      const key=occ.studentId||occ.name;
+      if(!key)return;
+      const sideKey=occ.side?`side${occ.side}`:null;
+      const sideCharges=sideKey?(rec.charges[sideKey]||[]):[];
+      const sharedPer=(rec.charges.shared||[]).reduce((a,c)=>a+c.amount/(c.splitBy||totalOcc),0);
+      const bathPer=(rec.charges.bathroom||[]).reduce((a,c)=>a+c.amount,0)/((rec.bathroom&&rec.bathroom.sharedOccupants)||totalOcc);
+      const total=Math.round(sideCharges.reduce((a,c)=>a+c.amount,0)+sharedPer+bathPer);
+      if(!studentMap[key])studentMap[key]={name:occ.name,studentId:occ.studentId,entries:[]};
+      studentMap[key].entries.push({room:rec.room,date:rec.date,semester:rec.semester,total,sideCharges,sharedPer:Math.round(sharedPer),bathPer:Math.round(bathPer)});
+    });
+  });
+
+  const keys=Object.keys(studentMap).filter(k=>{
+    if(!search)return true;
+    const s=studentMap[k];
+    return (s.name||'').toLowerCase().includes(search)||(s.studentId||'').toLowerCase().includes(search)||
+           s.entries.some(e=>(e.room||'').toLowerCase().includes(search));
+  });
+  if(!keys.length){container.innerHTML='<div class="empty-msg">No matching charges found.</div>';return;}
+  container.innerHTML='';
+  keys.forEach(k=>{
+    const s=studentMap[k];
+    const grandTotal=s.entries.reduce((a,e)=>a+e.total,0);
+    const div=document.createElement('div');div.className='card charges-student-block';
+    let rows=s.entries.map(e=>`<div class="charge-row">
+      <span class="charge-lbl"><strong>${escapeHtml(e.room)}</strong> · ${e.date||''} · ${escapeHtml(e.semester||'')}</span>
+      <span>Side: ฿${(e.sideCharges.reduce((a,c)=>a+c.amount,0)).toLocaleString()} &nbsp;|&nbsp; Shared: ฿${e.sharedPer.toLocaleString()} &nbsp;|&nbsp; Bath: ฿${e.bathPer.toLocaleString()} &nbsp;=&nbsp; <strong>฿${e.total.toLocaleString()}</strong></span>
+    </div>`).join('');
+    div.innerHTML=`<h4>${escapeHtml(s.name||'—')}${s.studentId?` <span style="font-size:.72rem;color:#888">(${escapeHtml(s.studentId)})</span>`:''}</h4>
+      ${rows}<div class="total-row" style="text-align:right">Total charges: ฿${grandTotal.toLocaleString()}</div>`;
+    container.appendChild(div);
+  });
+}
+
+// ══ Settings ═══════════════════════════════════════════════════════════════
+function renderSettings(){
+  const def=getDefaultCharges();
+  const container=document.getElementById('settingsFurnitureFields');
+  container.innerHTML='';
+  SIDE_ITEMS.forEach(item=>{
+    const div=document.createElement('div');div.className='fg';
+    div.innerHTML=`<label>${item.label}</label><input type="number" id="set_${item.key}" value="${def[item.key]||0}" min="0"> ฿`;
+    container.appendChild(div);
+  });
+  SHARED_ITEMS.filter(i=>i.base>0).forEach(item=>{
+    const div=document.createElement('div');div.className='fg';
+    div.innerHTML=`<label>${item.label} (shared)</label><input type="number" id="set_${item.key}" value="${def[item.key]||0}" min="0"> ฿`;
+    container.appendChild(div);
+  });
+}
+
+function saveDefaultCharges(){
+  const d={};
+  SIDE_ITEMS.forEach(i=>{const el=document.getElementById('set_'+i.key);if(el)d[i.key]=parseFloat(el.value)||0;});
+  SHARED_ITEMS.forEach(i=>{const el=document.getElementById('set_'+i.key);if(el)d[i.key]=parseFloat(el.value)||0;});
+  localStorage.setItem('dormInspDefaultCharges',JSON.stringify(d));
+  showToast('✅ Default costs saved.');
+}
+
+function resetDefaultCharges(){
+  if(!confirm('Reset all default costs to the code defaults? Your saved overrides will be lost.'))return;
+  localStorage.removeItem('dormInspDefaultCharges');
+  renderSettings();
+  showToast('✅ Reset to code defaults. Click "Save Costs" to keep them.');
+}
+
+function saveSemesterPref(){
+  const val=document.getElementById('defaultSemester').value.trim();
+  if(val)localStorage.setItem('dormInspSemester',val);
+  showToast('✅ Semester label saved.');
+}
+
+// ══ Print — Inspection Sheet ════════════════════════════════════════════════
+function printInspectionSheet(id){
+  const rec=inspections.find(r=>String(r.id)===String(id));
+  if(!rec){alert('Inspection not found.');return;}
+  const isOut=rec.type==='move-out';
+  const condLabel={good:'Good',average:'Average',poor:'Poor',missing:'Missing','n/a':'N/A'};
+  const markCol=(cond,target)=>cond===target?'✓':'';
+
+  function itemRows(items,dataObj,chargeArr){
+    return items.map(item=>{
+      const d=dataObj&&dataObj[item.key]?dataObj[item.key]:{qty:item.qty,condition:'—'};
+      const c=chargeArr?chargeArr.find(x=>x.item===item.key):null;
+      return `<tr>
+        <td>${item.label}</td><td style="text-align:center">${d.qty||item.qty}</td>
+        <td style="text-align:center">${markCol(d.condition,'good')}</td>
+        <td style="text-align:center">${markCol(d.condition,'average')}</td>
+        <td style="text-align:center">${markCol(d.condition,'poor')}</td>
+        <td style="text-align:center">${markCol(d.condition,'missing')}</td>
+        ${chargeArr!==null?`<td style="text-align:right">${c?'฿'+c.amount.toLocaleString():''}</td>`:''}
+        <td style="font-size:.72rem;color:#555">${d.notes||''}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function tableHead(withCharge){
+    return `<tr style="background:#f0f4f8">
+      <th style="text-align:left;width:35%">Item</th><th style="width:35px">Qty</th>
+      <th style="width:52px">Good</th><th style="width:60px">Average</th><th style="width:40px">Poor</th><th style="width:60px">Missing</th>
+      ${withCharge?'<th style="width:70px;text-align:right">Charge</th>':''}
+      <th>Notes</th>
+    </tr>`;
+  }
+
+  const bathCharge=isOut&&rec.charges?(rec.charges.bathroom||[])[0]:null;
+  const occupantsSummary=(rec.occupants||[]).map(o=>`${o.name||'—'} (Side ${o.side||'?'})`).join(', ');
+
+  const html=`<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<style>
+@page{size:A4 portrait;margin:12mm}
+body{font-family:'Segoe UI',sans-serif;font-size:.78rem;color:#222}
+h2{color:#1e3a5f;font-size:1rem;margin:0 0 4px}
+.subtitle{font-size:.72rem;color:#555;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th,td{border:1px solid #bbb;padding:4px 6px;vertical-align:middle}
+th{background:#f0f4f8;font-size:.7rem}
+.sec{background:#1e3a5f;color:#fff;padding:3px 8px;font-size:.72rem;font-weight:700;letter-spacing:.05em;margin:10px 0 0}
+.sec.green{background:#2c7a4d}.sec.blue{background:#2980b9}.sec.orange{background:#e67e22}.sec.purple{background:#6f42c1}
+.sig{margin-top:20px;display:flex;gap:40px}
+.sig-line{flex:1;border-top:1px solid #888;padding-top:4px;font-size:.72rem;color:#666}
+.total-row td{background:#1e3a5f;color:#fff;font-weight:700}
+</style>
+</head><body>
+<h2>${DormDB.getDormName()} — Room Inspection Checklist</h2>
+<div class="subtitle">
+  Room: <strong>${rec.room}</strong> &nbsp;|&nbsp;
+  Type: <strong>${isOut?'Move-Out':'Move-In'}</strong> &nbsp;|&nbsp;
+  Date: <strong>${rec.date||''}</strong> &nbsp;|&nbsp;
+  Semester: <strong>${rec.semester||''}</strong><br>
+  Occupants: ${occupantsSummary}<br>
+  Recorded by: ${rec.recordedBy||''}
+</div>
+
+<div class="sec green">Side A — Near Door (Furniture)</div>
+<table>${tableHead(isOut)}<tbody>${itemRows(SIDE_ITEMS,rec.sideA,isOut?(rec.charges.sideA||[]):null)}</tbody></table>
+
+<div class="sec blue">Side B — Near Balcony (Furniture)</div>
+<table>${tableHead(isOut)}<tbody>${itemRows(SIDE_ITEMS,rec.sideB,isOut?(rec.charges.sideB||[]):null)}</tbody></table>
+
+<div class="sec orange">Shared Room Fixtures</div>
+<table>${tableHead(isOut)}<tbody>${itemRows(SHARED_ITEMS,rec.shared,isOut?(rec.charges.shared||[]):null)}</tbody></table>
+
+<div class="sec purple">Shared Bathroom</div>
+<table>
+  <thead><tr style="background:#f0f4f8">
+    <th>Condition</th><th>Repair Cost</th><th>Shared by</th>
+    ${isOut?'<th>Per-person charge</th>':''}
+    <th>Notes</th>
+  </tr></thead>
+  <tbody><tr>
+    <td>${condLabel[rec.bathroom&&rec.bathroom.condition]||'—'}</td>
+    <td>${rec.bathroom&&rec.bathroom.repairCost?'฿'+rec.bathroom.repairCost.toLocaleString():'—'}</td>
+    <td>${rec.bathroom&&rec.bathroom.sharedOccupants||'—'} persons</td>
+    ${isOut?`<td>${bathCharge?'฿'+Math.round(bathCharge.amount/(rec.bathroom.sharedOccupants||1)).toLocaleString():'—'}</td>`:''}
+    <td>${(rec.bathroom&&rec.bathroom.notes)||''}</td>
+  </tr></tbody>
+</table>
+
+${isOut&&rec.charges?`
+<div class="sec" style="background:#e65100">Damage Charges Summary</div>
+<table>
+  <thead><tr style="background:#f0f4f8"><th>Category</th><th>Item</th><th>Severity</th><th style="text-align:right">Amount</th></tr></thead>
+  <tbody>
+  ${[...(rec.charges.sideA||[]).map(c=>['Side A',c]),...(rec.charges.sideB||[]).map(c=>['Side B',c]),...(rec.charges.shared||[]).map(c=>['Shared ÷'+((c.splitBy)||2),c]),...(rec.charges.bathroom||[]).map(c=>['Bathroom ÷'+(rec.bathroom&&rec.bathroom.sharedOccupants||2),c])].map(([cat,c])=>
+    `<tr><td>${cat}</td><td>${c.label}</td><td>${c.severity}</td><td style="text-align:right">฿${c.amount.toLocaleString()}</td></tr>`
+  ).join('')}
+  <tr class="total-row"><td colspan="3">Total in record</td><td style="text-align:right">฿${calcChargeTotal(rec).toLocaleString()}</td></tr>
+  </tbody>
+</table>`:''}
+
+<div class="sig">
+  <div class="sig-line">Student's Signature: __________________________ &nbsp; Date: __________</div>
+  <div class="sig-line">Dean's Signature: __________________________ &nbsp; Date: __________</div>
+</div>
+</body></html>`;
+
+  const w=window.open('','_blank','width=794,height=1050');
+  w.document.write(html);
+  w.document.close();
+  w.onload=()=>w.print();
+}
+
+// ══ Print — Room Cost Sheet (A5) ═══════════════════════════════════════════
+function printRoomCostSheet(room){
+  if(!room){alert('Please select a room.');return;}
+  const def=getDefaultCharges();
+  const html=`<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<style>
+@page{size:A5 portrait;margin:10mm}
+body{font-family:'Segoe UI',sans-serif;font-size:.75rem;color:#222}
+h2{color:#1e3a5f;font-size:.95rem;margin:0 0 2px;text-align:center}
+.subtitle{font-size:.68rem;color:#555;text-align:center;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:.72rem}
+th,td{border:1px solid #bbb;padding:3px 6px}
+th{background:#f0f4f8;font-size:.68rem}
+.sec{background:#1e3a5f;color:#fff;padding:2px 6px;font-size:.68rem;font-weight:700;letter-spacing:.04em;margin:6px 0 0}
+.sec.green{background:#2c7a4d}.sec.blue{background:#2980b9}.sec.orange{background:#e67e22}.sec.purple{background:#6f42c1}
+.note{font-size:.65rem;color:#555;margin-top:8px;border-top:1px solid #ccc;padding-top:5px;line-height:1.4}
+</style>
+</head><body>
+<h2>${DormDB.getDormName()}</h2>
+<div class="subtitle">Room <strong>${room}</strong> — Inventory &amp; Replacement Costs<br>Printed: ${new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+
+<div class="sec green">Side A — Near Door (each student's responsibility)</div>
+<table><thead><tr style="background:#f0f4f8"><th>Item</th><th style="width:30px;text-align:center">Qty</th><th style="width:80px;text-align:right">Cost (฿)</th></tr></thead>
+<tbody>
+${SIDE_ITEMS.map(i=>`<tr><td>${i.label}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${(def[i.key]||0)>0?'฿'+(def[i.key]).toLocaleString():'—'}</td></tr>`).join('')}
+</tbody></table>
+
+<div class="sec blue">Side B — Near Balcony (each student's responsibility)</div>
+<table><thead><tr style="background:#f0f4f8"><th>Item</th><th style="width:30px;text-align:center">Qty</th><th style="width:80px;text-align:right">Cost (฿)</th></tr></thead>
+<tbody>
+${SIDE_ITEMS.map(i=>`<tr><td>${i.label}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${(def[i.key]||0)>0?'฿'+(def[i.key]).toLocaleString():'—'}</td></tr>`).join('')}
+</tbody></table>
+
+<div class="sec orange">Shared Fixtures (split equally between occupants)</div>
+<table><thead><tr style="background:#f0f4f8"><th>Item</th><th style="width:80px;text-align:right">Cost (฿)</th></tr></thead>
+<tbody>
+${SHARED_ITEMS.map(i=>`<tr><td>${i.label}${i.qty>1?' (×'+i.qty+')':''}</td><td style="text-align:right">${(def[i.key]||0)>0?'฿'+(def[i.key]).toLocaleString()+' ea':'—'}</td></tr>`).join('')}
+</tbody></table>
+
+<div class="sec purple">Shared Bathroom</div>
+<table><tbody>
+  <tr><td>Bathroom repairs</td><td style="text-align:right">Actual cost ÷ occupants</td></tr>
+</tbody></table>
+
+<div class="note">
+  <strong>Note:</strong> Replacement costs apply at move-out if an item's condition has deteriorated from its move-in record. Items marked "—" are assessed by the Dean at checkout. Students are responsible for items on their own side. Shared fixtures and bathroom costs are divided equally among occupants.<br>
+  <em>Paid Key Deposit: 100 ฿ (refundable on key return)</em>
+</div>
+</body></html>`;
+  const w=window.open('','_blank','width=600,height=840');
+  w.document.write(html);
+  w.document.close();
+  w.onload=()=>w.print();
+}
+
+// ══ Utilities ══════════════════════════════════════════════════════════════
+function styleCondSel(sel){
+  sel.className='cond-sel '+(sel.value==='n/a'?'na':sel.value);
+}
+
+function openModal(id){document.getElementById(id).style.display='block';document.body.style.overflow='hidden';}
+function closeModal(id){document.getElementById(id).style.display='none';document.body.style.overflow='';}
+
+function showToast(msg){
+  const t=document.createElement('div');t.textContent=msg;
+  Object.assign(t.style,{position:'fixed',bottom:'24px',right:'24px',background:'#1e3a5f',color:'#fff',padding:'10px 18px',borderRadius:'8px',fontSize:'.85rem',boxShadow:'0 2px 8px rgba(0,0,0,.3)',zIndex:9999});
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3000);
+}
+
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){['inspModal','editChargesModal'].forEach(id=>{if(document.getElementById(id).style.display==='block')closeModal(id);});}});
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>

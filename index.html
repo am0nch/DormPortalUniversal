@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dormitory Administration — APIU</title>
+<script src="dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+
+/* ── Menu layout ── */
+.menu-wrap{max-width:1100px;margin:0 auto;padding:28px 20px 40px}
+.menu-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px;padding-bottom:18px;border-bottom:2px solid #d9e6f5}
+.menu-header-left h1{color:#1e3a5f;font-size:1.5rem;font-weight:800}
+.menu-header-left p{color:#888;font-size:.8rem;margin-top:3px}
+.menu-header-right{text-align:right;font-size:.78rem;color:#666;line-height:1.6}
+.menu-header-right strong{color:#1e3a5f}
+
+/* ── Module grid ── */
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:800px){.module-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.module-grid{grid-template-columns:1fr}}
+
+.module-card{display:block;background:#fff;border-radius:14px;padding:22px 20px;text-decoration:none;color:inherit;border:2px solid transparent;box-shadow:0 2px 10px rgba(0,0,0,.07);transition:border-color .15s,box-shadow .15s,transform .1s;position:relative}
+.module-card:hover{border-color:#1e3a5f;box-shadow:0 4px 20px rgba(30,58,95,.15);transform:translateY(-2px)}
+.module-card.coming-soon{opacity:.45;pointer-events:none;cursor:default}
+.card-icon{font-size:2rem;margin-bottom:10px;display:block}
+.card-title{font-size:1rem;font-weight:700;color:#1e3a5f;margin-bottom:4px}
+.card-desc{font-size:.76rem;color:#666;line-height:1.5;margin-bottom:12px}
+.card-stats{display:flex;flex-wrap:wrap;gap:5px;min-height:20px}
+.stat-pill{font-size:.7rem;padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.stat-pill.blue{background:#e8f4fd;color:#1565c0}
+.stat-pill.orange{background:#fff3e0;color:#e65100}
+.stat-pill.red{background:#fdecea;color:#c62828}
+.stat-pill.green{background:#e8f5e9;color:#2e7d32}
+.stat-pill.gray{background:#f0f0f0;color:#555}
+.coming-tag{position:absolute;top:12px;right:14px;font-size:.65rem;background:#e9ecef;color:#888;padding:2px 7px;border-radius:10px;font-weight:600}
+
+/* ── Footer ── */
+.menu-footer{margin-top:32px;padding-top:18px;border-top:1px solid #d9e6f5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.74rem;color:#aaa}
+.menu-footer a{color:#7b61ff;text-decoration:none}
+.btn-export{background:#1e3a5f;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700}
+.btn-export:hover{opacity:.88}
+</style>
+</head>
+<body>
+
+<div class="menu-wrap">
+  <div class="menu-header">
+    <div class="menu-header-left">
+      <h1>🏛️ Dormitory Administration &nbsp;<span id="headerDormName" style="font-weight:500;color:#2d5a8e"></span></h1>
+      <p>Asia-Pacific International University &nbsp;·&nbsp; Dormitory Management System</p>
+    </div>
+    <div class="menu-header-right">
+      <div id="headerDate"></div>
+      <div>User: <strong id="headerUser"></strong></div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:6px;justify-content:flex-end">
+        <label style="font-size:.75rem;color:#888">🏢 Dorm:</label>
+        <select id="menuDormSelect" onchange="updateMenuDorm()"
+          style="font-size:.75rem;padding:2px 6px;border-radius:5px;border:1px solid #ccc">
+          <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+          <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+          <option value="Other">Other (custom)</option>
+        </select>
+        <input type="text" id="menuCustomDorm" placeholder="Custom name"
+          style="display:none;font-size:.75rem;width:120px;padding:2px 6px;border-radius:5px;border:1px solid #ccc"
+          oninput="updateMenuDorm()">
+      </div>
+    </div>
+  </div>
+
+  <div class="module-grid" id="moduleGrid"></div>
+
+  <div class="menu-footer">
+    <span>DormPortalUniversal v4 &nbsp;·&nbsp; Developed using <a href="https://claude.ai/code" target="_blank">Claude Code</a> by <strong style="color:#888">Richmond Ilao</strong></span>
+    <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreAll(this)">
+    <button class="btn-export" onclick="document.getElementById('restoreInput').click()">📂 Restore Backup</button>
+    <button class="btn-export" onclick="exportAll()">💾 Export All Data</button>
+  </div>
+</div>
+
+<script>
+const MODULES = [
+  {
+    icon: '🛏️',
+    title: 'Room Reservations',
+    desc: 'Student beds, check-in/out, clearance forms, room holds, and incoming queue.',
+    file: 'modules/room-reservations.html',
+    ready: true,
+    getStats(s) {
+      const pills = [{ label: s.totalStudents + ' students', cls: 'blue' }];
+      if (s.checkingOut > 0) pills.push({ label: s.checkingOut + ' checking out', cls: 'orange' });
+      if (s.inQueue > 0)     pills.push({ label: s.inQueue + ' in queue', cls: 'blue' });
+      if (s.awayCount > 0)   pills.push({ label: s.awayCount + ' away', cls: 'gray' });
+      return pills;
+    }
+  },
+  {
+    icon: '👤',
+    title: 'Student Profiles',
+    desc: 'Full student directory — IDs, contacts, course, year, and personal records.',
+    file: 'modules/student-profiles.html',
+    ready: true,
+    getStats(s) {
+      if (!s.profileCount) return [{ label: 'No profiles yet', cls: 'gray' }];
+      const pills = [{ label: s.profileCount + ' profiles', cls: 'blue' }];
+      if (s.profilesComplete > 0) pills.push({ label: s.profilesComplete + ' complete', cls: 'green' });
+      const incomplete = s.profileCount - s.profilesComplete;
+      if (incomplete > 0) pills.push({ label: incomplete + ' incomplete', cls: 'orange' });
+      return pills;
+    }
+  },
+  {
+    icon: '🏢',
+    title: 'Floor Plan',
+    desc: 'Visual room grid with occupancy status and hot water bathroom pairing configuration.',
+    file: 'modules/floor-plan.html',
+    ready: true,
+    getStats(s) {
+      const pills = [];
+      if (s.totalStudents > 0) pills.push({ label: s.totalStudents + ' students', cls: 'blue' });
+      return pills;
+    }
+  },
+  {
+    icon: '⚡',
+    title: 'Electricity & Hot Water',
+    desc: 'Track utility meter readings and split bills equally among room occupants per billing period.',
+    file: 'modules/utilities.html',
+    ready: true,
+    getStats() { return []; }
+  },
+  {
+    icon: '📊',
+    title: 'Reports',
+    desc: 'Custom reports, pivot summaries, hold and storage reports, and the full room history archive.',
+    file: 'modules/reports.html',
+    ready: true,
+    getStats(s) {
+      const pills = [];
+      if (s.archived > 0) pills.push({ label: s.archived + ' archived', cls: 'gray' });
+      return pills.length ? pills : [{ label: 'No data yet', cls: 'gray' }];
+    }
+  },
+  {
+    icon: '🔑',
+    title: 'Key Inventory',
+    desc: 'Track every room key — assignments, returns, lost keys, and spare stock.',
+    file: 'modules/key-inventory.html',
+    ready: true,
+    getStats(s) {
+      const pills = [];
+      if (s.keysOverdue > 0) pills.push({ label: s.keysOverdue + ' overdue', cls: 'red' });
+      if (s.keysLost > 0)    pills.push({ label: s.keysLost + ' lost', cls: 'red' });
+      return pills;
+    }
+  },
+  {
+    icon: '🔍',
+    title: 'Room Inspection',
+    desc: 'Move-in and move-out checklists per room side (A=door / B=balcony). Auto-calculates damage charges and pre-fills clearance forms.',
+    file: 'modules/room-inspection.html',
+    ready: true,
+    getStats(s) {
+      const pills = [];
+      if (s.failedInspections > 0) pills.push({ label: s.failedInspections + ' with charges', cls: 'orange' });
+      return pills.length ? pills : [{ label: 'No inspections yet', cls: 'gray' }];
+    }
+  },
+  {
+    icon: '📦',
+    title: 'Inventory',
+    desc: 'Track all dorm assets — furniture, appliances, fixtures — with barcode labels and room template comparison.',
+    file: 'modules/inventory.html',
+    ready: true,
+    getStats(s) {
+      const pills = [];
+      if (s.lowStock > 0)           pills.push({ label: s.lowStock + ' low stock', cls: 'orange' });
+      if (s.maintenanceFlagged > 0) pills.push({ label: s.maintenanceFlagged + ' needs repair', cls: 'red' });
+      if (!s.lowStock && !s.maintenanceFlagged) pills.push({ label: 'No issues', cls: 'green' });
+      return pills;
+    }
+  },
+  {
+    icon: '📖',
+    title: "Dean's User Guide",
+    desc: 'Complete reference for all modules — room reservations, inspections, inventory, key tracking, reports, and more.',
+    file: 'modules/userguide.html',
+    ready: true,
+    getStats() {
+      return [{ label: '10 modules covered', cls: 'blue' }];
+    }
+  },
+  {
+    icon: '📅',
+    title: 'Staff Scheduling',
+    desc: 'Manage worker shifts, duty rosters, and attendance for dorm staff.',
+    file: 'modules/staff-scheduling.html',
+    ready: false,
+    getStats() { return []; }
+  },
+  {
+    icon: '🔧',
+    title: 'Maintenance',
+    desc: 'Log plant and repair service requests — track status from open to resolved.',
+    file: 'modules/plant-requests.html',
+    ready: false,
+    getStats(s) {
+      const pills = [];
+      if (s.openMaintenance > 0) pills.push({ label: s.openMaintenance + ' open', cls: 'orange' });
+      if (s.highUrgency > 0)     pills.push({ label: s.highUrgency + ' urgent', cls: 'red' });
+      return pills;
+    }
+  },
+];
+
+function renderCards(stats) {
+  const grid = document.getElementById('moduleGrid');
+  grid.innerHTML = '';
+  MODULES.forEach(m => {
+    const pills = m.getStats(stats);
+    const pillsHtml = pills.length
+      ? pills.map(p => `<span class="stat-pill ${p.cls}">${p.label}</span>`).join('')
+      : '<span class="stat-pill gray">No data yet</span>';
+    const card = document.createElement('a');
+    card.href = m.ready ? m.file : '#';
+    card.className = 'module-card' + (m.ready ? '' : ' coming-soon');
+    card.innerHTML = `
+      ${m.ready ? '' : '<span class="coming-tag">Coming soon</span>'}
+      <span class="card-icon">${m.icon}</span>
+      <div class="card-title">${m.title}</div>
+      <div class="card-desc">${m.desc}</div>
+      <div class="card-stats">${pillsHtml}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function updateHeader() {
+  const name = DormDB.getDormName();
+  document.getElementById('headerDormName').textContent = name ? '— ' + name : '';
+  document.getElementById('headerUser').textContent = DormDB.getCurrentUser();
+  const now = new Date();
+  document.getElementById('headerDate').textContent =
+    now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function updateMenuDorm() {
+  const sel = document.getElementById('menuDormSelect');
+  const ci  = document.getElementById('menuCustomDorm');
+  ci.style.display = sel.value === 'Other' ? 'inline-block' : 'none';
+  localStorage.setItem('dormNameSelect', sel.value);
+  if (sel.value === 'Other') localStorage.setItem('dormNameCustom', ci.value);
+  updateHeader();
+}
+
+function refreshStats() { renderCards(DormDB.getMenuStats()); }
+
+async function restoreAll(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  let dump;
+  try { dump = JSON.parse(await file.text()); }
+  catch { return alert('Invalid backup file — could not parse JSON.'); }
+  if (!confirm('This will overwrite ALL current data with the backup.\n\nAre you sure?')) return;
+  await DormDB.importAll(dump);
+  refreshStats();
+  updateHeader();
+  const toast = document.createElement('div');
+  toast.textContent = '✅ Backup restored successfully';
+  Object.assign(toast.style, {
+    position:'fixed', bottom:'24px', right:'24px', background:'#388e3c',
+    color:'#fff', padding:'10px 18px', borderRadius:'8px', fontSize:'.9rem',
+    boxShadow:'0 2px 8px rgba(0,0,0,.3)', zIndex:9999
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+async function exportAll() {
+  try {
+    const dump = await DormDB.exportAll();
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'DormManager_Backup_' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  } catch(e) {
+    alert('Export failed: ' + e.message);
+  }
+}
+
+// Init
+updateHeader();
+refreshStats();
+const _sn = localStorage.getItem('dormNameSelect');
+const _sc = localStorage.getItem('dormNameCustom');
+if (_sn) {
+  document.getElementById('menuDormSelect').value = _sn;
+  if (_sn === 'Other' && _sc) {
+    document.getElementById('menuCustomDorm').value = _sc;
+    document.getElementById('menuCustomDorm').style.display = 'inline-block';
+  }
+  updateHeader();
+}
+DormDB.on('dormProfiles',    refreshStats);
+DormDB.on('dormData',        refreshStats);
+DormDB.on('dormQueue',       refreshStats);
+DormDB.on('dormHistory',     refreshStats);
+DormDB.on('dormAway',        refreshStats);
+DormDB.on('dormKeysInv',     refreshStats);
+DormDB.on('dormMaintenance', refreshStats);
+DormDB.on('dormInspections', refreshStats);
+DormDB.on('dormInventory',   refreshStats);
+</script>
+</body>
+</html>
