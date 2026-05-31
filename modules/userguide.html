@@ -1060,6 +1060,195 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     </div>
   </section>
 
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 11 ─ ABOUT THIS PROJECT                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-about">
+    <div class="section-header">
+      <span class="section-icon">ℹ️</span>
+      <div class="section-meta">
+        <div class="section-title">About This Project</div>
+        <div class="section-path">DormPortalUniversal v4</div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-about-rationale">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Why This Was Built</div>
+      <div class="collapse-body">
+        <p>This system grew out of a practical problem: dormitory administration at <strong>Asia-Pacific International University (APIU)</strong> relied on paper forms, spreadsheets shared over USB drives, and verbal handoffs between dorm deans. Student room assignments, clearance processing, key tracking, storage rentals, and utility billing were handled through disconnected tools — each with its own file, its own format, and its own risk of data loss.</p>
+        <p>The goal was to consolidate every operational task into a single, self-contained system that:</p>
+        <ul>
+          <li>Requires <strong>no internet connection</strong> — works fully offline on a dean's personal laptop</li>
+          <li>Requires <strong>no installation</strong> — open a file in a browser and start working</li>
+          <li>Requires <strong>no server or IT support</strong> — data lives in the browser, exported as a portable JSON backup</li>
+          <li>Covers the <strong>complete operational workflow</strong> from room reservation to clearance, key handover, room inspection, and asset tracking</li>
+        </ul>
+        <p>Development began in <strong>May 2026</strong> and proceeded module by module based on the daily operational needs of the dorm dean. Every feature added was driven by a real workflow gap identified in practice.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>This project started as a single HTML file (<strong>DormPortalUniversal v4</strong>) and evolved into a multi-module system over 19 development sessions. The architecture was deliberately kept simple — vanilla JavaScript, no frameworks, no build tools — so that any technically-minded dean can open, read, and understand the source code.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-about-github">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Accessing via GitHub Pages</div>
+      <div class="collapse-body">
+        <p>The system is published as a <strong>public GitHub repository with GitHub Pages hosting</strong>. This means:</p>
+        <ul>
+          <li>Any dean at APIU with the link can open the app directly in their browser — no download, no installation</li>
+          <li>The URL follows the pattern: <code>https://&lt;username&gt;.github.io/&lt;repository-name&gt;/</code></li>
+          <li>Each dean who opens the link gets their own <strong>completely separate and private</strong> copy of the data — data is stored in their own browser's localStorage and IndexedDB and is <strong>never uploaded anywhere</strong></li>
+          <li>Opening the same link on a different computer, different browser, or in private/incognito mode starts with a <strong>fresh empty system</strong></li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span><strong>Sharing the link:</strong> Simply copy the GitHub Pages URL and send it to another dean via WhatsApp, email, or any messaging platform. They click it, enter their name, select their dorm, and start using it immediately.</span></div>
+        <div class="warn"><span class="warn-icon">⚠️</span><span><strong>Data does not sync between deans.</strong> Each dean's data is isolated in their own browser. If Elijah Hall and Esther Hall deans both open the same link, they each have a separate, independent database. This is by design — each dorm manages its own records.</span></div>
+        <p>To back up data and move it to another computer:</p>
+        <ol class="steps">
+          <li>On the current computer, click <strong>💾 Export All Data</strong> on the menu page.</li>
+          <li>Save the downloaded <code>.json</code> file to a USB drive or cloud storage (Google Drive, OneDrive).</li>
+          <li>On the new computer, open the GitHub Pages link, then click <strong>📂 Restore Backup</strong> and select the <code>.json</code> file.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-about-updates">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Requesting Future Updates</div>
+      <div class="collapse-body">
+        <p>The system is designed to grow with the needs of the dorm dean. Two remaining modules — <strong>Staff Scheduling</strong> and <strong>Maintenance</strong> — are planned. Additional features or workflow improvements can be requested at any time.</p>
+        <p><strong>How the update cycle works:</strong></p>
+        <ol class="steps">
+          <li>Dean identifies a workflow gap or improvement need and communicates it to the developer.</li>
+          <li>Developer implements the change and pushes the updated files to GitHub.</li>
+          <li><strong>Within 1–2 minutes</strong>, GitHub Pages automatically rebuilds and publishes the new version.</li>
+          <li>All deans who open (or refresh) the link get the latest version immediately — no action required on their part.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span><strong>Backward compatibility:</strong> All updates are designed to be backward compatible. Your existing backup <code>.json</code> files can always be restored into newer versions of the system — new fields are automatically filled in with safe defaults when restoring an older backup.</span></div>
+        <div class="tip"><span class="tip-icon">💡</span><span>If a dean on an older bookmark sees unexpected behaviour after an update, a simple <strong>hard refresh</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) clears the browser cache and loads the latest version.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 12 ─ VERSION HISTORY                                              -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-version">
+    <div class="section-header">
+      <span class="section-icon">📋</span>
+      <div class="section-meta">
+        <div class="section-title">Version History</div>
+        <div class="section-path">DormPortalUniversal — development timeline</div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ver-v4">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4 — Multi-Module System (May 2026)</div>
+      <div class="collapse-body">
+        <p>v4 is the current production release. It rebuilt the system from a single HTML file into a multi-module architecture with a shared data layer (<code>dorm-db.js</code>), an <code>index.html</code> main menu, and individual module files in the <code>modules/</code> folder.</p>
+        <table class="guide-table">
+          <thead><tr><th>Module</th><th>Released</th><th>Key Capabilities</th></tr></thead>
+          <tbody>
+            <tr><td><strong>🛏️ Room Reservations</strong></td><td>May 2026</td><td>17-column table, bed management, clearance forms, room holds, away students, incoming queue, transfer in, storage rental, undo/redo, Excel export/import</td></tr>
+            <tr><td><strong>👤 Student Profiles</strong></td><td>May 2026</td><td>Full student directory, A4 profile card print, Registrar Excel import, MS Forms CSV import, IndexedDB photo storage, Excel export</td></tr>
+            <tr><td><strong>🏢 Floor Plan</strong></td><td>May 2026</td><td>Color-coded room grid by occupancy state, hot water bathroom pairing configuration, A4 landscape print</td></tr>
+            <tr><td><strong>⚡ Electricity &amp; Hot Water</strong></td><td>May 2026</td><td>Monthly meter readings, per-student bill calculation with AC-room normalization, billing period archive, Excel export</td></tr>
+            <tr><td><strong>📊 Reports</strong></td><td>May 2026</td><td>8-tab hub: archive, room report, custom report, pivot, holds, storage, clearance forms, fee collection — print/PDF only</td></tr>
+            <tr><td><strong>🔑 Key Inventory</strong></td><td>May 2026</td><td>Key checkout/return/lost flow, overdue auto-detection, fine recording, shift print sheet, borrower ledger, agreement tab</td></tr>
+            <tr><td><strong>🔍 Room Inspection</strong></td><td>May 2026</td><td>Move-in/out checklists (Side A/B/Shared/Bathroom), damage charge calculation, Edit Charges modal, A4 inspection sheet and A5 cost card, clearance pre-fill</td></tr>
+            <tr><td><strong>📦 Inventory</strong></td><td>May 2026</td><td>Asset tracking with Code 39 barcode labels, room template comparison, condition assessment, maintenance flag push, 6-tab layout</td></tr>
+            <tr><td><strong>📖 Dean's User Guide</strong></td><td>May 2026</td><td>This guide — interactive HTML, sticky TOC, collapsible sections, live search, print-friendly</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:14px"><strong>Coming in future releases:</strong></p>
+        <ul>
+          <li><strong>📅 Staff Scheduling</strong> — worker shifts, duty rosters, and attendance</li>
+          <li><strong>🔧 Maintenance</strong> — plant and repair service request tracking from open to resolved</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ver-v3">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Earlier Versions (v1–v3)</div>
+      <div class="collapse-body">
+        <p>Before v4, the system existed as a series of single-file HTML applications:</p>
+        <table class="guide-table">
+          <thead><tr><th>Version</th><th>Architecture</th><th>Scope</th></tr></thead>
+          <tbody>
+            <tr><td><strong>v1–v2</strong></td><td>Single HTML file</td><td>Basic room table, Excel export via SheetJS, manual save only</td></tr>
+            <tr><td><strong>v3</strong></td><td>Single HTML file (~1,600 lines)</td><td>Room reservations, storage rental, clearance forms, incoming queue, room history archive, room holds, transfer in — all in one file with localStorage persistence and Excel export/import</td></tr>
+            <tr><td><strong>v4</strong></td><td>Multi-module system (11,000+ lines)</td><td>All v3 features extracted into <code>room-reservations.html</code> plus 8 new modules, shared data API, IndexedDB photo subsystem, GitHub Pages hosting</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Excel (<code>.xlsx</code>) backups from v3 can be loaded into v4's Room Reservations module via <strong>📂 Load File</strong> — the import logic is backward compatible.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 13 ─ DISCLAIMER & CREDITS                                         -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-legal">
+    <div class="section-header">
+      <span class="section-icon">⚖️</span>
+      <div class="section-meta">
+        <div class="section-title">Disclaimer &amp; Credits</div>
+        <div class="section-path">Legal · Attribution · Privacy</div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-legal-copyright">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Copyright</div>
+      <div class="collapse-body">
+        <p><strong>Copyright © 2026 Richmond Panganiban Ilao</strong><br>
+        Developed for internal use at <strong>Asia-Pacific International University (APIU)</strong>, Muak Lek, Saraburi, Thailand.</p>
+        <p>This software and all associated source files are the intellectual property of the author. Permission is granted to APIU and its authorized dormitory staff to use, copy, and adapt this system for internal dormitory administration purposes.</p>
+        <p>Redistribution, resale, or use outside of APIU without written permission from the author is not permitted.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>The source code is published on GitHub as a portfolio project to demonstrate the author's software development capabilities. Viewing and studying the code is permitted. Deploying a modified copy for a different institution requires attribution and permission.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-legal-ai">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> AI-Assisted Development</div>
+      <div class="collapse-body">
+        <p>This system was developed using <strong>Claude Code</strong> by <a href="https://claude.ai/code" target="_blank" style="color:#1e3a5f">Anthropic</a> as an AI coding assistant. The development process involved:</p>
+        <ul>
+          <li><strong>Author's contribution:</strong> Requirements definition, workflow design, domain knowledge (dormitory operations), QA testing, architectural decisions, and all operational logic (what the system should do and why)</li>
+          <li><strong>AI's contribution:</strong> Code syntax, implementation of specified features, and technical execution of the author's instructions</li>
+        </ul>
+        <p>The use of AI assistance does not diminish the authorship of this work. All requirements, design decisions, feature specifications, and quality judgments were made by the author. Claude Code translated those decisions into working code.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>This project is analogous to an architect who designs a building using CAD software — the software executes the drawings, but the design, judgment, and professional expertise are entirely the architect's. The same principle applies here.</span></div>
+        <p>This project is intended to demonstrate that domain experts can produce high-quality software systems by effectively directing AI tools — a valuable and increasingly relevant professional skill.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-legal-privacy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Data Privacy</div>
+      <div class="collapse-body">
+        <p>All student and operational data entered into this system is:</p>
+        <ul>
+          <li><strong>Stored locally only</strong> — in the user's own browser (localStorage and IndexedDB). No data is transmitted to any server, cloud service, or third party.</li>
+          <li><strong>Never uploaded to GitHub</strong> — the <code>.gitignore</code> file explicitly excludes all <code>.json</code> and <code>.xlsx</code> data export files from the repository. Only the application source code is published.</li>
+          <li><strong>Isolated per browser</strong> — each dean's data is completely separate. There is no shared database. Two deans using the same GitHub Pages link cannot see each other's data.</li>
+          <li><strong>Exportable and deletable</strong> — deans can export all data at any time via <strong>💾 Export All Data</strong>. Data can be cleared by clearing browser site data for the GitHub Pages domain.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Because data is stored in the browser, it is only as secure as the device. Do not use this system on shared or public computers without clearing the browser data afterwards. Keep exported backup files in a secure location — they contain personal student information.</span></div>
+        <p>This system is intended for use in compliance with APIU's data privacy policies and applicable Thai personal data protection regulations (PDPA, B.E. 2562). The author assumes no liability for data mishandling by users of this system.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-legal-disclaimer">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Disclaimer</div>
+      <div class="collapse-body">
+        <p>This software is provided <strong>"as is"</strong> for internal institutional use at Asia-Pacific International University. While every effort has been made to ensure correctness and reliability:</p>
+        <ul>
+          <li>The author makes <strong>no warranty</strong>, expressed or implied, regarding fitness for any particular purpose.</li>
+          <li>The author is <strong>not liable</strong> for any data loss, incorrect calculations, or operational decisions made based on information displayed by this system.</li>
+          <li>This system is a <strong>management aid</strong> — all financial, disciplinary, or administrative decisions remain the responsibility of the dorm dean and APIU administration.</li>
+          <li>Fee amounts, utility rates, and billing formulas in this system are configured by the dorm dean and reflect institutional policies at the time of configuration. The author is not responsible for incorrect rates or charges.</li>
+        </ul>
+        <p>Users are encouraged to report bugs or unexpected behaviour to the developer so that the system can be improved for everyone's benefit.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>For issues, feature requests, or questions, contact <strong>Richmond Ilao</strong> directly or submit an issue on the project's GitHub repository.</span></div>
+      </div>
+    </div>
+  </section>
+
 </main>
 </div>
 
@@ -1164,6 +1353,21 @@ const TOC = [
       { id:'sub-tips-crossmodule',    text:'Cross-Module Data Flow' },
       { id:'sub-tips-browser',        text:'Browser & Storage Notes' },
       { id:'sub-tips-storage-budget', text:'Storage Size Guidelines' },
+    ]},
+    { id:'sec-about', text:'ℹ️ About This Project', subs:[
+      { id:'sub-about-rationale', text:'Why This Was Built' },
+      { id:'sub-about-github',    text:'Accessing via GitHub Pages' },
+      { id:'sub-about-updates',   text:'Requesting Future Updates' },
+    ]},
+    { id:'sec-version', text:'📋 Version History', subs:[
+      { id:'sub-ver-v4',    text:'v4 — Multi-Module System' },
+      { id:'sub-ver-v3',    text:'Earlier Versions' },
+    ]},
+    { id:'sec-legal', text:'⚖️ Disclaimer & Credits', subs:[
+      { id:'sub-legal-copyright',  text:'Copyright' },
+      { id:'sub-legal-ai',         text:'AI-Assisted Development' },
+      { id:'sub-legal-privacy',    text:'Data Privacy' },
+      { id:'sub-legal-disclaimer', text:'Disclaimer' },
     ]},
   ]},
 ];
