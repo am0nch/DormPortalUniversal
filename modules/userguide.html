@@ -199,6 +199,18 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
   .collapse-body{max-height:none!important}
   .guide-section{page-break-inside:avoid;margin-bottom:24px}
 }
+#scrollTopBtn{
+  position:fixed;bottom:28px;right:28px;z-index:999;
+  width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  background:#1e3a5f;color:#fff;font-size:1.2rem;
+  box-shadow:0 3px 10px rgba(0,0,0,.28);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s;
+  display:flex;align-items:center;justify-content:center;
+}
+#scrollTopBtn.visible{opacity:1;pointer-events:auto;}
+#scrollTopBtn:hover{background:#2d5282;}
+@media print{#scrollTopBtn{display:none}}
 </style>
 </head>
 <body>
@@ -1085,6 +1097,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         </ul>
         <p>Development began in <strong>May 2026</strong> and proceeded module by module based on the daily operational needs of the dorm dean. Every feature added was driven by a real workflow gap identified in practice.</p>
         <div class="note"><span class="note-icon">ℹ️</span><span>This project started as a single HTML file (<strong>DormPortalUniversal v4</strong>) and evolved into a multi-module system over 19 development sessions. The architecture was deliberately kept simple — vanilla JavaScript, no frameworks, no build tools — so that any technically-minded dean can open, read, and understand the source code.</span></div>
+        <div class="tip"><span class="tip-icon">📋</span><span>The <strong>Residence Hall Handbook</strong> module contains the full APIU Residence Hall Handbook in interactive form — all 50+ policies and a quick-reference fines table. Use it as a policy reference alongside this guide. For planned features derived from the handbook, see the <strong>Development Roadmap</strong> section below.</span></div>
       </div>
     </div>
 
@@ -1182,7 +1195,78 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
-  <!-- 13 ─ DISCLAIMER & CREDITS                                         -->
+  <!-- 13 ─ DEVELOPMENT ROADMAP                                          -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-roadmap">
+    <div class="section-header">
+      <span class="section-icon">🗺️</span>
+      <div class="section-meta">
+        <div class="section-title">Development Roadmap</div>
+        <div class="section-path">Gap analysis — APIU Residence Hall Handbook vs. current system</div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-roadmap-gaps">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Planned Dorm Manager Features</div>
+      <div class="collapse-body">
+        <p>These features are not yet built in Dorm Manager. All are offline, dean-side additions that fit the existing architecture.</p>
+        <table class="guide-table">
+          <thead><tr><th>Priority</th><th>Feature</th><th>Scope</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-red">🔴 High</span></td><td><strong>Incident / Discipline Log</strong></td><td>New module — record complaints, violations, disciplinary actions, and outcomes per student</td></tr>
+            <tr><td><span class="badge badge-orange">🟠 Medium</span></td><td><strong>Guest / Visitor Log</strong></td><td>New module — track overnight guests, permission records, 200 Baht fee collection, cohabitation monitoring</td></tr>
+            <tr><td><span class="badge badge-orange">🟠 Medium</span></td><td><strong>Night Check / Room Attendance</strong></td><td>New module — digital nightly check record, absent student flagging, exception tracking</td></tr>
+            <tr><td><span class="badge badge-orange">🟠 Medium</span></td><td><strong>General Fine Ledger</strong></td><td>Enhancement to Reports — track all fines issued (not just storage/keys), payment status</td></tr>
+            <tr><td><span class="badge badge-amber">🟡 Low</span></td><td><strong>Key Deposit + Lockout Log</strong></td><td>Enhancement to Key Inventory — track 100 Baht key deposit payment/refund; log lockout events and 10 Baht fees</td></tr>
+            <tr><td><span class="badge badge-amber">🟡 Low</span></td><td><strong>Vehicle / Parking Registration</strong></td><td>New module — register motorbikes/bicycles, track parking permits, record violations</td></tr>
+            <tr><td><span class="badge badge-amber">🟡 Low</span></td><td><strong>Abandoned Property Tracking</strong></td><td>Enhancement to Inventory — mark items as abandoned, track 12-month hold period, disposal records</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Discuss priorities with the development team at any time. Features are built incrementally — mention which row matters most and it gets scheduled next.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-roadmap-sarra2">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> SARRA2 Integration (Future)</div>
+      <div class="collapse-body">
+        <p><strong>SARRA2</strong> is APIU's existing online student information platform. It already handles several workflows that overlap with dormitory administration:</p>
+        <table class="guide-table">
+          <thead><tr><th>Feature</th><th>Current location</th></tr></thead>
+          <tbody>
+            <tr><td>Campus leave requests (evening, overnight, weekend, extended)</td><td>SARRA2</td></tr>
+            <tr><td>Gate checkpoint / entry-exit logging</td><td>SARRA2</td></tr>
+            <tr><td>Citizenship points (earned, deducted, standing)</td><td>SARRA2</td></tr>
+            <tr><td>Worship &amp; program attendance tracking</td><td>SARRA2</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:12px">These features are <strong>intentionally not duplicated</strong> in Dorm Manager. The Dorm Manager system is focused on offline, dean-side data management — room records, clearance, keys, inspections, utilities, and asset tracking.</p>
+        <div class="tip"><span class="tip-icon">🔗</span><span>A future improvement may connect Dorm Manager and SARRA2 so that relevant data (student IDs, leave status, citizenship standing) flows between the two systems, making the overall Dormitory Management System more robust without replacing either platform.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-roadmap-current">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Currently Supported Policies</div>
+      <div class="collapse-body">
+        <p>The following handbook areas are already addressed by current Dorm Manager modules:</p>
+        <table class="guide-table">
+          <thead><tr><th>Handbook Area</th><th>Module</th></tr></thead>
+          <tbody>
+            <tr><td>Room assignments, check-in/out, room hold, clearance</td><td>🛏️ Room Reservations</td></tr>
+            <tr><td>Storage box tracking and fees</td><td>📦 Storage Rental (in Room Reservations)</td></tr>
+            <tr><td>Key checkout, return, lost key, fines</td><td>🔑 Key Inventory</td></tr>
+            <tr><td>Move-in/out condition, damage charges</td><td>🔍 Room Inspection</td></tr>
+            <tr><td>Asset inventory, maintenance flags</td><td>📦 Inventory</td></tr>
+            <tr><td>Electricity and hot water billing</td><td>⚡ Electricity &amp; Hot Water</td></tr>
+            <tr><td>Student profiles, emergency contact info</td><td>👤 Student Profiles</td></tr>
+            <tr><td>Outstanding fee summary</td><td>📊 Reports → Fee Collection</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 14 ─ DISCLAIMER & CREDITS                                         -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <section class="guide-section" id="sec-legal">
     <div class="section-header">
@@ -1363,6 +1447,11 @@ const TOC = [
       { id:'sub-ver-v4',    text:'v4 — Multi-Module System' },
       { id:'sub-ver-v3',    text:'Earlier Versions' },
     ]},
+    { id:'sec-roadmap', text:'🗺️ Development Roadmap', subs:[
+      { id:'sub-roadmap-gaps',    text:'Planned Features' },
+      { id:'sub-roadmap-current', text:'Currently Supported' },
+      { id:'sub-roadmap-sarra2',  text:'SARRA2 Integration' },
+    ]},
     { id:'sec-legal', text:'⚖️ Disclaimer & Credits', subs:[
       { id:'sub-legal-copyright',  text:'Copyright' },
       { id:'sub-legal-ai',         text:'AI-Assisted Development' },
@@ -1530,6 +1619,19 @@ setupObserver();
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeSidebar();
 });
+
+// Scroll-to-top button
+(function(){
+  const btn = document.createElement('button');
+  btn.id = 'scrollTopBtn';
+  btn.title = 'Back to top';
+  btn.innerHTML = '&#8679;';
+  document.body.appendChild(btn);
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > 300);
+  }, {passive:true});
+  btn.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+})();
 </script>
 </body>
 </html>

@@ -192,6 +192,16 @@ const MODULES = [
     }
   },
   {
+    icon: '📋',
+    title: 'Residence Hall Handbook',
+    desc: 'Interactive reference for all APIU hall policies — fines, leave rules, conduct, safety, and the system development roadmap.',
+    file: 'modules/handbook.html',
+    ready: true,
+    getStats() {
+      return [{ label: '50+ policies', cls: 'blue' }, { label: 'Fines reference', cls: 'orange' }];
+    }
+  },
+  {
     icon: '📅',
     title: 'Staff Scheduling',
     desc: 'Manage worker shifts, duty rosters, and attendance for dorm staff.',

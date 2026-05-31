@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Residence Hall Handbook — Dorm Manager</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f4f8;color:#222;overflow-x:hidden}
+.guide-wrap{display:flex;min-height:100vh}
+.guide-sidebar{
+  width:270px;min-width:270px;background:#1b4332;color:#fff;
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  transition:left .25s;
+}
+.guide-sidebar::-webkit-scrollbar{width:4px}
+.guide-sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:2px}
+.sb-header{
+  padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);
+  font-size:.78rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#a8d4b8;
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
+}
+.sb-search{padding:9px 12px;flex-shrink:0}
+.sb-search input{
+  width:100%;padding:6px 10px;border-radius:6px;border:none;
+  background:rgba(255,255,255,.1);color:#fff;font-size:.79rem;
+}
+.sb-search input::placeholder{color:rgba(255,255,255,.38)}
+.sb-search input:focus{outline:none;background:rgba(255,255,255,.16)}
+nav.toc{padding:4px 0 24px;overflow-y:auto}
+.toc-group-label{
+  font-size:.63rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:rgba(255,255,255,.38);padding:14px 14px 4px;
+}
+.toc-link,.toc-sub{display:block;text-decoration:none;cursor:pointer;transition:all .14s}
+.toc-link{padding:5px 14px 5px 18px;font-size:.79rem;color:rgba(255,255,255,.72);border-left:3px solid transparent}
+.toc-link:hover{color:#fff;background:rgba(255,255,255,.07)}
+.toc-link.active{color:#fff;border-left-color:#52b788;background:rgba(82,183,136,.12)}
+.toc-sub{padding:3px 14px 3px 30px;font-size:.73rem;color:rgba(255,255,255,.48)}
+.toc-sub:hover{color:rgba(255,255,255,.82)}
+.toc-sub.active{color:#95d4a8}
+.guide-main{flex:1;max-width:900px;padding:28px 40px 60px;overflow-x:hidden}
+.guide-nav{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #c3dac8;
+}
+.guide-nav-left{display:flex;align-items:center;gap:10px}
+.back-link{text-decoration:none;color:#1b4332;font-size:.81rem;font-weight:700}
+.back-link:hover{text-decoration:underline}
+.nav-btns{display:flex;gap:8px}
+.hamburger-btn,.print-btn{border:none;border-radius:7px;padding:7px 13px;cursor:pointer;font-size:.78rem;font-weight:700}
+.hamburger-btn{background:#e8f5ee;color:#1b4332;display:none}
+.print-btn{background:#1b4332;color:#fff}
+.print-btn:hover,.hamburger-btn:hover{opacity:.88}
+.guide-hero{margin-bottom:36px}
+.guide-hero h1{font-size:1.55rem;font-weight:800;color:#1b4332}
+.guide-hero .sub{font-size:.78rem;color:#888;margin-top:3px}
+.guide-hero p{margin-top:10px;font-size:.84rem;color:#666;line-height:1.7;max-width:680px}
+.guide-section{margin-bottom:52px;scroll-margin-top:20px}
+.section-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #c3dac8;
+}
+.section-icon{font-size:1.7rem;line-height:1}
+.section-meta .section-title{font-size:1.2rem;font-weight:800;color:#1b4332}
+.section-meta .section-sub{font-size:.72rem;color:#999;margin-top:2px}
+.subsection{margin-bottom:24px;scroll-margin-top:20px}
+.collapse-trigger{
+  font-size:.9rem;font-weight:700;color:#1b4332;margin-bottom:0;
+  cursor:pointer;user-select:none;display:flex;align-items:center;gap:7px;
+  padding:8px 12px;border-radius:8px;background:#eaf5ee;transition:background .14s;
+}
+.collapse-trigger:hover{background:#d8eedf}
+.collapse-trigger .chevron{font-size:.75rem;transition:transform .2s;color:#4a8c62}
+.collapse-trigger.closed .chevron{transform:rotate(-90deg)}
+.collapse-body{padding:14px 16px 4px;overflow:hidden;transition:max-height .25s ease}
+.collapse-body.closed{max-height:0!important;padding-top:0;padding-bottom:0}
+p{font-size:.86rem;color:#444;line-height:1.72;margin-bottom:10px}
+ul,ol{margin:8px 0 12px 20px}
+li{font-size:.86rem;color:#444;line-height:1.7;margin-bottom:3px}
+strong{color:#1b4332}
+code{font-family:'Consolas','Courier New',monospace;font-size:.8rem;background:#f0f4f8;padding:1px 4px;border-radius:3px;color:#c0392b}
+.tip,.note,.warn,.danger{
+  border-radius:8px;padding:10px 14px;font-size:.82rem;line-height:1.65;
+  margin:12px 0;border-left:4px solid;display:flex;gap:9px;align-items:flex-start;
+}
+.tip{background:#e8f5e9;border-color:#43a047;color:#2e7d32}
+.note{background:#e3f2fd;border-color:#1976d2;color:#0d47a1}
+.warn{background:#fff8e1;border-color:#f9a825;color:#6d4c00}
+.danger{background:#fdecea;border-color:#e53935;color:#b71c1c}
+.tip-icon,.note-icon,.warn-icon,.danger-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.guide-table{width:100%;border-collapse:collapse;font-size:.8rem;margin:12px 0;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.guide-table th{background:#1b4332;color:#fff;padding:8px 12px;text-align:left;font-weight:600}
+.guide-table td{padding:7px 12px;border-bottom:1px solid #e8eef4;color:#444;vertical-align:top}
+.guide-table tr:nth-child(even) td{background:#f7fafc}
+.guide-table tr:last-child td{border-bottom:none}
+.badge{display:inline-block;font-size:.7rem;padding:1px 7px;border-radius:10px;font-weight:600;white-space:nowrap}
+.badge-green{background:#e8f5e9;color:#2e7d32}
+.badge-red{background:#fdecea;color:#c62828}
+.badge-orange{background:#fff3e0;color:#e65100}
+.badge-blue{background:#e3f2fd;color:#1565c0}
+.badge-amber{background:#fff8e1;color:#e65100}
+.badge-gray{background:#f5f5f5;color:#616161}
+kbd{background:#f0f4f8;border:1px solid #c5d5e8;border-radius:4px;padding:1px 5px;font-size:.76rem;font-family:monospace;color:#1b4332;box-shadow:0 1px 0 #b0c4d8}
+.steps{counter-reset:step;list-style:none;margin-left:0}
+.steps li{
+  counter-increment:step;padding:8px 12px 8px 46px;margin-bottom:6px;
+  background:#f7fafc;border-radius:8px;position:relative;font-size:.85rem;color:#444;border:1px solid #e8eef4;
+}
+.steps li::before{
+  content:counter(step);position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;background:#1b4332;color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:700;
+}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.info-card{background:#fff;border:1px solid #c3dac8;border-radius:10px;padding:14px 16px}
+.info-card h4{font-size:.8rem;font-weight:700;color:#1b4332;margin-bottom:7px}
+.info-card p,.info-card li{font-size:.79rem;color:#555;margin-bottom:3px}
+mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
+.sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:99}
+.sidebar-overlay.show{display:block}
+@media(max-width:820px){
+  .guide-sidebar{position:fixed;left:-270px;top:0;height:100vh;z-index:100}
+  .guide-sidebar.open{left:0}
+  .guide-main{padding:18px 18px 48px}
+  .hamburger-btn{display:block}
+}
+@media print{
+  .guide-sidebar,.hamburger-btn,.print-btn,.sidebar-overlay,.guide-nav{display:none}
+  .guide-main{padding:0;max-width:100%}
+  .guide-wrap{display:block}
+  .collapse-body{max-height:none!important}
+  .guide-section{page-break-inside:avoid;margin-bottom:24px}
+}
+#scrollTopBtn{
+  position:fixed;bottom:28px;right:28px;z-index:999;
+  width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  background:#1b4332;color:#fff;font-size:1.2rem;
+  box-shadow:0 3px 10px rgba(0,0,0,.28);
+  opacity:0;pointer-events:none;
+  transition:opacity .25s;
+  display:flex;align-items:center;justify-content:center;
+}
+#scrollTopBtn.visible{opacity:1;pointer-events:auto;}
+#scrollTopBtn:hover{background:#2d6a4f;}
+@media print{#scrollTopBtn{display:none}}
+</style>
+</head>
+<body>
+
+<div class="guide-wrap">
+
+<aside class="guide-sidebar" id="sidebar">
+  <div class="sb-header">📋 Handbook</div>
+  <div class="sb-search">
+    <input type="text" id="searchInput" placeholder="🔍 Search handbook…" oninput="doSearch(this.value)" autocomplete="off">
+  </div>
+  <nav class="toc" id="toc"></nav>
+</aside>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<main class="guide-main" id="guideMain">
+
+  <div class="guide-nav">
+    <div class="guide-nav-left">
+      <button class="hamburger-btn" onclick="toggleSidebar()">☰ Contents</button>
+      <a class="back-link" id="backLink" href="../index.html">← Menu</a>
+    </div>
+    <div class="nav-btns">
+      <button class="print-btn" onclick="window.print()">🖨️ Print Handbook</button>
+    </div>
+  </div>
+
+  <div class="guide-hero">
+    <h1>📋 Residence Hall Handbook</h1>
+    <div class="sub" id="heroSub">1st Edition (August 2017) &nbsp;·&nbsp; Asia-Pacific International University</div>
+    <p>Official APIU Residence Hall policies and guidelines. Select a topic from the left panel or use the search box. This handbook covers all 50+ policy areas and a quick-reference fines table. The system development roadmap has moved to the Dean's User Guide.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 1 — INTRODUCTION                                             -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-introduction">
+    <div class="section-header">
+      <span class="section-icon">📖</span>
+      <div class="section-meta"><div class="section-title">Introduction</div></div>
+    </div>
+    <div class="subsection" id="sub-intro-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> About This Handbook</div>
+      <div class="collapse-body">
+        <p>A student residence hall is more than just a place to sleep; it is a happy place where students live and learn. A residence hall setting provides a wonderful opportunity for personality and character development. Living in the residence halls provides a supportive academic and social learning environment and a place to learn vital inter-personal communication skills for community living.</p>
+        <p>Living in a residence hall means living in a community. Community living requires respect, flexibility, and responsibility from all members. Staff and students must work together to ensure that the community living is positive and educational for everyone.</p>
+        <p>The following guidelines are listed in <strong>alphabetical order</strong> and are to assist you in making a quick adjustment to residence hall life. Some guidelines exist to preserve and enhance the unique mission, message and lifestyle of the Seventh-day Adventist church.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>You may not always like or agree with all the rules and regulations; nevertheless, you are required to abide by them. The Residence Hall Handbook will be updated as needed from time to time.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 2 — ROOM & OCCUPANCY                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-rooms">
+    <div class="section-header"><span class="section-icon">🚪</span><div class="section-meta"><div class="section-title">Rooms</div></div></div>
+    <div class="subsection" id="sub-rooms-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Room Basics</div>
+      <div class="collapse-body">
+        <p>Rooms in all residence halls, except Solomon Hall, are <strong>double occupancy</strong> with a shared suite bathroom. A resident rents only half of the room; unoccupied spaces may be filled at any time. Single occupancy is possible but <strong>rent is double</strong> the standard rate.</p>
+        <ul>
+          <li>The Dean assigns one or two students to each room.</li>
+          <li>Students are not allowed to change rooms without the Dean's permission.</li>
+          <li>Students must provide their own towels, bedding, pillows, and toiletries.</li>
+          <li>Students are responsible for their room's orderliness and cleanliness.</li>
+          <li>Students are responsible for the conduct of visitors in their room.</li>
+          <li>Students are not to enter other students' rooms when residents are absent.</li>
+          <li>A student planning to move to non-dormitory housing must give at least <strong>one month's notice in writing</strong> to the Dean.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Unauthorized room change: <strong>1,000 Baht fine</strong>. Students must move back to the originally assigned room.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-residency">
+    <div class="section-header"><span class="section-icon">📋</span><div class="section-meta"><div class="section-title">Residency Requirement</div></div></div>
+    <div class="subsection" id="sub-residency-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Who Must Live On Campus</div>
+      <div class="collapse-body">
+        <p>The University requires students to live in residence hall units until all available spaces are assigned, prioritizing freshmen and proceeding through sophomore, junior, senior. Emphasis is on students who have not completed <strong>six semesters</strong> of coursework.</p>
+        <p><strong>Waivers are available for:</strong> students with 6+ semesters completed; students commuting from parent/guardian within 50 km; students with physical/emotional disabilities; married students; mature self-supporting students; academic internship participants.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>All waiver requests must be submitted in writing to the Residential Hall Director or VPSA.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-room-eligibility">
+    <div class="section-header"><span class="section-icon">✅</span><div class="section-meta"><div class="section-title">Room Eligibility & Requirements</div></div></div>
+    <div class="subsection" id="sub-eligibility-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Credit Requirements</div>
+      <div class="collapse-body">
+        <ul>
+          <li>During first and second semester: minimum <strong>12 credits</strong> required for housing eligibility.</li>
+          <li>During summer: must be employed 20+ hours/week OR carry a minimum of <strong>3 credits</strong>.</li>
+          <li>Students falling below the minimum will be asked to leave the hall.</li>
+          <li>Petition exceptions to the Vice President of Student Administration.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-room-checkin">
+    <div class="section-header"><span class="section-icon">📥</span><div class="section-meta"><div class="section-title">Room Check-In</div></div></div>
+    <div class="subsection" id="sub-checkin-process">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Check-In Process</div>
+      <div class="collapse-body">
+        <p>When assigned a room or moving into a new room, pick up a <strong>check-in form</strong> from the Dean's office. Complete it thoroughly — failure to list existing damages may result in charges when you move out. The Dean or RA will complete the form with you, hand over keys, and record the room inventory.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>Use the Room Inspection module in the Dorm Manager system to record move-in condition electronically. This replaces the paper form and provides a permanent digital record.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-room-checkout">
+    <div class="section-header"><span class="section-icon">📤</span><div class="section-meta"><div class="section-title">Room Check-Out</div></div></div>
+    <div class="subsection" id="sub-checkout-process">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Check-Out Process</div>
+      <div class="collapse-body">
+        <p>To move out properly, check out with a Resident Assistant who will inspect the room, record damages on the room inventory form, collect keys, and request your signature and date.</p>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Failure to check out properly: <strong>500 Baht charge</strong>, in addition to any other applicable charges.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-nightly-check">
+    <div class="section-header"><span class="section-icon">🌙</span><div class="section-meta"><div class="section-title">Room Nightly Check</div></div></div>
+    <div class="subsection" id="sub-nightly-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Curfew & Nightly Check Procedure</div>
+      <div class="collapse-body">
+        <p>The residence halls close at <strong>10:00 p.m.</strong> Sun–Fri and <strong>11:00 p.m.</strong> Saturday. All outside doors are locked during closed hours (until 5:00 a.m.). A room-by-room night check is conducted 15 minutes after closing time each evening.</p>
+        <ul>
+          <li>If not in your room at check time, contact the RA on your floor — it is your responsibility to get checked in.</li>
+          <li>Once inside, get the Dean's permission before leaving again (must be obtained before the Dean leaves for the night).</li>
+          <li>Students working late must submit a petition form to the Dean for an exemption.</li>
+        </ul>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Failure to comply with curfew and nightly check-in policies results in disciplinary action.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-room-changes">
+    <div class="section-header"><span class="section-icon">🔄</span><div class="section-meta"><div class="section-title">Room Changes</div></div></div>
+    <div class="subsection" id="sub-room-change-process">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Room Change Policy</div>
+      <div class="collapse-body">
+        <p>The University promotes room stability and discourages changes once occupancy is assumed. Each resident is allowed <strong>ONE room change per year</strong>. To request a room change:</p>
+        <ol class="steps">
+          <li>Obtain permission from the Dean of each hall affected.</li>
+          <li>File a completed room change request form with the Dean.</li>
+          <li>Pay a <strong>500 Baht room change fee</strong>.</li>
+        </ol>
+        <p>Room changes are only considered after all conflict resolution attempts (via RA mediation) are exhausted.</p>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Unauthorized room change: <strong>1,000 Baht fine</strong> + student required to move back to original room.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-room-entry">
+    <div class="section-header"><span class="section-icon">🔓</span><div class="section-meta"><div class="section-title">Room Right of Entry</div></div></div>
+    <div class="subsection" id="sub-entry-rights">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> University Right of Entry</div>
+      <div class="collapse-body">
+        <p>While privacy is respected, the University reserves the right to enter and inspect a student's room whenever deemed necessary. This includes inspection of locked containers and checks for illegal substances, firearms, alcohol, tobacco, fire hazards, and cleanliness.</p>
+        <p>By accepting a room, the student acknowledges and authorizes this procedure. The Dean may also remove decorations not in harmony with the ethical and moral standards of the University.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-roommate-info">
+    <div class="section-header"><span class="section-icon">🤝</span><div class="section-meta"><div class="section-title">Roommate Information</div></div></div>
+    <div class="subsection" id="sub-roommate-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Roommate Relationships</div>
+      <div class="collapse-body">
+        <p>Roommate relationships evolve most successfully when residents demonstrate mutual respect and communicate directly and honestly. In the event of a vacancy, a new roommate may be assigned at any time — all residents are responsible for maintaining the vacancy and welcoming newly assigned roommates.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>If you have a conflict with your roommate, speak to your RA first — they are trained to help through mediation. Only after all attempts at resolution will room change requests be considered.</span></div>
+        <p><strong>Helpful hints:</strong> Have realistic expectations. Speak up calmly when something bothers you. Don't let annoyances accumulate. Listen openly. Be willing to compromise. Demonstrate courtesy consistently.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-roommate-rights">
+    <div class="section-header"><span class="section-icon">⚖️</span><div class="section-meta"><div class="section-title">Roommate Bill of Rights & Responsibilities</div></div></div>
+    <div class="subsection" id="sub-roommate-rights-list">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Rights & Responsibilities</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>#</th><th>Right</th><th>Responsibility</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>To read, study, and sleep free from undue disturbance</td><td>Afford the same courtesy to roommates</td></tr>
+            <tr><td>2</td><td>Personal property respected; reasonable room security maintained</td><td>Respect roommates' property and security</td></tr>
+            <tr><td>3</td><td>A reasonably clean environment</td><td>Do your fair share in maintaining cleanliness</td></tr>
+            <tr><td>4</td><td>Free access to your room</td><td>Afford the same free access to roommates</td></tr>
+            <tr><td>5</td><td>A reasonable level of personal privacy</td><td>Respect roommates' privacy</td></tr>
+            <tr><td>6</td><td>Host guests in accordance with hall rules</td><td>Ensure guests demonstrate respect and courtesy</td></tr>
+            <tr><td>7</td><td>Rules followed so no person is put at risk</td><td>Follow rules yourself and report violations</td></tr>
+            <tr><td>8</td><td>Free from pressures, intimidation, or harm</td><td>Do not engage in any such behavior toward others</td></tr>
+            <tr><td>9</td><td>Address grievances constructively with staff assistance</td><td>Participate in conflict resolution measures</td></tr>
+            <tr><td>10</td><td>Expect compromise in settling conflicts</td><td>Demonstrate willingness to compromise</td></tr>
+            <tr><td>11</td><td>Timely, respectful communication of concerns</td><td>Respond in an open, approachable manner</td></tr>
+            <tr><td>12</td><td>Express feelings appropriately</td><td>Respect others' feelings</td></tr>
+            <tr><td>13</td><td>Make mistakes</td><td>Be honest about mistakes and learn from them</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 3 — SAFETY & SECURITY                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-emergencies">
+    <div class="section-header"><span class="section-icon">🚨</span><div class="section-meta"><div class="section-title">Emergencies</div></div></div>
+    <div class="subsection" id="sub-emergencies-contacts">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Emergency Contacts & Response</div>
+      <div class="collapse-body">
+        <p>Students requiring assistance should contact their RA, the desk monitor, the Dean, or the office of Student Administration. Emergencies include loss of electrical power, fire, theft, assault, personal crisis, or injury.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📞 Key Contacts</h4>
+            <ul>
+              <li>Head of Security (Aj. Tirat Somphan): <strong>086-791-1951</strong></li>
+              <li>Residence Hall Director (Sorawit Chaiphisit): <strong>081-571-7528</strong></li>
+              <li>Plant Services Director (Mr. Reanthong): <strong>081-402-1378 / 1911</strong></li>
+              <li>Front Gate Security: <strong>1912</strong></li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>📍 Safety Zones (Meeting Points)</h4>
+            <ul>
+              <li>Student Residences → Basketball court / Football Field</li>
+              <li>Admin / Classrooms → Sala Thai / Cafeteria (if raining)</li>
+              <li>IT / Library → Sala parking area</li>
+              <li>Student Center → Football Field</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-fire-safety">
+    <div class="section-header"><span class="section-icon">🔥</span><div class="section-meta"><div class="section-title">Fire Safety & Equipment</div></div></div>
+    <div class="subsection" id="sub-fire-rules">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Fire Safety Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Tampering with fire safety equipment or falsely setting off a fire alarm is a violation of the law and will result in disciplinary action.</li>
+          <li>Open flames and open heating elements are prohibited: candles, incense, hot plates, etc.</li>
+          <li>Flammable materials not allowed: petroleum fuel, motorized vehicles, gasoline-fueled machinery, explosives, fireworks, firecrackers.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="subsection" id="sub-fire-procedure">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Fire & Evacuation Procedure</div>
+      <div class="collapse-body">
+        <p><strong>When alarm sounds:</strong></p>
+        <ol class="steps">
+          <li>Evacuate the building immediately — use stairwells only. <strong>Do NOT use lifts.</strong></li>
+          <li>Alert others on your way out.</li>
+          <li>Close (but don't lock) doors and windows as the last person leaves a room.</li>
+          <li>Proceed to the designated safety zone (Football Field for student residences).</li>
+          <li>Do not re-enter until told it is safe by the Emergency Response Team.</li>
+        </ol>
+        <p><strong>If fire is small:</strong> Use the nearest fire extinguisher and call for help. <strong>If fire is large:</strong> Activate the nearest alarm pull station, warn others, call Security/Dean, then evacuate.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Do not jump from windows unless on the first floor. Do not delay to carry heavy belongings — an extra minute could cost your life.</span></div>
+      </div>
+    </div>
+    <div class="subsection" id="sub-fire-drill">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Fire Drill Procedures</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Follow the nearest exit in an orderly, quiet manner. No shouting. Use stairways only.</li>
+          <li>Proceed to the designated safety zone. Stop no less than <strong>100 meters</strong> (50 ft) from any building.</li>
+          <li>Teachers, Deans, Department Heads: close windows, turn off lights, pull doors before going to meeting point.</li>
+          <li>If an exit route is blocked, choose another way — always know more than one exit.</li>
+          <li>Do not return until permitted by the Emergency Response Team designee.</li>
+          <li>At the meeting point, teachers/deans take an accurate headcount and report to the ERT member in charge.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-firearms">
+    <div class="section-header"><span class="section-icon">🚫</span><div class="section-meta"><div class="section-title">Firearms & Weapons</div></div></div>
+    <div class="subsection" id="sub-firearms-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Weapons Policy</div>
+      <div class="collapse-body">
+        <p>Firearms and weapons are not allowed in the residence halls for any reason. Prohibited weapons include: firearms, BB guns, paintball guns, air rifles, knives larger than a pocket knife, switchblades, swords, brass knuckles, martial arts weapons, fireworks, explosives, bows and arrows.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Weapon possession is a serious offense: disciplinary action and/or a <strong>5,000 Baht fine</strong>.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-hall-access">
+    <div class="section-header"><span class="section-icon">🔐</span><div class="section-meta"><div class="section-title">Hall Access & Entry</div></div></div>
+    <div class="subsection" id="sub-access-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Access Hours & Security Checks</div>
+      <div class="collapse-body">
+        <p>Residence hall doors open at <strong>5:00 a.m.</strong> each morning and close at <strong>10:00 p.m.</strong> (Saturday: 11:00 p.m. or at the Dean's discretion).</p>
+        <p>The Dean and staff reserve the right to stop people from bringing unauthorized or inappropriate materials into the building. You and your guests may be asked to open backpacks and bags — cooperation is expected. Entry may be denied if you refuse.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-security">
+    <div class="section-header"><span class="section-icon">🛡️</span><div class="section-meta"><div class="section-title">Security & Peaceful Atmosphere</div></div></div>
+    <div class="subsection" id="sub-security-general">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Security Rules</div>
+      <div class="collapse-body">
+        <p>Proper care of room/hall keys is essential to hall security.</p>
+        <ul>
+          <li>The student is responsible for all personal items brought on campus. The University is not liable for theft, loss, or damage to personal property.</li>
+          <li>After <strong>7:00 p.m.</strong> speak quietly in rooms and be considerate of those studying or resting.</li>
+          <li>After <strong>9:00 p.m.</strong> use headphones for music/audio.</li>
+          <li>Personal TV sets are not allowed; radios and music players may be used during the day at a volume that does not infringe on others' right to a quiet environment.</li>
+          <li>Resorting to violence in any dispute is prohibited. Disagreements should be settled in harmony with Thai culture and Christian values.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Key loss or failure to return key: <strong>50 Baht charge</strong>.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-unauthorized-entry">
+    <div class="section-header"><span class="section-icon">⛔</span><div class="section-meta"><div class="section-title">Unauthorized Entry</div></div></div>
+    <div class="subsection" id="sub-unauth-entry">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Unauthorized Entry Policy</div>
+      <div class="collapse-body">
+        <p>Entering the residence hall through any entrance other than the main entrance (lobby) is prohibited. Students found entering through unauthorized entrances (back windows, fire exits, side doors) will face disciplinary action. The University's security measures exist for the safety of all residents.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 4 — STUDENT CONDUCT                                          -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-alcohol">
+    <div class="section-header"><span class="section-icon">🍺</span><div class="section-meta"><div class="section-title">Alcohol & Drinking</div></div></div>
+    <div class="subsection" id="sub-alcohol-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Zero-Tolerance Policy</div>
+      <div class="collapse-body">
+        <p>On or off-campus consumption, possession, or distribution of alcohol is <strong>not permitted</strong> by students enrolled at AIU. Full, partially full, or empty alcoholic beverage containers are not permitted anywhere in or around the residence halls.</p>
+        <ul>
+          <li>If a resident does not claim responsibility for containers found in their room, all roommates will be held accountable.</li>
+          <li>Students are held accountable for allowing others to consume or store alcohol in their room.</li>
+          <li>Any student found under the influence upon returning to the hall will be disciplined.</li>
+          <li>Staff reserve the right to stop people from bringing alcohol into the building and to search backpacks/bags at entry.</li>
+        </ul>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>See the Student Guidebook regarding addictive and controlled substances for additional information and consequences.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-dancing">
+    <div class="section-header"><span class="section-icon">💃</span><div class="section-meta"><div class="section-title">Dancing</div></div></div>
+    <div class="subsection" id="sub-dancing-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dancing Policy</div>
+      <div class="collapse-body">
+        <p>Social dancing is not permitted in the residence halls or on campus. Exceptions include approved folk dances, traditional dances, and line dances done in a proper location at a school function.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-disciplinary">
+    <div class="section-header"><span class="section-icon">📜</span><div class="section-meta"><div class="section-title">Disciplinary Actions</div></div></div>
+    <div class="subsection" id="sub-disciplinary-consequences">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Possible Disciplinary Consequences</div>
+      <div class="collapse-body">
+        <p>Disciplinary actions are consequences of personal choices. When students violate policy, they voluntarily place themselves under consideration for disciplinary action. Possible responses include:</p>
+        <ul>
+          <li>Counsel (written or oral)</li>
+          <li>Warnings (written or oral)</li>
+          <li>Probation / Suspension / Dismissal</li>
+          <li>Required professional counseling sessions</li>
+          <li>Community service work</li>
+          <li>Fines / Campus bans</li>
+        </ul>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Whenever you receive notification to see a Dean, respond promptly. Refer to the Student Guidebook and Student Handbook for full disciplinary procedures.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-dress">
+    <div class="section-header"><span class="section-icon">👔</span><div class="section-meta"><div class="section-title">Dress</div></div></div>
+    <div class="subsection" id="sub-dress-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dress Code</div>
+      <div class="collapse-body">
+        <p>Your style of dress should reflect <strong>good modesty</strong> rather than current fashion trends. Watchwords include simplicity, function, taste, and appropriateness.</p>
+        <ul>
+          <li>Not acceptable: short-shorts/skirts, tight clothing, low-cut tops, midriff blouses, or extremes in cosmetics.</li>
+          <li>Be fully dressed in lobbies and hallways at all times.</li>
+          <li>Come to worship services respectfully groomed.</li>
+          <li>Do not wear outside shoes inside the Halls (except Solomon Hall).</li>
+        </ul>
+        <p>See Dress Policies in the Student Handbook and Student Guidebook.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-drugs">
+    <div class="section-header"><span class="section-icon">💊</span><div class="section-meta"><div class="section-title">Drugs</div></div></div>
+    <div class="subsection" id="sub-drugs-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Drug-Free Policy</div>
+      <div class="collapse-body">
+        <p>AIU has a drug-free policy — abstinence from alcohol, tobacco, mind-altering drugs, and abuse of prescription drugs. Possession, use, or sale of controlled substances is a violation of both the law and University policy.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Persons involved in the promotion, manufacture, or distribution of controlled substances will be <strong>excluded from the University</strong>. Possession of paraphernalia and "look-alike" drugs is also prohibited.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-gambling">
+    <div class="section-header"><span class="section-icon">🎲</span><div class="section-meta"><div class="section-title">Gambling</div></div></div>
+    <div class="subsection" id="sub-gambling-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Gambling Policy</div>
+      <div class="collapse-body">
+        <p>Gambling is not permitted in the residence hall or anywhere else on campus. Thai law does not allow gambling.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-hazing">
+    <div class="section-header"><span class="section-icon">⚠️</span><div class="section-meta"><div class="section-title">Hazing</div></div></div>
+    <div class="subsection" id="sub-hazing-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Anti-Hazing Policy</div>
+      <div class="collapse-body">
+        <p>No hazing activities are permitted on or off campus. Hazing is ritualistic harassment, abuse, or humiliation (physical or mental) as a way of initiation into a social group.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-harassment">
+    <div class="section-header"><span class="section-icon">🚷</span><div class="section-meta"><div class="section-title">Harassment & Physical/Verbal Abuse</div></div></div>
+    <div class="subsection" id="sub-harassment-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Harassment Policy</div>
+      <div class="collapse-body">
+        <p>Harassment is any uninvited, unwelcome, unreciprocated behavior that may cause upset, humiliation, or fear and interferes with a person's right to live, work, and study in a non-threatening environment.</p>
+        <p>AIU considers harassment unacceptable and aims to provide a learning environment free of harassment. Complaints will be dealt with promptly, confidentially, and according to principles of natural justice. Victimization as a result of a complaint will not be tolerated.</p>
+        <p>See also: <strong>Sexual Harassment</strong> section below.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-insubordination">
+    <div class="section-header"><span class="section-icon">🗣️</span><div class="section-meta"><div class="section-title">Insubordination</div></div></div>
+    <div class="subsection" id="sub-insubordination-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Insubordination Policy</div>
+      <div class="collapse-body">
+        <p>Failure to obey the oral or written instructions of a Dean, assistant, or representative will be considered insubordination and may result in citizenship probation or further discipline.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>If a student has a complaint about an RA's instructions, they should <strong>comply first</strong>, then take the matter up with the Dean.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-language">
+    <div class="section-header"><span class="section-icon">💬</span><div class="section-meta"><div class="section-title">Language</div></div></div>
+    <div class="subsection" id="sub-language-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Language Policy</div>
+      <div class="collapse-body">
+        <p>The use of profanity, obscenity, and vulgarity is not permitted.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-noise">
+    <div class="section-header"><span class="section-icon">🔊</span><div class="section-meta"><div class="section-title">Noise & Quiet Hours</div></div></div>
+    <div class="subsection" id="sub-noise-hours">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Noise & Quiet Hour Rules</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Period</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>24 hours / all times</td><td>Courtesy Hours in effect — respond to requests to lower noise</td></tr>
+            <tr><td>9:00 p.m. – 9:00 a.m.</td><td>Quiet Hours (no loud music, instruments, or disturbances)</td></tr>
+            <tr><td>Saturday Midnight – 9:00 a.m.</td><td>Quiet Hours (Saturday extended)</td></tr>
+            <tr><td>Friday sunset – Saturday sunset</td><td>No secular music / appropriate volume</td></tr>
+            <tr><td>Finals week</td><td>Quiet Hours 24 hours a day</td></tr>
+            <tr><td>After 9:00 p.m.</td><td>Use headphones for all audio</td></tr>
+          </tbody>
+        </table>
+        <p>If you have a noise problem: first speak to the resident creating noise. If it continues, contact your RA. If unresolved, contact the Dean.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-painting">
+    <div class="section-header"><span class="section-icon">🎨</span><div class="section-meta"><div class="section-title">Painting & Graffiti</div></div></div>
+    <div class="subsection" id="sub-painting-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Painting & Graffiti Policy</div>
+      <div class="collapse-body">
+        <p>Use of spray paint, graffiti, or other paint is not permitted in the residence hall.</p>
+        <div class="warn"><span class="warn-icon">⚠️</span><span><strong>2,500 Baht fine</strong> + clean-up and repainting charges. Additionally, <strong>20–40 citizenship points deducted</strong> for defacing private or public spaces.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-pornography">
+    <div class="section-header"><span class="section-icon">🚫</span><div class="section-meta"><div class="section-title">Pornography</div></div></div>
+    <div class="subsection" id="sub-pornography-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Pornography Policy</div>
+      <div class="collapse-body">
+        <p>Pornographic materials (VCDs, DVDs, magazines, posters) are not allowed in residence halls. Such items will be <strong>destroyed and not returned</strong> to the resident. Accessing pornography through the internet may result in disciplinary action.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-posters">
+    <div class="section-header"><span class="section-icon">📌</span><div class="section-meta"><div class="section-title">Posters & Decorations</div></div></div>
+    <div class="subsection" id="sub-posters-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Decoration Rules</div>
+      <div class="collapse-body">
+        <p>While your room is your private domain, decorations must respect the floor and University community standards.</p>
+        <ul>
+          <li>Flammable materials must not be used (fire risk).</li>
+          <li>Items interfering with the educational mission or Religious Doctrines of AIU are prohibited: abusive, violent, vulgar, pornographic, or occult materials.</li>
+          <li>Do not apply tape that peels paint, nails, or stickers without permission. Any disfiguring marks caused by nails or stickers will incur a fine.</li>
+          <li>Request through the Dean's office if a nail needs to be added.</li>
+          <li>The Dean reserves the right to remove decorations not in harmony with University standards.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-sexual-harassment">
+    <div class="section-header"><span class="section-icon">⚠️</span><div class="section-meta"><div class="section-title">Sexual Harassment</div></div></div>
+    <div class="subsection" id="sub-sexual-harassment-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Definition & Reporting</div>
+      <div class="collapse-body">
+        <p>Sexual harassment includes gender-related verbal or physical conduct when: (1) it affects academic evaluation or recommendation; (2) it creates an intimidating, hostile work or learning environment; or (3) it interferes with the victim's social relationships.</p>
+        <p>Examples: pressure for sexual activity, sexually explicit statements or jokes, repeated leering, unwanted touching, obscene notes, or display of sexually explicit materials.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Any student found guilty of sexual assault or harassment will be dealt with by the University and <strong>face possible prosecution in criminal court</strong>. Report incidents to the Dean, VPSA, faculty, staff, or the Counseling Center.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-sexuality">
+    <div class="section-header"><span class="section-icon">🏳️</span><div class="section-meta"><div class="section-title">Sexuality & Gender Identity</div></div></div>
+    <div class="subsection" id="sub-sexuality-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> University Position</div>
+      <div class="collapse-body">
+        <p>Students are expected to abstain from immoral practices, homosexual activities, adultery, trans-sexual or bisexual practices, consensual sex outside of marriage, non-consensual sex, and any other practices offensive to Christian morality. Students found violating this policy will be subject to disciplinary action. See Student Guidebook and Student Handbook for additional information.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-shoes">
+    <div class="section-header"><span class="section-icon">👟</span><div class="section-meta"><div class="section-title">Shoes</div></div></div>
+    <div class="subsection" id="sub-shoes-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Shoe Removal Policy</div>
+      <div class="collapse-body">
+        <p>Residents must remove shoes before entering the residence hall (only exception: Solomon Hall). This is a cultural practice in Thailand and greatly appreciated.</p>
+        <ul>
+          <li>Use slippers available at the entrance rack.</li>
+          <li>Slippers and shoes should not be left in the hallway.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>First offense: warning. Repeat offenders: <strong>100 Baht each time</strong>. After 10 violations, disciplinary action may be taken.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-skateboards">
+    <div class="section-header"><span class="section-icon">🛹</span><div class="section-meta"><div class="section-title">Skateboards & Rollerblades</div></div></div>
+    <div class="subsection" id="sub-skateboards-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Policy</div>
+      <div class="collapse-body">
+        <p>Skateboarding, skating, and roller-blading are prohibited in all residence halls.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-smoking">
+    <div class="section-header"><span class="section-icon">🚬</span><div class="section-meta"><div class="section-title">Smoking</div></div></div>
+    <div class="subsection" id="sub-smoking-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Smoking Policy</div>
+      <div class="collapse-body">
+        <p>All areas of residence halls are designated <strong>non-smoking</strong>. Smoking in any form is not allowed within the residence hall rooms or spaces, nor outside the residence within the University grounds.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Possession of cigarettes in rooms is a violation. Serious penalties and disciplinary action will be enforced. See the Student Guidebook and Handbook for more information.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-sports-pranks">
+    <div class="section-header"><span class="section-icon">⚽</span><div class="section-meta"><div class="section-title">Sports & Pranks</div></div></div>
+    <div class="subsection" id="sub-sports-pranks-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Indoor Sports & Pranks Policy</div>
+      <div class="collapse-body">
+        <p>Sports in the residence hall are prohibited — including ball games, skateboarding, bicycling, in-line skating, bowling, Frisbees, water/food fights, toy guns, dart boards, and any activity that could disturb or endanger others or damage property.</p>
+        <p>Throwing, dropping, or shooting any object within or from the residence halls is strictly prohibited. Pranks and practical jokes are also prohibited as they are potentially dangerous to residents and property.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 5 — LIVING FACILITIES                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-bathroom">
+    <div class="section-header"><span class="section-icon">🚿</span><div class="section-meta"><div class="section-title">Bathroom & Showers</div></div></div>
+    <div class="subsection" id="sub-bathroom-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Bathroom Cleanliness</div>
+      <div class="collapse-body">
+        <p>Roommates and suitemates are expected to collaborate and take turns keeping bathroom and shower areas always clean. Neglect is considered negligence of University property.</p>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Bathroom cleaning neglect: <strong>400 Baht cash fine</strong> per bathroom. Repeated non-compliance: charges sent to Finance Office with possibility of further disciplinary action.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-bicycles">
+    <div class="section-header"><span class="section-icon">🚲</span><div class="section-meta"><div class="section-title">Bicycles & Vehicles</div></div></div>
+    <div class="subsection" id="sub-bicycles-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Vehicle Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Park bicycles and motorbikes only in designated parking areas.</li>
+          <li>Motorbikes must not cause undue noise due to modified or faulty mufflers.</li>
+          <li>No speeding or racing on campus.</li>
+          <li>Fines may be imposed for bikes with oil leaks that cause a mess on the road.</li>
+          <li>The University accepts no responsibility for loss or damage to bicycles, motorbikes, or vehicles.</li>
+          <li>Only registered vehicles with an AIU parking permit may use parking areas near the sports courts.</li>
+          <li>Parking in front or at the back of the building is not allowed at any time.</li>
+        </ul>
+        <div class="note"><span class="note-icon">ℹ️</span><span>The University does not lend or rent motorbikes or vehicles to students and is not responsible for the condition or roadworthiness of any privately rented or borrowed vehicle.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-cleaning">
+    <div class="section-header"><span class="section-icon">🧹</span><div class="section-meta"><div class="section-title">Cleaning & Housekeeping</div></div></div>
+    <div class="subsection" id="sub-cleaning-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Cleaning Responsibilities</div>
+      <div class="collapse-body">
+        <p>Each resident is expected to maintain cleanliness in both public and private areas. Resident workers clean lobbies, common restrooms, stairs, hallways, and laundry rooms — your cooperation in keeping these areas neat is appreciated.</p>
+        <ul>
+          <li>Residents are responsible for cleaning their own rooms and suite bathrooms.</li>
+          <li>All trash/garbage must be placed in trash bags and taken to the garbage bins outside the hall.</li>
+          <li>Do not place trash in hallways or dispose of it outside the balcony.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Charges of <strong>100–1,000 Baht</strong> may be assessed if residents do not keep up with cleaning responsibilities. Littering: <strong>500 Baht fine</strong> + possible citizenship point deduction.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-cleanliness">
+    <div class="section-header"><span class="section-icon">📋</span><div class="section-meta"><div class="section-title">Cleanliness & Maintenance Rules</div></div></div>
+    <div class="subsection" id="sub-cleanliness-rules">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Room Conditions of Occupancy</div>
+      <div class="collapse-body">
+        <p>Residence rooms are inspected each <strong>Friday evening at 5:30 p.m.</strong></p>
+        <ul>
+          <li>Take good care of room and furnishings. <strong>Damage to furniture: 1,000–2,000 Baht; Damage to painting: 2,500 Baht.</strong></li>
+          <li>Do not remove or exchange furniture between rooms without written permission from the Dean.</li>
+          <li>No decoration screwed or nailed to walls without permission.</li>
+          <li>Turn off air conditioners, lights, and fans when leaving; close windows.</li>
+          <li>Report emergency repairs (e.g., leaking pipe) to the Dean immediately.</li>
+          <li>Remove shoes before entering (Solomon Hall excepted).</li>
+          <li>Biblical dietary standards apply — foods described in the Bible as unsuitable should not be brought into the residence.</li>
+          <li>Return room keys before leaving for vacation. <strong>Fee charged if keys are not returned.</strong></li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span>Use the Room Inspection module to record conditions digitally. This creates a permanent record protecting both the student and the University.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-electricity">
+    <div class="section-header"><span class="section-icon">⚡</span><div class="section-meta"><div class="section-title">Electricity</div></div></div>
+    <div class="subsection" id="sub-electricity-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Electricity Rules & Permitted Appliances</div>
+      <div class="collapse-body">
+        <p>Students are charged for electricity according to the meter in their rooms. Turn off lights and appliances when not in use.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>✅ Permitted Appliances</h4>
+            <ul>
+              <li>Radios, stereos, and computers</li>
+              <li>Electric thermos bottles, kettles, curling irons, hair dryers</li>
+              <li>Refrigerators up to 3.5 cubic feet</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>❌ Not Permitted</h4>
+            <ul>
+              <li>Electric skillets and devices with wire coils</li>
+              <li>Homemade or damaged appliances</li>
+              <li>TVs, microwaves, washing machines, dryers</li>
+              <li>Any appliance that risks the electrical system or others' living conditions</li>
+            </ul>
+          </div>
+        </div>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Activities causing open flames are prohibited. Do not overload sockets or use improper extension cords. Use surge protectors on all electrical devices.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-electrical-outlets">
+    <div class="section-header"><span class="section-icon">🔌</span><div class="section-meta"><div class="section-title">Electrical Outlets</div></div></div>
+    <div class="subsection" id="sub-outlets-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Outlet Safety Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Do not overload sockets or use improper extension cords to create additional outlets — this may cause a fire.</li>
+          <li>You are strongly encouraged to use surge protectors on all electrical devices.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-engine-repair">
+    <div class="section-header"><span class="section-icon">🔧</span><div class="section-meta"><div class="section-title">Engine Repair</div></div></div>
+    <div class="subsection" id="sub-engine-repair-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Engine & Oil Change Policy</div>
+      <div class="collapse-body">
+        <p>Engines of any type (auto, motorcycle) may not be repaired in the residence halls or parking lots. All automobile parts including tires are banned from the halls. Oil changes are prohibited in any residence hall parking lot, front or back of the hall.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>There are many auto and bike repair shops in Muaklek for oil changes and repairs.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-food-delivery">
+    <div class="section-header"><span class="section-icon">🍕</span><div class="section-meta"><div class="section-title">Food & Merchandise Delivery</div></div></div>
+    <div class="subsection" id="sub-delivery-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Delivery Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Deliveries will <strong>not be accepted during Sabbath hours</strong>.</li>
+          <li>Deliveries are not permitted after dark or after <strong>6:00 p.m.</strong></li>
+          <li>Deliveries of inappropriate food or merchandise are not allowed.</li>
+          <li>Deliveries are not to be made directly to rooms or to the front desk.</li>
+          <li>Students must meet their delivery at the front door of the residence hall.</li>
+          <li>AIU, the Dean, or other students are in no way responsible for deliveries, including payment.</li>
+        </ul>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Kitchen facilities are available on the first floor of each dormitory. Personal stoves should not be brought to the dormitory. Cooking for mixed groups of 6+ should be done at the Little David Picnic Shelter.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-furniture">
+    <div class="section-header"><span class="section-icon">🪑</span><div class="section-meta"><div class="section-title">Furniture</div></div></div>
+    <div class="subsection" id="sub-furniture-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Furniture Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Furniture may not be removed from individual rooms or common areas (lobbies, lounges).</li>
+          <li>No furniture is permitted outdoors.</li>
+          <li>Removing common area furniture is considered theft of University property.</li>
+          <li>Furniture is inventoried both when you move in and move out — you are financially responsible for missing items.</li>
+          <li>Do not disassemble beds, chairs, or other furniture.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Common area furniture found in your room: required to return it + <strong>minimum 500 Baht fine</strong>. Disassembling furniture: <strong>500–1,000 Baht fine</strong> + additional disciplinary action.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-kitchen">
+    <div class="section-header"><span class="section-icon">🍳</span><div class="section-meta"><div class="section-title">Kitchen Facilities</div></div></div>
+    <div class="subsection" id="sub-kitchen-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Kitchen Rules</div>
+      <div class="collapse-body">
+        <p>A kitchen is located on the first floor of each dormitory (stove, oven, and fridge). The Dean or monitor will unlock the kitchen on request.</p>
+        <ul>
+          <li>Clean up completely after use. Failure to clean up will result in a fine and loss of kitchen privileges.</li>
+          <li>Personal stoves should not be brought to the dormitory.</li>
+          <li>Cooking is discouraged in individual rooms for sanitary and safety reasons.</li>
+          <li>University standards on appropriate food apply — prohibited foods include pork, shrimp, lobsters, etc.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-laundry">
+    <div class="section-header"><span class="section-icon">🧺</span><div class="section-meta"><div class="section-title">Laundry Facilities</div></div></div>
+    <div class="subsection" id="sub-laundry-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Laundry Rules</div>
+      <div class="collapse-body">
+        <p>Washing machines and outdoor lines are provided for the use of residents. Do not do laundry during Sabbath hours (Friday sundown – Saturday sundown).</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-lobby">
+    <div class="section-header"><span class="section-icon">🏛️</span><div class="section-meta"><div class="section-title">Lobby & Study Rooms</div></div></div>
+    <div class="subsection" id="sub-lobby-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Common Area Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>All common areas are for the exclusive use of resident students.</li>
+          <li>Reserve a room or lobby by contacting the Resident Dean or front desk.</li>
+          <li>Furniture, game equipment, and TVs are not to be moved.</li>
+          <li>Sleeping overnight in the lobby without Dean's permission is prohibited.</li>
+          <li>Be considerate with noise levels when watching TV or playing games.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Common area furniture or equipment found in your room: <strong>1,000 Baht fine per piece</strong> + possible additional disciplinary action.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-pets">
+    <div class="section-header"><span class="section-icon">🐾</span><div class="section-meta"><div class="section-title">Pets</div></div></div>
+    <div class="subsection" id="sub-pets-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Pet Policy</div>
+      <div class="collapse-body">
+        <p>Students are not permitted to have animals or pets in the residences or on campus.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-refrigerators">
+    <div class="section-header"><span class="section-icon">❄️</span><div class="section-meta"><div class="section-title">Refrigerators</div></div></div>
+    <div class="subsection" id="sub-refrigerators-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Refrigerator Rules</div>
+      <div class="collapse-body">
+        <p>Refrigerators up to <strong>3.5 cubic feet</strong> are permitted in student rooms. Students are charged for electricity according to the meter in their room. Turn off your refrigerator when leaving for extended vacations if possible, or leave it running per your Dean's instructions.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Foods described in the Bible as unsuitable for human consumption should not be stored in your room refrigerator.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-snack-shop">
+    <div class="section-header"><span class="section-icon">🛍️</span><div class="section-meta"><div class="section-title">Snack Shop</div></div></div>
+    <div class="subsection" id="sub-snack-shop-info">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Snack Shop Information</div>
+      <div class="collapse-body">
+        <p>Each residence hall provides a mini shop run by students under the guidance of the Dean for the sale of soft drinks, snacks, etc. Contact the reception/monitor desk for posted hours. The snack shop is closed during Sabbath hours.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-storage-room">
+    <div class="section-header"><span class="section-icon">📦</span><div class="section-meta"><div class="section-title">Storage Room</div></div></div>
+    <div class="subsection" id="sub-storage-room-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Storage Rules</div>
+      <div class="collapse-body">
+        <p>Storage facilities are available in each hall for a reasonable fee. See the <strong>Storage Rental</strong> feature in Room Reservations to record storage box assignments.</p>
+        <ul>
+          <li>Stored items must be securely boxed, taped, and labeled with your name, room number, and home address.</li>
+          <li>Students not living in the hall must use storage boxes (or pay regular monthly rent).</li>
+          <li>Students not returning at semester end should arrange extended storage payment or transport belongings home.</li>
+          <li>All unmarked containers and items left without paid arrangements will be disposed of.</li>
+          <li>The Residence Hall/University is <strong>not liable</strong> for items placed in storage in case of theft, fire, water, or other damage.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 6 — KEYS & ACCESS                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-keys">
+    <div class="section-header"><span class="section-icon">🔑</span><div class="section-meta"><div class="section-title">Keys</div></div></div>
+    <div class="subsection" id="sub-keys-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Key Rules</div>
+      <div class="collapse-body">
+        <p>Your room key and drawer lock key are one of the best security devices available. Keeping your room locked makes it difficult for unauthorized entry.</p>
+        <ul>
+          <li>Lock your room whenever you are not in it.</li>
+          <li>Carry your key with you at all times.</li>
+          <li>Do not lend your key to another person.</li>
+          <li>Duplicating University keys is a violation.</li>
+          <li>Report lost keys to your hall assistant or Dean immediately.</li>
+          <li>If a key is accidentally locked inside, contact the Dean for assistance.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Key loss or failure to return key(s): <strong>50 Baht charge</strong>.</span></div>
+        <div class="tip"><span class="tip-icon">💡</span><span>The Key Inventory module tracks all key assignments, check-outs, returns, and lost key fines. Use it to record and monitor all key activity in your dorm.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-key-deposit">
+    <div class="section-header"><span class="section-icon">💰</span><div class="section-meta"><div class="section-title">Key Deposit</div></div></div>
+    <div class="subsection" id="sub-key-deposit-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Deposit & Refund</div>
+      <div class="collapse-body">
+        <p>Before a student is given a room key, a <strong>security deposit of 100 Baht per key</strong> is required. This deposit is refunded when the key is returned and the room is inspected and approved as clean and in good repair.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-lockout">
+    <div class="section-header"><span class="section-icon">🔒</span><div class="section-meta"><div class="section-title">Locked-Out Procedures</div></div></div>
+    <div class="subsection" id="sub-lockout-procedure">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> What To Do If Locked Out</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Wait for your roommate to return.</li>
+          <li>Contact the front desk monitor (you may need to complete a lock-out agreement form to check out a temporary key).</li>
+          <li>Contact an RA.</li>
+        </ol>
+        <ul>
+          <li>Temporary key must be returned within <strong>24 hours</strong>.</li>
+          <li>If your key cannot be found after 24 hours, you will pay for a new key.</li>
+          <li>In some cases, a lock change may be required — your Dean will inform you.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>There are no free lockouts. An <strong>administrative fee of 10 Baht</strong> is charged each time.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-desk-service">
+    <div class="section-header"><span class="section-icon">🖥️</span><div class="section-meta"><div class="section-title">Desk Service</div></div></div>
+    <div class="subsection" id="sub-desk-service-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Front Desk Services</div>
+      <div class="collapse-body">
+        <p>The front desk (Monitor Desk) is operated <strong>24 hours</strong> by student monitors/receptionists. It serves as the information center of the building — report facility problems, get mail, request room opening, receive telephone messages, etc.</p>
+        <ul>
+          <li>The desk is not a "delivery/pick-up depot" for items or messages.</li>
+          <li>The monitor will not entertain guests.</li>
+          <li>Neither the residence hall nor AIU assumes responsibility for items left at the desk.</li>
+          <li>Always deliver valuables (travel tickets, cash, electronics) in person — do not leave at the desk.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 7 — GUESTS & VISITORS                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-guests">
+    <div class="section-header"><span class="section-icon">👥</span><div class="section-meta"><div class="section-title">Guests & Visitors</div></div></div>
+    <div class="subsection" id="sub-guests-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Guest Policy</div>
+      <div class="collapse-body">
+        <p>Students wishing to have overnight guests must first seek permission from the Residence Hall Dean.</p>
+        <table class="guide-table">
+          <thead><tr><th>Category</th><th>Rules</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Guest</strong></td><td>Same-sex nonresident who stays overnight. Must have Dean's permission. Maximum <strong>3 consecutive nights</strong>.</td></tr>
+            <tr><td><strong>Visitor</strong></td><td>Nonresident who does not stay overnight. May visit in the lobby; room visits require Dean's permission, up to the allowed time only.</td></tr>
+            <tr><td><strong>Opposite gender</strong></td><td>Not permitted in rooms at any time without Dean's permission. Door must remain open at all times during visit.</td></tr>
+            <tr><td><strong>Day students</strong></td><td>Must leave halls by <strong>8:00 p.m.</strong> unless special arrangements made with Dean.</td></tr>
+          </tbody>
+        </table>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Overnight guest fee: <strong>200 Baht per person per night</strong>. Cohabitation is not permitted under any circumstances. The host is responsible for the behavior of all guests and visitors.</span></div>
+        <ul>
+          <li>Get roommate's permission before any guest visits.</li>
+          <li>Guests must abide by all University and residence hall policies.</li>
+          <li>Challenge or report anyone who cannot be identified as a resident or guest of a resident.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-restroom-guests">
+    <div class="section-header"><span class="section-icon">🚻</span><div class="section-meta"><div class="section-title">Restroom Usage by Guests</div></div></div>
+    <div class="subsection" id="sub-restroom-guests-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Guest Restroom Access</div>
+      <div class="collapse-body">
+        <p>Restrooms are situated on the <strong>ground floor</strong> of most residence halls for visitors in the lobby area. Please see the RA or Dean first for assistance.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 8 — LEAVE & ATTENDANCE                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-leave">
+    <div class="section-header"><span class="section-icon">🗓️</span><div class="section-meta"><div class="section-title">Leave Arrangements</div></div></div>
+    <div class="subsection" id="sub-leave-evening">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Evening Leave</div>
+      <div class="collapse-body">
+        <p>Students wishing to leave campus after <strong>8:00 p.m.</strong> must receive prior permission from the Dean by filling out a Campus Leave Request Online Form/Slip, or obtain permission from the VPSA. Use the Online Notification System for off-campus day trips (7:00 a.m.–8:00 p.m.) as found in the Student Guidebook.</p>
+      </div>
+    </div>
+    <div class="subsection" id="sub-leave-overnight">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overnight Leave</div>
+      <div class="collapse-body">
+        <p>Any time you leave campus overnight (including school-sponsored trips), follow the Online Notification System for Overnight Trips. Leaves must be approved by the Dean before leaving.</p>
+        <ul>
+          <li>Parental approval is required for freshmen and may be required for any student.</li>
+          <li>Falsification of an overnight leave may result in <strong>disciplinary action including possible suspension</strong>.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="subsection" id="sub-leave-weekend">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Weekend Leave</div>
+      <div class="collapse-body">
+        <p>Only <strong>one weekend leave off-campus per month</strong> for all students. Freshmen are not eligible. Students with CGPA ≥ 2.25, attendance ≥ 70%, and citizenship points ≥ 70% (at Dean's discretion) may receive permission to leave twice per month.</p>
+        <ul>
+          <li>Weekend leave requests must be submitted at least <strong>24 hours in advance</strong> (no later than Thursday noon).</li>
+          <li>Visiting friends/relatives (not parents) counts against the total allowed leave for that month.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="subsection" id="sub-leave-extended">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Extended Vacation & Summer Leave</div>
+      <div class="collapse-body">
+        <p>For absences of several days, weeks, or months, fill out a permission slip signed by your Dean. Failure to notify the Deans or Student Administration may result in loss of citizenship points or disciplinary measures.</p>
+        <p><strong>Leaving for summer vacation — checklist:</strong></p>
+        <ol class="steps">
+          <li>Contact your Dorm Dean.</li>
+          <li>Move all belongings to the storage room (Esther Hall ground floor).</li>
+          <li>Clean the room, bathroom, and balcony.</li>
+          <li>Return keys to the Dean's office.</li>
+        </ol>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Keeping the room over summer vacation: <strong>4,000 Baht</strong>. Students must still register for classes or work at least 20 hours/week. Rooms left uncleaned: cleaning cost charged to the student's account.</span></div>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Freshmen, sophomores, and juniors must vacate rooms <strong>3 days after final exams</strong> by 4:00 p.m. Graduating seniors: by 4:00 p.m. on the first Wednesday after Commencement. Room deposit for returning students (1st semester): 2,500 Baht (refunded upon return).</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-curfew">
+    <div class="section-header"><span class="section-icon">🕙</span><div class="section-meta"><div class="section-title">Curfew</div></div></div>
+    <div class="subsection" id="sub-curfew-times">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Curfew Times</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Day</th><th>Curfew Time</th></tr></thead>
+          <tbody>
+            <tr><td>Sunday – Friday</td><td><strong>10:00 p.m.</strong></td></tr>
+            <tr><td>Saturday</td><td><strong>11:00 p.m.</strong></td></tr>
+          </tbody>
+        </table>
+        <p>Night check is conducted 15 minutes after closing time each evening. See <strong>Room Nightly Check</strong> for full procedure.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-sabbath">
+    <div class="section-header"><span class="section-icon">✝️</span><div class="section-meta"><div class="section-title">Sabbath Observance</div></div></div>
+    <div class="subsection" id="sub-sabbath-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Sabbath Hours & Expectations</div>
+      <div class="collapse-body">
+        <p>AIU upholds the biblical Seventh-day Sabbath from <strong>sunset Friday to sunset Saturday</strong>. During these hours, students are expected to refrain from: secular entertainment, laundry, secular TV, secular music, shopping, sports, studies, work, and food deliveries.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>See the Student Guidebook and Student Handbook for more information on Sabbath observance requirements.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-sabbath-school">
+    <div class="section-header"><span class="section-icon">⛪</span><div class="section-meta"><div class="section-title">Sabbath School & Worship</div></div></div>
+    <div class="subsection" id="sub-sabbath-schedule">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Sabbath Schedule</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Time</th><th>Program</th></tr></thead>
+          <tbody>
+            <tr><td>9:00 a.m. Saturday</td><td>Sabbath School / Moral Development Seminar</td></tr>
+            <tr><td>11:30 a.m. Saturday</td><td>Divine Worship at the University Church/Auditorium</td></tr>
+          </tbody>
+        </table>
+        <p>Dress appropriately for worship. Sabbath worship is to be held in reverence — minimal talking and care should be taken not to disregard the holiness of the sanctuary.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-worship">
+    <div class="section-header"><span class="section-icon">🙏</span><div class="section-meta"><div class="section-title">Worship at Residences</div></div></div>
+    <div class="subsection" id="sub-worship-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Residence Worship Programs</div>
+      <div class="collapse-body">
+        <p>Residence hall worships are times of character formation, spiritual fellowship, and praise. Students are required to attend a number of character education programs in the dormitory each week.</p>
+        <p>See the Student Guidebook and Student Handbook for more information on program attendance requirements.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>AIU welcomes students from all religious backgrounds who choose to respect and honor Adventist values. Worship attendance is a vital part of what makes APIU special and unique.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-vacations">
+    <div class="section-header"><span class="section-icon">🏖️</span><div class="section-meta"><div class="section-title">Vacations</div></div></div>
+    <div class="subsection" id="sub-vacations-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Vacation Preparation</div>
+      <div class="collapse-body">
+        <p>Before leaving on vacation/holiday, secure an approved leave. Before leaving your room:</p>
+        <ul>
+          <li>Close windows.</li>
+          <li>Turn off lights.</li>
+          <li>Turn off water faucets.</li>
+          <li>Lock doors.</li>
+        </ul>
+        <p>If remaining in the residence hall during vacation, practice all usual residence hall policies.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 9 — SERVICES & SUPPORT                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-accidents">
+    <div class="section-header"><span class="section-icon">🏥</span><div class="section-meta"><div class="section-title">Accidents & Sickness</div></div></div>
+    <div class="subsection" id="sub-accidents-procedure">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Medical Care Procedures</div>
+      <div class="collapse-body">
+        <p>If you feel ill or are involved in a minor accident, first attempt to contact your Dean. Each dorm has a first-aid box. The Campus Nurse's office is in the Student Center — call ahead to confirm availability.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>☀️ During Office Hours (8:30 a.m.–5:00 p.m.)</h4>
+            <ul>
+              <li>Minor condition: Dean/RA uses First-Aid Kit or sends to Nurse's Office.</li>
+              <li>Major condition: Nurse visits the dormitory.</li>
+              <li>Emergency: Dean contacts Nurse and/or takes student to clinic or hospital.</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>🌙 After Office Hours / During Night Check</h4>
+            <ul>
+              <li>Minor: Dean/RA uses Dorm First-Aid Kit.</li>
+              <li>Major: Dean consults Campus Nurse on whether to send to hospital.</li>
+              <li>Emergency: Dean takes student directly to clinic or hospital.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Students must contact the campus nurse on duty to be eligible for medical expense reimbursement. Transportation expenses are charged to the student. Medical expenses from alcohol/drug use or traffic violations are not covered.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-abandoned">
+    <div class="section-header"><span class="section-icon">📦</span><div class="section-meta"><div class="section-title">Abandoned Property</div></div></div>
+    <div class="subsection" id="sub-abandoned-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Abandoned Property Policy</div>
+      <div class="collapse-body">
+        <p>Abandoned property refers to student belongings stored in the dormitory by a student who intended to continue at AIU but did not return.</p>
+        <ul>
+          <li>Abandoned property will be collected, labeled, and stored by Residence Staff.</li>
+          <li>Held in storage for <strong>no less than 12 months</strong>, after which it will be disposed of under the direction of the Dean.</li>
+          <li>AIU and its staff are not responsible for damage or theft of abandoned property while in storage.</li>
+          <li>The Dean's office will make minimal attempts to contact the believed owner.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-campus-mail">
+    <div class="section-header"><span class="section-icon">📬</span><div class="section-meta"><div class="section-title">Campus Mail</div></div></div>
+    <div class="subsection" id="sub-campus-mail-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Mail & Communication</div>
+      <div class="collapse-body">
+        <p>Deans check the dormitory mailbox for student mail <strong>twice a week</strong>. Check SARRA for notification of registered mail. SARRA is the official means of communication with students — you are responsible for regularly checking your SARRA account.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-confiscation">
+    <div class="section-header"><span class="section-icon">🗂️</span><div class="section-meta"><div class="section-title">Confiscation Policy</div></div></div>
+    <div class="subsection" id="sub-confiscation-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Confiscation Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Stereos and speakers confiscated for noise violations: held for <strong>one month</strong> before being returned.</li>
+          <li>Televisions, VCR, DVD equipment, posters, knives etc.: not returned until the resident can take the item home.</li>
+          <li>Pornographic/violent VCDs, DVDs, magazines, and posters: <strong>destroyed and not returned</strong>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-disability">
+    <div class="section-header"><span class="section-icon">♿</span><div class="section-meta"><div class="section-title">Disability</div></div></div>
+    <div class="subsection" id="sub-disability-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Disability Accommodations</div>
+      <div class="collapse-body">
+        <p>Residents with disabilities who require special accommodations can place their requests with the Vice President for Student Administration or the Residence Dean.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-incident">
+    <div class="section-header"><span class="section-icon">📝</span><div class="section-meta"><div class="section-title">Incident Report</div></div></div>
+    <div class="subsection" id="sub-incident-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Filing an Incident Report</div>
+      <div class="collapse-body">
+        <p>An incident report is a written narrative detailing a complaint, personal account of an incident, or witness report. Submit one when a member of the University community has suffered a wrong or when an infraction of University rules is committed.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>The Dorm Manager system does not yet have a dedicated Incident Log module — this is on the development roadmap. See the <strong>System Roadmap</strong> section for planned future features.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-infectious">
+    <div class="section-header"><span class="section-icon">🦠</span><div class="section-meta"><div class="section-title">Infectious Disease</div></div></div>
+    <div class="subsection" id="sub-infectious-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Infectious Disease Policy</div>
+      <div class="collapse-body">
+        <p>Since the Residence Hall is a communal place, the University maintains strict policies on infectious diseases (e.g., meningitis, chickenpox, measles, SARS, HIV/AIDS, TB, STDs).</p>
+        <ul>
+          <li>Inform the Resident Dean immediately.</li>
+          <li>The School Nurse or Dean may require immediate medical attention.</li>
+          <li>Necessary precautions to prevent further spread must be practiced; quarantine may be required.</li>
+          <li>AIU reserves the right to compel a student to take a leave of absence or withdraw during the contagious period.</li>
+          <li>Approval to return may only be granted by the Campus Nurse under guidance from Student Administration.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-internet">
+    <div class="section-header"><span class="section-icon">💻</span><div class="section-meta"><div class="section-title">Internet & Computer Use</div></div></div>
+    <div class="subsection" id="sub-internet-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Internet Use Rules</div>
+      <div class="collapse-body">
+        <ul>
+          <li>You are responsible for all network activity from your data jack or any accounts created on your computer.</li>
+          <li>Do not share accounts or use other people's accounts.</li>
+          <li>Accessing pornography, hate, violence, or terrorism websites may result in disciplinary action.</li>
+          <li>Personal wireless routers, access points, and using mobile phones as hotspots are <strong>not allowed</strong> in dormitories (interference with AIU wireless system).</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Personal router/hotspot: first warning, then <strong>20 citizenship points deducted per offence</strong>. Continuous non-compliance has serious consequences per the Citizenship System policy.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-lost-found">
+    <div class="section-header"><span class="section-icon">🔍</span><div class="section-meta"><div class="section-title">Lost & Found</div></div></div>
+    <div class="subsection" id="sub-lost-found-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Lost & Found Procedure</div>
+      <div class="collapse-body">
+        <ul>
+          <li>Items found in the hall or other places are to be taken to the Dean's office.</li>
+          <li>Items not claimed within <strong>one month</strong> may be donated to needy people.</li>
+          <li>If you believe your lost item may have been stolen, report to your Dean as soon as possible.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-loss-theft">
+    <div class="section-header"><span class="section-icon">🔐</span><div class="section-meta"><div class="section-title">Loss & Theft</div></div></div>
+    <div class="subsection" id="sub-loss-theft-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> University Liability</div>
+      <div class="collapse-body">
+        <p>AIU assumes <strong>no responsibility</strong> for any loss or damage to personal possessions resulting from theft, fire, power outages, or other disasters.</p>
+        <ul>
+          <li>Take all precautions: lock your door, use surge protectors, take valuables home over breaks.</li>
+          <li>Residents are responsible for obtaining their own personal property insurance.</li>
+          <li>Lock your safe drawer, windows, and room every time you leave.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-mental-health">
+    <div class="section-header"><span class="section-icon">🧠</span><div class="section-meta"><div class="section-title">Mental & Emotional Health</div></div></div>
+    <div class="subsection" id="sub-mental-health-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Counseling Resources</div>
+      <div class="collapse-body">
+        <p>The Student Administration Office and Counseling Center provides professional counseling for students experiencing difficult times, discouragement, depression, or suicidal feelings. Talking with a Dean or counselor can make it easier to deal with discouragement.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>Attempting or threatening suicide jeopardizes your stay at Asia-Pacific International University. Seek help immediately from the Dean or Counseling Center.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-musical">
+    <div class="section-header"><span class="section-icon">🎵</span><div class="section-meta"><div class="section-title">Musical Instruments</div></div></div>
+    <div class="subsection" id="sub-musical-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Musical Instrument Rules</div>
+      <div class="collapse-body">
+        <p>Students may practice or play musical instruments provided it doesn't interfere with others' study and quiet time. Prolonged practice must be done in the <strong>ground floor lobby area</strong>. Instruments should be played at a time favorable for others.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-removal">
+    <div class="section-header"><span class="section-icon">🚪</span><div class="section-meta"><div class="section-title">Removal from Hall</div></div></div>
+    <div class="subsection" id="sub-removal-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Removal Process</div>
+      <div class="collapse-body">
+        <p>AIU reserves the right to require students to vacate their rooms during vacation times if necessary for accommodating residents in alternative education programs, special programs, or events on campus.</p>
+        <p>Students may also be removed from the hall as a disciplinary action for serious or repeated violations of University policy. See the Student Handbook and Student Guidebook for full disciplinary procedures.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-repair-request">
+    <div class="section-header"><span class="section-icon">🔧</span><div class="section-meta"><div class="section-title">Reporting a Repair</div></div></div>
+    <div class="subsection" id="sub-repair-procedure">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> How to Report a Repair</div>
+      <div class="collapse-body">
+        <p>Report any needed repairs to the Dean or through the front desk monitor. For emergency repairs (e.g., leaking pipe), inform the Dean immediately.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>The Inventory and Room Inspection modules can flag items for maintenance, automatically creating stubs in the Maintenance module. This provides a digital audit trail for all repair requests.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-employment">
+    <div class="section-header"><span class="section-icon">💼</span><div class="section-meta"><div class="section-title">Student Employment</div></div></div>
+    <div class="subsection" id="sub-employment-info">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Employment Opportunities</div>
+      <div class="collapse-body">
+        <p>Student employment opportunities in many areas through the student work program: Resident Assistants, Building Janitors, Monitors, and Student Chaplains. For employment information, contact or stop by the Hall Dean's office.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>During summer, students staying in the dorm must be enrolled in classes (minimum 3 credits) or work at least <strong>20 hours per week</strong> to maintain housing eligibility.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 10 — STAFF & PROGRAMS                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-deans-ras">
+    <div class="section-header"><span class="section-icon">👨‍💼</span><div class="section-meta"><div class="section-title">Deans & RAs</div></div></div>
+    <div class="subsection" id="sub-deans-ras-roles">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Staff Roles & Responsibilities</div>
+      <div class="collapse-body">
+        <p>The Dean of Men and Dean of Women, Resident Assistants (RAs), Monitors, and Janitors are responsible for the student residences. They assist in every way possible to make residence life orderly and pleasing for all residents.</p>
+        <ul>
+          <li>Students with problems, questions, or special requests should consult their Dean.</li>
+          <li>The Dean maintains confidentiality of shared private information; however, certain situations (suicide concerns, sexual assaults, physical abuse, threats, theft) must be reported to supervisors.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-ra">
+    <div class="section-header"><span class="section-icon">🏅</span><div class="section-meta"><div class="section-title">Resident Assistant</div></div></div>
+    <div class="subsection" id="sub-ra-role">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Role of the RA</div>
+      <div class="collapse-body">
+        <p>One of the most helpful and resourceful persons you will interact with is your Resident Assistant (RA). Located on every floor, RAs are usually sophomore standing or above selected for this leadership position. The RA is your primary resource for information, assistance, and support.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>RAs assist the Dean in hall administration. Their instructions and requests <strong>must be obeyed</strong>. If you have a complaint about an RA's instructions, comply first and then take the matter up with the Dean.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-hall-council">
+    <div class="section-header"><span class="section-icon">🏛️</span><div class="section-meta"><div class="section-title">Residence Hall Council</div></div></div>
+    <div class="subsection" id="sub-hall-council-info">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> RHC Structure & Role</div>
+      <div class="collapse-body">
+        <p>The Residence Hall Council (RHC) is an elected body representing residents' wishes, promoting religious environment, and organizing social activities. Comprises: President, VP, Religious Affairs Coordinator, Treasurer, Secretary, and Social Affairs Coordinator.</p>
+        <p>RHC representatives report information from the Dean's/VPSA's office, raise funds, mentor students, conduct peer counseling, serve as student voice for policy suggestions, and program large-scale events such as the open house. (Optional for each dormitory.)</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-staff-duty">
+    <div class="section-header"><span class="section-icon">🕐</span><div class="section-meta"><div class="section-title">Staff on Duty</div></div></div>
+    <div class="subsection" id="sub-staff-duty-info">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> On-Duty Schedule</div>
+      <div class="collapse-body">
+        <p>Every <strong>7:00 p.m. – 8:00 a.m.</strong> (or other designated times) there is a Resident Assistant on duty in each residence hall. This individual's name is posted in each building. If you need assistance and cannot find your RA, speak with the RA or Dean on duty.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-married">
+    <div class="section-header"><span class="section-icon">💍</span><div class="section-meta"><div class="section-title">Married Students</div></div></div>
+    <div class="subsection" id="sub-married-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Married Student Rules</div>
+      <div class="collapse-body">
+        <p>While married students live under different circumstances than dormitory students, the general principles of this Handbook apply to them whenever appropriate. Married students are eligible for a residency waiver from dormitory housing requirements.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-valuables">
+    <div class="section-header"><span class="section-icon">💎</span><div class="section-meta"><div class="section-title">Valuables</div></div></div>
+    <div class="subsection" id="sub-valuables-policy">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Protecting Valuables</div>
+      <div class="collapse-body">
+        <p>The University assumes no responsibility for loss or damage to valuables. Best practices:</p>
+        <ul>
+          <li>Lock your safe drawer at all times.</li>
+          <li>Lock your room whenever you are absent.</li>
+          <li>Take valuable personal belongings home over breaks.</li>
+          <li>Never leave travel tickets, cash, or electronics at the front desk — deliver in person.</li>
+          <li>Consider purchasing personal property insurance coverage for theft.</li>
+          <li>Keep a list of your electronics' serial numbers.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- GROUP 11 — QUICK REFERENCE                                         -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-fines">
+    <div class="section-header"><span class="section-icon">💰</span><div class="section-meta"><div class="section-title">Fines Quick Reference</div></div></div>
+    <div class="subsection" id="sub-fines-table">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> All Fines Listed in This Handbook</div>
+      <div class="collapse-body">
+        <div class="note"><span class="note-icon">ℹ️</span><span>Prior Student Life Committee/Discipline Committee action is required for fines not stated in this Handbook. The amount reflects the nature, degree, and recorded repetition of the violation. Unpaid fines result in citizenship probation.</span></div>
+        <table class="guide-table">
+          <thead><tr><th>Violation</th><th>Fine</th><th>Section</th></tr></thead>
+          <tbody>
+            <tr><td>Bathroom cleaning neglect</td><td><strong>400 Baht</strong></td><td>Bathroom &amp; Showers</td></tr>
+            <tr><td>Cleaning / housekeeping neglect</td><td><strong>100–1,000 Baht</strong></td><td>Cleaning &amp; Housekeeping</td></tr>
+            <tr><td>Furniture damage</td><td><strong>1,000–2,000 Baht</strong></td><td>Cleanliness &amp; Maintenance</td></tr>
+            <tr><td>Painting/wall damage</td><td><strong>2,500 Baht</strong></td><td>Cleanliness &amp; Maintenance</td></tr>
+            <tr><td>Common area furniture found in room</td><td><strong>500 Baht minimum per piece</strong></td><td>Furniture / Lobby</td></tr>
+            <tr><td>Disassembling furniture</td><td><strong>500–1,000 Baht</strong></td><td>Furniture</td></tr>
+            <tr><td>Lobby furniture or equipment in room</td><td><strong>1,000 Baht per piece</strong></td><td>Lobby &amp; Study Rooms</td></tr>
+            <tr><td>Unauthorized room change</td><td><strong>1,000 Baht</strong></td><td>Rooms / Room Changes</td></tr>
+            <tr><td>Room change fee (authorized)</td><td><strong>500 Baht</strong></td><td>Room Changes</td></tr>
+            <tr><td>Improper room check-out</td><td><strong>500 Baht</strong></td><td>Room Check-Out</td></tr>
+            <tr><td>Littering</td><td><strong>500 Baht</strong></td><td>Cleaning &amp; Housekeeping</td></tr>
+            <tr><td>Painting / graffiti</td><td><strong>2,500 Baht</strong> + clean-up + repainting</td><td>Painting &amp; Graffiti</td></tr>
+            <tr><td>Graffiti citizenship deduction</td><td><strong>20–40 citizenship points</strong></td><td>Painting &amp; Graffiti</td></tr>
+            <tr><td>Key loss or non-return</td><td><strong>50 Baht</strong></td><td>Security / Keys</td></tr>
+            <tr><td>Key deposit (refundable)</td><td><strong>100 Baht per key</strong></td><td>Key Deposit</td></tr>
+            <tr><td>Lockout administrative fee</td><td><strong>10 Baht each</strong></td><td>Locked-Out Procedures</td></tr>
+            <tr><td>Overnight guest</td><td><strong>200 Baht/person/night</strong></td><td>Guests &amp; Visitors</td></tr>
+            <tr><td>Shoe violation (repeat offenders)</td><td><strong>100 Baht each time</strong></td><td>Shoes</td></tr>
+            <tr><td>Nails / stickers on walls</td><td>Fine (amount at Dean's discretion)</td><td>Decorations / Posters</td></tr>
+            <tr><td>Weapon possession</td><td><strong>5,000 Baht</strong></td><td>Firearms &amp; Weapons</td></tr>
+            <tr><td>Summer room hold / staying in dorm</td><td><strong>4,000 Baht</strong></td><td>Leave Arrangements</td></tr>
+            <tr><td>Personal router / hotspot (repeat)</td><td><strong>20 citizenship points per offence</strong></td><td>Internet &amp; Computer Use</td></tr>
+            <tr><td>Motorbike parking violations</td><td>Fine (amount varies)</td><td>Bicycles &amp; Vehicles</td></tr>
+          </tbody>
+        </table>
+        <div class="warn"><span class="warn-icon">⚠️</span><span>Fines unpaid near end of semester will be <strong>doubled</strong> and citizenship points deducted. Citizenship probation applies to all unpaid fines.</span></div>
+        <div class="tip"><span class="tip-icon">💡</span><span>The <strong>Reports → 💰 Fee Collection</strong> tab in the Dorm Manager system shows all outstanding fees: storage rentals, room holds, pending clearance forms, and key fines in one view.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section" id="sec-roadmap">
+    <div class="section-header"><span class="section-icon">🗺️</span><div class="section-meta"><div class="section-title">System Development Roadmap</div></div></div>
+    <div class="subsection" id="sub-roadmap-ref">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Gap Analysis &amp; Priority Table</div>
+      <div class="collapse-body">
+        <div class="tip"><span class="tip-icon">📖</span><span>The full System Development Roadmap — including the gap analysis table (10 planned features with priority badges) and the currently-supported policies table — has been moved to the <strong>Dean's User Guide</strong>. Open the User Guide and go to <strong>🗺️ Development Roadmap</strong> in the Reference section.</span></div>
+        <p>The roadmap is maintained in the User Guide so it stays alongside the module documentation and version history, making it easier to track what has been built and what comes next.</p>
+        <a href="userguide.html#sec-roadmap" style="display:inline-block;margin-top:10px;background:#1b4332;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:600">Open User Guide → Development Roadmap ↗</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+// ── Back-link ────────────────────────────────────────────────────────────────
+(function() {
+  const p = new URLSearchParams(location.search).get('back');
+  if (!p) return;
+  const titles = { 'room-reservations':'Room Reservations', 'reports':'Reports' };
+  const lbl = titles[p] || p.replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+  const el = document.getElementById('backLink');
+  el.textContent = '← ' + lbl;
+  el.href = p + '.html';
+})();
+
+// ── Header subtitle ───────────────────────────────────────────────────────────
+try {
+  const dn = DormDB.getDormName();
+  if (dn) document.getElementById('heroSub').textContent =
+    '1st Edition (August 2017) · ' + dn + ' · Asia-Pacific International University';
+} catch(e) {}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TOC data
+// ══════════════════════════════════════════════════════════════════════════════
+const TOC = [
+  { label:'Introduction', items:[
+    { id:'sec-introduction', text:'📖 Introduction' },
+  ]},
+  { label:'Room & Occupancy', items:[
+    { id:'sec-rooms',              text:'🚪 Rooms' },
+    { id:'sec-residency',         text:'📋 Residency Requirement' },
+    { id:'sec-room-eligibility',  text:'✅ Room Eligibility' },
+    { id:'sec-room-checkin',      text:'📥 Room Check-In' },
+    { id:'sec-room-checkout',     text:'📤 Room Check-Out' },
+    { id:'sec-nightly-check',     text:'🌙 Room Nightly Check' },
+    { id:'sec-room-changes',      text:'🔄 Room Changes' },
+    { id:'sec-room-entry',        text:'🔓 Right of Entry' },
+    { id:'sec-roommate-info',     text:'🤝 Roommate Information' },
+    { id:'sec-roommate-rights',   text:'⚖️ Roommate Bill of Rights' },
+  ]},
+  { label:'Safety & Security', items:[
+    { id:'sec-emergencies',       text:'🚨 Emergencies' },
+    { id:'sec-fire-safety',       text:'🔥 Fire Safety & Equipment' },
+    { id:'sec-firearms',          text:'🚫 Firearms & Weapons' },
+    { id:'sec-hall-access',       text:'🔐 Hall Access & Entry' },
+    { id:'sec-security',          text:'🛡️ Security & Peaceful Atmosphere' },
+    { id:'sec-unauthorized-entry',text:'⛔ Unauthorized Entry' },
+  ]},
+  { label:'Student Conduct', items:[
+    { id:'sec-alcohol',           text:'🍺 Alcohol & Drinking' },
+    { id:'sec-dancing',           text:'💃 Dancing' },
+    { id:'sec-disciplinary',      text:'📜 Disciplinary Actions' },
+    { id:'sec-dress',             text:'👔 Dress' },
+    { id:'sec-drugs',             text:'💊 Drugs' },
+    { id:'sec-gambling',          text:'🎲 Gambling' },
+    { id:'sec-hazing',            text:'⚠️ Hazing' },
+    { id:'sec-harassment',        text:'🚷 Harassment & Abuse' },
+    { id:'sec-insubordination',   text:'🗣️ Insubordination' },
+    { id:'sec-language',          text:'💬 Language' },
+    { id:'sec-noise',             text:'🔊 Noise & Quiet Hours' },
+    { id:'sec-painting',          text:'🎨 Painting & Graffiti' },
+    { id:'sec-pornography',       text:'🚫 Pornography' },
+    { id:'sec-posters',           text:'📌 Posters & Decorations' },
+    { id:'sec-sexual-harassment', text:'⚠️ Sexual Harassment' },
+    { id:'sec-sexuality',         text:'🏳️ Sexuality & Gender Identity' },
+    { id:'sec-shoes',             text:'👟 Shoes' },
+    { id:'sec-skateboards',       text:'🛹 Skateboards & Rollerblades' },
+    { id:'sec-smoking',           text:'🚬 Smoking' },
+    { id:'sec-sports-pranks',     text:'⚽ Sports & Pranks' },
+  ]},
+  { label:'Living Facilities', items:[
+    { id:'sec-bathroom',          text:'🚿 Bathroom & Showers' },
+    { id:'sec-bicycles',          text:'🚲 Bicycles & Vehicles' },
+    { id:'sec-cleaning',          text:'🧹 Cleaning & Housekeeping' },
+    { id:'sec-cleanliness',       text:'📋 Cleanliness & Maintenance' },
+    { id:'sec-electricity',       text:'⚡ Electricity' },
+    { id:'sec-electrical-outlets',text:'🔌 Electrical Outlets' },
+    { id:'sec-engine-repair',     text:'🔧 Engine Repair' },
+    { id:'sec-food-delivery',     text:'🍕 Food & Merchandise Delivery' },
+    { id:'sec-furniture',         text:'🪑 Furniture' },
+    { id:'sec-kitchen',           text:'🍳 Kitchen Facilities' },
+    { id:'sec-laundry',           text:'🧺 Laundry Facilities' },
+    { id:'sec-lobby',             text:'🏛️ Lobby & Study Rooms' },
+    { id:'sec-pets',              text:'🐾 Pets' },
+    { id:'sec-refrigerators',     text:'❄️ Refrigerators' },
+    { id:'sec-snack-shop',        text:'🛍️ Snack Shop' },
+    { id:'sec-storage-room',      text:'📦 Storage Room' },
+  ]},
+  { label:'Keys & Access', items:[
+    { id:'sec-keys',              text:'🔑 Keys' },
+    { id:'sec-key-deposit',       text:'💰 Key Deposit' },
+    { id:'sec-lockout',           text:'🔒 Locked-Out Procedures' },
+    { id:'sec-desk-service',      text:'🖥️ Desk Service' },
+  ]},
+  { label:'Guests & Visitors', items:[
+    { id:'sec-guests',            text:'👥 Guests & Visitors' },
+    { id:'sec-restroom-guests',   text:'🚻 Restroom Usage by Guests' },
+  ]},
+  { label:'Leave & Attendance', items:[
+    { id:'sec-leave',             text:'🗓️ Leave Arrangements' },
+    { id:'sec-curfew',            text:'🕙 Curfew' },
+    { id:'sec-sabbath',           text:'✝️ Sabbath Observance' },
+    { id:'sec-sabbath-school',    text:'⛪ Sabbath School & Worship' },
+    { id:'sec-worship',           text:'🙏 Worship at Residences' },
+    { id:'sec-vacations',         text:'🏖️ Vacations' },
+  ]},
+  { label:'Services & Support', items:[
+    { id:'sec-accidents',         text:'🏥 Accidents & Sickness' },
+    { id:'sec-abandoned',         text:'📦 Abandoned Property' },
+    { id:'sec-campus-mail',       text:'📬 Campus Mail' },
+    { id:'sec-confiscation',      text:'🗂️ Confiscation Policy' },
+    { id:'sec-disability',        text:'♿ Disability' },
+    { id:'sec-incident',          text:'📝 Incident Report' },
+    { id:'sec-infectious',        text:'🦠 Infectious Disease' },
+    { id:'sec-internet',          text:'💻 Internet & Computer Use' },
+    { id:'sec-lost-found',        text:'🔍 Lost & Found' },
+    { id:'sec-loss-theft',        text:'🔐 Loss & Theft' },
+    { id:'sec-mental-health',     text:'🧠 Mental & Emotional Health' },
+    { id:'sec-musical',           text:'🎵 Musical Instruments' },
+    { id:'sec-removal',           text:'🚪 Removal from Hall' },
+    { id:'sec-repair-request',    text:'🔧 Reporting a Repair' },
+    { id:'sec-employment',        text:'💼 Student Employment' },
+  ]},
+  { label:'Staff & Programs', items:[
+    { id:'sec-deans-ras',         text:'👨‍💼 Deans & RAs' },
+    { id:'sec-ra',                text:'🏅 Resident Assistant' },
+    { id:'sec-hall-council',      text:'🏛️ Residence Hall Council' },
+    { id:'sec-staff-duty',        text:'🕐 Staff on Duty' },
+    { id:'sec-married',           text:'💍 Married Students' },
+    { id:'sec-valuables',         text:'💎 Valuables' },
+  ]},
+  { label:'Quick Reference', items:[
+    { id:'sec-fines',             text:'💰 Fines Table' },
+    { id:'sec-roadmap',           text:'🗺️ System Roadmap' },
+  ]},
+];
+
+// ── Build TOC ─────────────────────────────────────────────────────────────────
+function buildToc() {
+  const nav = document.getElementById('toc');
+  nav.innerHTML = '';
+  TOC.forEach(group => {
+    const grpEl = document.createElement('div');
+    grpEl.className = 'toc-group';
+    const lbl = document.createElement('div');
+    lbl.className = 'toc-group-label';
+    lbl.textContent = group.label;
+    grpEl.appendChild(lbl);
+    group.items.forEach(item => {
+      const a = document.createElement('a');
+      a.className = 'toc-link';
+      a.textContent = item.text;
+      a.dataset.target = item.id;
+      a.onclick = () => { jumpTo(item.id); if (window.innerWidth <= 820) closeSidebar(); };
+      grpEl.appendChild(a);
+      (item.subs || []).forEach(sub => {
+        const s = document.createElement('a');
+        s.className = 'toc-sub';
+        s.textContent = sub.text;
+        s.dataset.target = sub.id;
+        s.onclick = () => { jumpTo(sub.id); if (window.innerWidth <= 820) closeSidebar(); };
+        grpEl.appendChild(s);
+      });
+    });
+    nav.appendChild(grpEl);
+  });
+}
+
+function jumpTo(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function setupObserver() {
+  const els = document.querySelectorAll('.guide-section, .subsection');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        document.querySelectorAll('.toc-link[data-target]').forEach(a =>
+          a.classList.toggle('active', a.dataset.target === id));
+        document.querySelectorAll('.toc-sub[data-target]').forEach(a =>
+          a.classList.toggle('active', a.dataset.target === id));
+      }
+    });
+  }, { rootMargin:'-8% 0px -75% 0px', threshold:0 });
+  els.forEach(el => obs.observe(el));
+}
+
+function toggleSection(trigger) {
+  const body = trigger.nextElementSibling;
+  if (!body || !body.classList.contains('collapse-body')) return;
+  const willClose = !body.classList.contains('closed');
+  trigger.classList.toggle('closed', willClose);
+  if (willClose) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      body.style.maxHeight = '0';
+      body.style.paddingTop = '0';
+      body.style.paddingBottom = '0';
+    });
+    body.addEventListener('transitionend', () => body.classList.add('closed'), { once:true });
+  } else {
+    body.classList.remove('closed');
+    body.style.maxHeight = 'none';
+    const h = body.scrollHeight;
+    body.style.maxHeight = '0';
+    body.style.paddingTop = '';
+    body.style.paddingBottom = '';
+    requestAnimationFrame(() => { body.style.maxHeight = h + 'px'; });
+    body.addEventListener('transitionend', () => { body.style.maxHeight = 'none'; }, { once:true });
+  }
+}
+
+function expandAll() {
+  document.querySelectorAll('.collapse-body').forEach(b => {
+    b.classList.remove('closed');
+    b.style.maxHeight = 'none';
+    b.style.paddingTop = '';
+    b.style.paddingBottom = '';
+    const trigger = b.previousElementSibling;
+    if (trigger) trigger.classList.remove('closed');
+  });
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+let _st = null;
+function doSearch(raw) {
+  clearTimeout(_st);
+  _st = setTimeout(() => _runSearch(raw.trim().toLowerCase()), 220);
+}
+function _runSearch(q) {
+  document.querySelectorAll('mark.hl').forEach(m => {
+    const t = document.createTextNode(m.textContent);
+    m.parentNode.replaceChild(t, m);
+  });
+  if (!q) {
+    document.querySelectorAll('.toc-link,.toc-sub').forEach(a => a.style.display='');
+    return;
+  }
+  document.querySelectorAll('.toc-link,.toc-sub').forEach(a => {
+    a.style.display = a.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+  _highlightNode(document.getElementById('guideMain'), q);
+}
+function _highlightNode(node, q) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const txt = node.textContent;
+    const lo  = txt.toLowerCase();
+    const idx = lo.indexOf(q);
+    if (idx === -1) return;
+    const frag = document.createDocumentFragment();
+    frag.appendChild(document.createTextNode(txt.slice(0, idx)));
+    const mark = document.createElement('mark');
+    mark.className = 'hl';
+    mark.textContent = txt.slice(idx, idx + q.length);
+    frag.appendChild(mark);
+    frag.appendChild(document.createTextNode(txt.slice(idx + q.length)));
+    node.parentNode.replaceChild(frag, node);
+    return;
+  }
+  if (['SCRIPT','STYLE','INPUT','BUTTON','MARK'].includes(node.nodeName)) return;
+  [...node.childNodes].forEach(c => _highlightNode(c, q));
+}
+
+buildToc();
+expandAll();
+setupObserver();
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+
+// Scroll-to-top button
+(function(){
+  const btn = document.createElement('button');
+  btn.id = 'scrollTopBtn';
+  btn.title = 'Back to top';
+  btn.innerHTML = '&#8679;';
+  document.body.appendChild(btn);
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > 300);
+  }, {passive:true});
+  btn.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+})();
+</script>
+</body>
+</html>

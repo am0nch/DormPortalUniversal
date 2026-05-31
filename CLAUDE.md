@@ -19,6 +19,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 - **Key Inventory** (`modules/key-inventory.html`) — key checkout/return/lost tracking, overdue alerts, fine recording, master inventory, shift print sheet
 - **Inventory** (`modules/inventory.html`) — asset tracking with Code 39 barcode labels, room template comparison, condition assessment, maintenance flag push
 - **Dean's User Guide** (`modules/userguide.html`) — interactive HTML guide covering all 8 ready modules; sticky sidebar TOC, collapsible sections, live search, print-friendly
+- **Residence Hall Handbook** (`modules/handbook.html`) — interactive APIU policy reference; 50+ policies, fines quick-reference table, system development roadmap; dark green theme, same sidebar/search pattern as userguide.html
 
 **Coming soon:** Staff Scheduling, Maintenance
 
@@ -46,11 +47,11 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 ---
 
-## File stats (as of 2026-05-31, session 19)
+## File stats (as of 2026-05-31, session 23)
 
 | File | Lines | Size | Notes |
 |------|-------|------|-------|
-| `index.html` | 321 | ~15 KB | Main menu, 11 module cards (9 ready), live stats, dorm selector |
+| `index.html` | 331 | ~16 KB | Main menu, 12 module cards (10 ready), live stats, dorm selector |
 | `dorm-db.js` | 291 | ~12 KB | Central data API + IndexedDB photo subsystem |
 | `modules/room-reservations.html` | 1,804 | ~130 KB | Active room reservations module |
 | `modules/student-profiles.html` | 1,124 | ~52 KB | Student profiles, print cards, CSV/Excel import |
@@ -60,7 +61,8 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/room-inspection.html` | 1,024 | ~55 KB | Move-in/out checklists, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,178 | ~54 KB | Key checkout/return/lost, overdue alerts, fine recording, shift print, ledger, agreement |
 | `modules/inventory.html` | 1,078 | ~55 KB | Asset inventory — Code 39 barcodes, room template, maintenance flags |
-| `modules/userguide.html` | 1,535 | ~72 KB | Dean's User Guide — all 8 modules + About/Version History/Legal sections |
+| `modules/userguide.html` | 1,637 | ~75 KB | Dean's User Guide — all 9 ready modules + About/Version History/Roadmap/Legal sections |
+| `modules/handbook.html` | 1,860 | ~88 KB | APIU Residence Hall Handbook — 50+ policies, fines table; roadmap cross-links to User Guide |
 
 ---
 
@@ -472,6 +474,27 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [ ] Set up GitHub remote and enable GitHub Pages (git init ✅, initial commit ✅; pending remote add + push)
 
 ---
+
+## Completed improvements (2026-05-31, session 23)
+
+- [x] `modules/userguide.html` — Sticky scroll-to-top button added (1,612 → 1,637 lines): fixed bottom-right ⇧ circle, navy `#1e3a5f`; fades in after 300px scroll, smooth scroll on click, hidden on print
+- [x] `modules/handbook.html` — Sticky scroll-to-top button added (1,835 → 1,860 lines): same pattern, forest green `#1b4332` to match module theme
+- [x] `CLAUDE.md` — File stats updated (session 23)
+
+## Completed improvements (2026-05-31, session 22)
+
+- [x] `modules/userguide.html` — New `sec-roadmap` section added (1,536 → 1,596 lines): "🗺️ Development Roadmap" in Reference group. Two subsections: Gap Analysis table (10 planned features with 🔴🟠🟡 priority badges) + Currently Supported Policies table (8 rows mapping handbook areas to modules). TOC array updated with sec-roadmap + 2 sub-items. Tip in sub-about-rationale updated to point to roadmap in this guide rather than handbook.
+- [x] `modules/handbook.html` — `sec-roadmap` body replaced with cross-reference callout + styled link button pointing to `userguide.html#sec-roadmap` (1,868 → 1,835 lines). Hero description updated to remove roadmap mention.
+- [x] `CLAUDE.md` — File stats updated (session 22)
+
+## Completed improvements (2026-05-31, session 21)
+
+- [x] `modules/handbook.html` — NEW module (1,868 lines): Interactive APIU Residence Hall Handbook (1st Ed., August 2017). 11 TOC groups covering 50+ policies. Features: `#1b4332` dark forest green theme; sticky sidebar with search + collapsible sections (identical pattern to userguide.html); Fines Quick Reference table (22 fine types with Baht amounts); System Development Roadmap section (moved to userguide.html in session 22). No DormDB writes — read-only reference module.
+- [x] `index.html` — 📋 Residence Hall Handbook card added (ready: true, "50+ policies" + "Fines reference" pills). 321 → 331 lines.
+- [x] `modules/userguide.html` — Cross-reference tip callout added to "About This Project" section pointing to the Handbook module. 1,535 → 1,536 lines.
+- [x] `CLAUDE.md` — Handbook added to module list + file stats updated (session 21)
+- [x] `memory/module_handbook.md` — new memory file created
+- [x] `memory/MEMORY.md` — pointer to module_handbook.md added
 
 ## Completed improvements (2026-05-31, session 20)
 
