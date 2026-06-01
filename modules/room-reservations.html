@@ -115,7 +115,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
   <label>🏢 Dormitory:</label>
   <select id="dormSelect" onchange="updateDormName()">
     <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
-    <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+    <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
     <option value="Other">Other (custom)</option>
   </select>
   <input type="text" id="customDormName" placeholder="Custom name" style="display:none;width:130px" oninput="updateDormName()">
@@ -295,7 +295,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
   <div class="fg"><label>From Dorm:</label>
     <select id="cl_fromDorm">
       <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
-      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
       <option>Other / External</option>
     </select>
   </div>
@@ -304,7 +304,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <select id="cl_toDorm">
       <option value="">— Select —</option>
       <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
-      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
       <option>Off-Campus / Going Home</option><option>Other / External</option>
     </select>
   </div>
@@ -347,7 +347,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <select id="trf_dormSel" onchange="onTrfDormSelect()">
       <option value="">— Select or type —</option>
       <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
-      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
       <option value="other">Other (enter below)</option>
     </select>
   </div>
@@ -389,7 +389,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <select id="iq_dormSel" onchange="onIqDormSelect()">
       <option value="">— Not a transfer —</option>
       <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
-      <option>Ruth Hall</option><option>Sara Hall</option><option>Solomon Hall</option>
+      <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
       <option value="other">Other (enter below)</option>
     </select>
   </div>
@@ -435,7 +435,7 @@ function getFloor(room){const m=String(room).trim().match(/\d+/);if(m){const d=m
 function matchesFloor(room,f){return f==='all'||getFloor(room)===f;}
 function debounce(fn,ms){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),ms);};}
 function isHoldActive(s){return!!(s.roomHold&&s.roomHold.active&&(s.summer||s.firstSem)&&s.moveOutReason!=='Graduating'&&!(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm'));}
-const DORM_LIST=['Elijah Hall','Esther Hall','Eve Hall','Ruth Hall','Sara Hall','Solomon Hall'];
+const DORM_LIST=['Elijah Hall','Esther Hall','Eve Hall','Ruth Hall','Sarah Hall','Solomon Hall'];
 
 // ═══ DATA MODEL ═══
 function clearanceDef(){
