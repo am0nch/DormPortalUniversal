@@ -291,6 +291,8 @@ async function restoreAll(input) {
 async function exportAll() {
   try {
     const dump = await DormDB.exportAll();
+    const failed = dump._photosFailed || 0;
+    delete dump._photosFailed;
     const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -299,6 +301,7 @@ async function exportAll() {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    if (failed > 0) alert(`⚠️ ${failed} photo(s) could not be exported. Check browser storage or try again.`);
   } catch(e) {
     alert('Export failed: ' + e.message);
   }

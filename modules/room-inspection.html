@@ -79,6 +79,8 @@ body{background:#f0f4f8;min-height:100vh}
   .card{box-shadow:none;border:1px solid #ccc}
 }
 .print-only{display:none}
+
+#scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:#1e3a5f;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}#scrollTopBtn:hover{background:#2d5282;}@media print{#scrollTopBtn{display:none}}
 </style>
 </head>
 <body>
@@ -1020,5 +1022,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){['inspModal','editC
 
 window.addEventListener('load',init);
 </script>
+<script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>
 </body>
 </html>

@@ -124,7 +124,7 @@ const DormDB = (() => {
     getAway:        ()  => _r(K.AWAY, []),
     saveAway:       (d) => _w(K.AWAY, d),
 
-    // Shared settings (read-only helpers)
+    // Shared settings — getters
     getDormName() {
       const sel = localStorage.getItem(K.NAME_SEL) || 'Elijah Hall';
       return sel === 'Other'
@@ -133,6 +133,26 @@ const DormDB = (() => {
     },
     getMaxOcc:      ()  => parseInt(localStorage.getItem(K.MAX_OCC) || '2'),
     getCurrentUser: ()  => localStorage.getItem(K.USER) || 'Unknown',
+
+    // Shared settings — setters (route all writes here for BroadcastChannel sync)
+    saveDormName(sel, custom) {
+      localStorage.setItem(K.NAME_SEL, sel);
+      localStorage.setItem(K.NAME_CUSTOM, custom || '');
+      _broadcast(K.NAME_SEL);
+    },
+    saveMaxOcc:      (v)    => localStorage.setItem(K.MAX_OCC, String(v)),
+    saveCurrentUser: (name) => localStorage.setItem(K.USER, name),
+    saveLastSave(ts, user) {
+      localStorage.setItem(K.LAST_UPDATE, ts);
+      localStorage.setItem(K.LAST_USER, user);
+    },
+    getLastSave: () => ({ ts: localStorage.getItem(K.LAST_UPDATE)||'', user: localStorage.getItem(K.LAST_USER)||'' }),
+    getFloor:    ()    => localStorage.getItem(K.FLOOR) || '',
+    saveFloor:   (v)   => localStorage.setItem(K.FLOOR, v || ''),
+    getCols()          { try { return JSON.parse(localStorage.getItem(K.COLS) || '[]'); } catch { return []; } },
+    saveCols:    (arr) => localStorage.setItem(K.COLS, JSON.stringify(arr)),
+    getPhotosFlag: ()  => localStorage.getItem(K.PHOTOS_MIGRATED),
+    setPhotosFlag: (v) => localStorage.setItem(K.PHOTOS_MIGRATED, v),
 
     // New module data
     getProfiles:     ()  => _r(K.PROFILES, []),
@@ -262,7 +282,7 @@ const DormDB = (() => {
           };
           req.onerror = () => rej(req.error);
         });
-      } catch(e) { console.warn('Photo export skipped:', e); }
+      } catch(e) { dump._photosFailed = (dump._photosFailed||0)+1; console.warn('Photo export skipped:', e); }
       return dump;
     },
     async importAll(dump) {

@@ -171,6 +171,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <button class="hamburger-btn" onclick="toggleSidebar()">☰ Contents</button>
       <a class="back-link" id="backLink" href="../index.html">← Menu</a>
     </div>
+    <span id="navDorm" style="font-size:.78rem;opacity:.7;margin:0 auto;"></span>
     <div class="nav-btns">
       <button class="print-btn" onclick="window.print()">🖨️ Print Handbook</button>
     </div>
@@ -1581,8 +1582,12 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
 // ── Header subtitle ───────────────────────────────────────────────────────────
 try {
   const dn = DormDB.getDormName();
-  if (dn) document.getElementById('heroSub').textContent =
-    '1st Edition (August 2017) · ' + dn + ' · Asia-Pacific International University';
+  if (dn) {
+    document.getElementById('heroSub').textContent =
+      '1st Edition (August 2017) · ' + dn + ' · Asia-Pacific International University';
+    const nd = document.getElementById('navDorm');
+    if (nd) nd.textContent = dn;
+  }
 } catch(e) {}
 
 // ══════════════════════════════════════════════════════════════════════════════
