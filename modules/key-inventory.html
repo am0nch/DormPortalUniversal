@@ -113,13 +113,19 @@ body{background:#f0f4f8;min-height:100vh}
 
   <div class="toolbar no-print">
     <button class="btn btn-green" onclick="openCheckOutModal()">🔑 Check Out Key</button>
+    <button class="btn btn-primary" onclick="openIssueKeyModal()">➕ Issue Assigned Key</button>
     <button class="btn" onclick="printShiftSheet()">🖨️ Print Shift Sheet</button>
     <button class="btn btn-teal" onclick="printLedger()">🖨️ Print Ledger</button>
+    <label class="btn" style="cursor:pointer" title="Import MS Forms borrow log (.xlsx or .csv)">
+      📥 Import from MS Forms
+      <input type="file" id="formsImportInput" accept=".xlsx,.csv" style="display:none" onchange="importBorrowFromForms(this)">
+    </label>
   </div>
 
   <div class="tabs no-print">
     <button class="tab-btn active" onclick="switchTab('dashboard')">📋 Dashboard</button>
-    <button class="tab-btn" onclick="switchTab('active')">🔑 Active</button>
+    <button class="tab-btn" onclick="switchTab('assigned')">🗂️ Assigned</button>
+    <button class="tab-btn" onclick="switchTab('borrow')">🔄 Borrow Log</button>
     <button class="tab-btn" onclick="switchTab('inventory')">🗝️ Inventory</button>
     <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
     <button class="tab-btn" onclick="switchTab('agreement')">📄 Agreement</button>
@@ -136,15 +142,29 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
   </div>
 
-  <!-- ACTIVE TAB -->
-  <div id="tab-active" class="tab-panel">
+  <!-- ASSIGNED TAB -->
+  <div id="tab-assigned" class="tab-panel">
     <div class="filter-row no-print">
-      <select id="activeFilterStatus" onchange="renderActive()">
+      <select id="asgFilterStatus" onchange="renderAssigned()">
+        <option value="">All Statuses</option>
+        <option value="With Student">With Student</option>
+        <option value="Returned">Returned</option>
+        <option value="Lost">Lost</option>
+      </select>
+      <input type="text" id="asgSearch" placeholder="Search student / room…" oninput="renderAssigned()" style="width:200px">
+    </div>
+    <div id="assignedList"></div>
+  </div>
+
+  <!-- BORROW LOG TAB -->
+  <div id="tab-borrow" class="tab-panel">
+    <div class="filter-row no-print">
+      <select id="activeFilterStatus" onchange="renderBorrow()">
         <option value="">All Active</option>
         <option value="Checked Out">Checked Out</option>
         <option value="Overdue">Overdue</option>
       </select>
-      <select id="activeFilterType" onchange="renderActive()">
+      <select id="activeFilterType" onchange="renderBorrow()">
         <option value="">All Types</option>
         <option value="A">Key A</option>
         <option value="B">Key B</option>
@@ -152,7 +172,7 @@ body{background:#f0f4f8;min-height:100vh}
         <option value="Spare">Spare</option>
         <option value="Grand Master">Grand Master</option>
       </select>
-      <input type="text" id="activeSearch" placeholder="Search borrower / room…" oninput="renderActive()" style="width:180px">
+      <input type="text" id="activeSearch" placeholder="Search borrower / room…" oninput="renderBorrow()" style="width:180px">
     </div>
     <div id="activeList"></div>
   </div>
@@ -220,6 +240,10 @@ body{background:#f0f4f8;min-height:100vh}
       <div class="fg" style="margin-top:8px">
         <label>Semester label (for print headers)</label>
         <input type="text" id="s_semester" placeholder="e.g. 2nd Semester 2025–26">
+      </div>
+      <div class="fg" style="margin-top:8px">
+        <label>Key Deposit Amount (฿) — charged to new students at move-in</label>
+        <input type="number" id="s_keyDeposit" min="0" placeholder="100" value="100">
       </div>
       <div style="margin-top:14px">
         <button class="btn btn-green" onclick="saveSettings()">💾 Save Settings</button>
@@ -350,6 +374,67 @@ body{background:#f0f4f8;min-height:100vh}
   </div>
 </div>
 
+<!-- ISSUE ASSIGNED KEY MODAL -->
+<div id="assignedKeyModal" class="modal">
+  <div class="modal-content">
+    <span class="close-modal" onclick="closeModal('assignedKeyModal')">&times;</span>
+    <h3 style="margin-bottom:14px;color:#1e3a5f">🗂️ Issue Assigned Key</h3>
+    <input type="hidden" id="akg_id">
+    <div class="fg">
+      <label>Room *</label>
+      <select id="akg_room"><option value="">— Select room —</option></select>
+    </div>
+    <div class="fg">
+      <label>Student Name *</label>
+      <input type="text" id="akg_name" placeholder="Full name">
+    </div>
+    <div class="fg">
+      <label>Student ID</label>
+      <input type="text" id="akg_studentId" placeholder="e.g. 12345">
+    </div>
+    <div class="fg">
+      <label>Side</label>
+      <select id="akg_side">
+        <option value="">— Not specified —</option>
+        <option value="A">Side A (door)</option>
+        <option value="B">Side B (balcony)</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Issued Date *</label>
+      <input type="date" id="akg_issuedDate">
+    </div>
+    <div class="fg">
+      <label>Deposit Amount (฿)</label>
+      <input type="number" id="akg_depositAmount" min="0" value="100">
+    </div>
+    <div class="fg">
+      <label>Deposit Paid?</label>
+      <select id="akg_depositMethod">
+        <option value="Cash">Cash</option>
+        <option value="QR">QR Payment</option>
+        <option value="Not Paid">Not Paid</option>
+      </select>
+    </div>
+    <div class="fg" id="akg_depositDateRow">
+      <label>Deposit Date</label>
+      <input type="date" id="akg_depositDate">
+    </div>
+    <div class="fg">
+      <label>Received by (Dean/Staff)</label>
+      <input type="text" id="akg_receivedBy" placeholder="Dean's name">
+    </div>
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="akg_notes" placeholder="Optional notes…" rows="2"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('assignedKeyModal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveIssueKey()">💾 Issue Key</button>
+    </div>
+  </div>
+</div>
+
 <!-- PRINT SHEET (hidden until print) -->
 <div id="printSheet" class="print-only">
   <div style="text-align:center;margin-bottom:12px">
@@ -364,8 +449,9 @@ body{background:#f0f4f8;min-height:100vh}
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────────
-let keys = [];
-let cfg  = {};
+let keys         = [];
+let assignedKeys = [];
+let cfg          = {};
 let _currentFineKeyId = null;
 
 // ── Init ───────────────────────────────────────────────────────────────────────
@@ -381,14 +467,16 @@ function init() {
   document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
   document.getElementById('userSpan').textContent = DormDB.getCurrentUser();
 
-  keys = DormDB.getKeys();
-  cfg  = DormDB.getKeysConfig();
+  keys         = DormDB.getKeys();
+  assignedKeys = DormDB.getAssignedKeys();
+  cfg          = DormDB.getKeysConfig();
 
   checkOverdue();
   loadSettings();
   renderAll();
 
-  DormDB.on(DormDB.KEYS.KEYS_INV, () => { keys = DormDB.getKeys(); checkOverdue(); renderAll(); });
+  DormDB.on(DormDB.KEYS.KEYS_INV,      () => { keys = DormDB.getKeys(); checkOverdue(); renderAll(); });
+  DormDB.on(DormDB.KEYS.KEYS_ASSIGNED, () => { assignedKeys = DormDB.getAssignedKeys(); renderAssigned(); renderDashboard(); });
   setInterval(() => { checkOverdue(); renderAll(); }, 60000);
 }
 
@@ -440,13 +528,14 @@ function showToast(msg) {
 // ── Tab control ────────────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    const names = ['dashboard','active','inventory','settings','agreement'];
+    const names = ['dashboard','assigned','borrow','inventory','settings','agreement'];
     b.classList.toggle('active', names[i] === name);
   });
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'dashboard') renderDashboard();
-  if (name === 'active')    renderActive();
+  if (name === 'assigned')  renderAssigned();
+  if (name === 'borrow')    renderBorrow();
   if (name === 'inventory') renderInventory();
   if (name === 'agreement') renderAgreement();
 }
@@ -468,7 +557,8 @@ function checkOverdue() {
 function renderAll() {
   renderDashboard();
   const activeTab = document.querySelector('.tab-panel.active');
-  if (activeTab && activeTab.id === 'tab-active')    renderActive();
+  if (activeTab && activeTab.id === 'tab-borrow')    renderBorrow();
+  if (activeTab && activeTab.id === 'tab-assigned')  renderAssigned();
   if (activeTab && activeTab.id === 'tab-inventory') renderInventory();
 }
 
@@ -478,12 +568,16 @@ function renderDashboard() {
   const out     = keys.filter(k => k.status === 'Checked Out').length;
   const overdue = keys.filter(k => k.status === 'Overdue').length;
   const lost    = keys.filter(k => k.status === 'Lost').length;
+  const asgWith    = assignedKeys.filter(k => k.status === 'With Student').length;
+  const asgDeposit = assignedKeys.filter(k => !k.depositPaid && k.status === 'With Student').length;
 
   document.getElementById('statGrid').innerHTML = `
-    <div class="stat-card stat-available"><div class="num">${avail}</div><div class="lbl">Available</div></div>
-    <div class="stat-card stat-checked"><div class="num">${out}</div><div class="lbl">Checked Out</div></div>
-    <div class="stat-card stat-overdue"><div class="num">${overdue}</div><div class="lbl">Overdue</div></div>
-    <div class="stat-card stat-lost"><div class="num">${lost}</div><div class="lbl">Lost</div></div>
+    <div class="stat-card stat-available"><div class="num">${avail}</div><div class="lbl">Spare Keys Available</div></div>
+    <div class="stat-card stat-checked"><div class="num">${out}</div><div class="lbl">Borrow Log Active</div></div>
+    <div class="stat-card stat-overdue"><div class="num">${overdue}</div><div class="lbl">Overdue Borrows</div></div>
+    <div class="stat-card stat-lost"><div class="num">${lost}</div><div class="lbl">Spare Keys Lost</div></div>
+    <div class="stat-card" style="background:#e8f4fd;border-left:4px solid #1565c0"><div class="num" style="color:#1565c0">${asgWith}</div><div class="lbl">Assigned (With Students)</div></div>
+    ${asgDeposit > 0 ? `<div class="stat-card" style="background:#fff3e0;border-left:4px solid #e65100"><div class="num" style="color:#e65100">${asgDeposit}</div><div class="lbl">Deposits Pending</div></div>` : ''}
   `;
 
   const overdueKeys = keys.filter(k => k.status === 'Overdue');
@@ -508,13 +602,13 @@ function renderDashboard() {
   `).join('');
 }
 
-// ── Active tab ─────────────────────────────────────────────────────────────────
-function renderActive() {
+// ── Borrow Log tab ─────────────────────────────────────────────────────────────
+function renderBorrow() {
   const statusF = document.getElementById('activeFilterStatus').value;
   const typeF   = document.getElementById('activeFilterType').value;
   const search  = (document.getElementById('activeSearch').value || '').toLowerCase();
 
-  let list = keys.filter(k => k.status === 'Checked Out' || k.status === 'Overdue');
+  let list = keys.filter(k => k.status === 'Checked Out' || k.status === 'Overdue' || k.status === 'ReturnOnly');
   if (statusF) list = list.filter(k => k.status === statusF);
   if (typeF)   list = list.filter(k => k.type === typeF);
   if (search)  list = list.filter(k =>
@@ -525,26 +619,29 @@ function renderActive() {
 
   const el = document.getElementById('activeList');
   if (!list.length) { el.innerHTML = '<p class="empty-msg">No active checkouts</p>'; return; }
+  const e = escapeHtml;
 
   el.innerHTML = `
     <table class="key-table">
       <thead><tr>
-        <th>Room</th><th>Type</th><th>Status</th><th>Borrower</th><th>Type</th><th>Purpose</th>
-        <th>Time Out</th><th>Expected Return</th><th>Actions</th>
+        <th>Room</th><th>Type</th><th>Status</th><th>Borrower</th><th>Purpose</th>
+        <th>Monitor</th><th>Time Out</th><th>Expected Return</th><th>Actions</th>
       </tr></thead>
       <tbody>
-        ${list.map(k => `<tr>
-          <td><strong>${escapeHtml(k.room)}</strong></td>
+        ${list.map(k => `<tr${k.status === 'ReturnOnly' ? ' style="background:#fff9e6"' : ''}>
+          <td><strong>${e(k.room)}</strong></td>
           <td>${typeBadge(k.type)}</td>
-          <td>${statusBadge(k.status)}</td>
-          <td>${escapeHtml(k.borrowerName)}${k.studentId ? `<br><small style="color:#aaa">${escapeHtml(k.studentId)}</small>` : ''}</td>
-          <td style="text-transform:capitalize">${escapeHtml(k.borrowerType)}</td>
-          <td>${escapeHtml(k.purpose)}</td>
+          <td>${k.status === 'ReturnOnly' ? '<span style="background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:700">⚠ Unmatched Return</span>' : statusBadge(k.status)}</td>
+          <td>${e(k.borrowerName)}${k.studentId ? `<br><small style="color:#aaa">${e(k.studentId)}</small>` : ''}</td>
+          <td>${e(k.purpose)}</td>
+          <td style="font-size:.78rem;color:#555">${e(k.monitorName||'—')}</td>
           <td style="white-space:nowrap">${formatTime(k.timeOut)}</td>
-          <td style="white-space:nowrap">${formatTime(k.expectedReturn)}<br><span class="timer">${timeUntil(k.expectedReturn)}</span></td>
+          <td style="white-space:nowrap">${k.status === 'ReturnOnly' ? '—' : formatTime(k.expectedReturn) + '<br><span class="timer">' + timeUntil(k.expectedReturn) + '</span>'}</td>
           <td><div class="actions-cell">
-            <button class="btn-sm btn-sm-green" onclick="returnKey(${escapeHtml(JSON.stringify(k.keyId))})">✔ Return</button>
-            <button class="btn-sm btn-sm-red" onclick="markLost(${escapeHtml(JSON.stringify(k.keyId))})">✘ Lost</button>
+            ${k.status !== 'ReturnOnly' ? `
+              <button class="btn-sm btn-sm-green" onclick="returnKey(${e(JSON.stringify(k.keyId))})">✔ Return</button>
+              <button class="btn-sm btn-sm-red" onclick="markLost(${e(JSON.stringify(k.keyId))})">✘ Lost</button>
+            ` : '<span style="font-size:.72rem;color:#888">Resolve manually</span>'}
           </div></td>
         </tr>`).join('')}
       </tbody>
@@ -633,8 +730,298 @@ function emptyKey(room, type) {
     borrowerName: '', borrowerType: '', studentId: '',
     purpose: '', timeOut: '', expectedReturn: '',
     fineAmount: 0, finePaid: false, notes: '',
+    formsId: '', monitorName: '',
     history: []
   };
+}
+
+function emptyAssignedKey(room, studentName, studentId, side) {
+  return {
+    id: Date.now(),
+    room, studentName, studentId, side,
+    keyLabel: room + (side ? '-' + side : ''),
+    depositPaid: false,
+    depositAmount: cfg.keyDepositAmount || 100,
+    depositDate: '',
+    depositMethod: 'Cash',
+    receivedBy: '',
+    issuedDate: '',
+    status: 'With Student',
+    returnDate: '',
+    depositRefunded: false,
+    lostFine: 0, lostFinePaid: false,
+    notes: '',
+    source: 'manual',
+    inspectionId: null,
+    history: []
+  };
+}
+
+// ── Assigned Keys tab ──────────────────────────────────────────────────────────
+function renderAssigned() {
+  const statusF = document.getElementById('asgFilterStatus')?.value || '';
+  const search  = (document.getElementById('asgSearch')?.value || '').toLowerCase();
+  const e = escapeHtml;
+
+  let list = [...assignedKeys];
+  if (statusF) list = list.filter(k => k.status === statusF);
+  if (search)  list = list.filter(k =>
+    (k.studentName || '').toLowerCase().includes(search) ||
+    (k.room || '').toLowerCase().includes(search) ||
+    (k.studentId || '').toLowerCase().includes(search)
+  );
+
+  const el = document.getElementById('assignedList');
+  if (!list.length) {
+    el.innerHTML = '<p class="empty-msg">No assigned keys' + (statusF || search ? ' matching filter' : '') + '</p>';
+    return;
+  }
+
+  const statusColor = { 'With Student':'#2e7d32', 'Returned':'#1565c0', 'Lost':'#c62828' };
+  const depositBadge = (k) => {
+    if (k.depositMethod === 'Not Paid') return '<span style="background:#fdecea;color:#c62828;padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:700">Deposit Unpaid</span>';
+    if (!k.depositPaid) return '<span style="background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:700">Pending</span>';
+    return '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:700">Deposit Paid</span>';
+  };
+
+  el.innerHTML = `
+    <table class="key-table">
+      <thead><tr>
+        <th>Room / Key</th><th>Student</th><th>Side</th>
+        <th>Deposit</th><th>Issued</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${list.map(k => `<tr>
+          <td><strong>${e(k.room)}</strong></td>
+          <td>${e(k.studentName)}${k.studentId ? `<br><small style="color:#888">${e(k.studentId)}</small>` : ''}</td>
+          <td>${k.side ? `Side ${e(k.side)}` : '—'}</td>
+          <td>${depositBadge(k)}<br><small style="color:#666">${k.depositAmount || 0} ฿ · ${e(k.depositMethod)}</small></td>
+          <td><small>${k.issuedDate ? new Date(k.issuedDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</small></td>
+          <td><span style="color:${statusColor[k.status]||'#555'};font-weight:700;font-size:.8rem">${e(k.status)}</span></td>
+          <td>
+            ${k.status === 'With Student' ? `
+              <button class="btn-sm btn-sm-green" onclick="returnAssignedKey(${k.id})">↩ Return</button>
+              <button class="btn-sm btn-sm-red" onclick="markAssignedLost(${k.id})">✘ Lost</button>
+            ` : ''}
+            ${k.status === 'Lost' && !k.lostFinePaid ? `<span style="font-size:.72rem;color:#c62828">Fine: ${k.lostFine} ฿ unpaid</span>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function openIssueKeyModal(prefill) {
+  const rooms = DormDB.getRooms();
+  const roomNames = [...new Set(rooms.map(s => s.room).filter(r => r && r.trim()))].sort();
+  const sel = document.getElementById('akg_room');
+  sel.innerHTML = '<option value="">— Select room —</option>' +
+    roomNames.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
+
+  document.getElementById('akg_id').value = '';
+  document.getElementById('akg_name').value = prefill?.name || '';
+  document.getElementById('akg_studentId').value = prefill?.studentId || '';
+  document.getElementById('akg_side').value = prefill?.side || '';
+  document.getElementById('akg_issuedDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('akg_depositAmount').value = cfg.keyDepositAmount || 100;
+  document.getElementById('akg_depositMethod').value = 'Cash';
+  document.getElementById('akg_depositDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('akg_receivedBy').value = DormDB.getCurrentUser();
+  document.getElementById('akg_notes').value = '';
+  if (prefill?.room) sel.value = prefill.room;
+  document.getElementById('assignedKeyModal').style.display = 'block';
+}
+
+function saveIssueKey() {
+  const room = document.getElementById('akg_room').value.trim();
+  const name = document.getElementById('akg_name').value.trim();
+  if (!room || !name) { alert('Room and student name are required.'); return; }
+
+  const method = document.getElementById('akg_depositMethod').value;
+  const rec = {
+    id: parseInt(document.getElementById('akg_id').value) || Date.now(),
+    room, studentName: name,
+    studentId:    document.getElementById('akg_studentId').value.trim(),
+    side:         document.getElementById('akg_side').value,
+    keyLabel:     room + (document.getElementById('akg_side').value ? '-' + document.getElementById('akg_side').value : ''),
+    depositPaid:  method !== 'Not Paid',
+    depositAmount: parseFloat(document.getElementById('akg_depositAmount').value) || 100,
+    depositDate:  method !== 'Not Paid' ? document.getElementById('akg_depositDate').value : '',
+    depositMethod: method,
+    receivedBy:   document.getElementById('akg_receivedBy').value.trim(),
+    issuedDate:   document.getElementById('akg_issuedDate').value,
+    status:       'With Student',
+    returnDate: '', depositRefunded: false,
+    lostFine: 0, lostFinePaid: false,
+    notes:        document.getElementById('akg_notes').value.trim(),
+    source: 'manual', inspectionId: null,
+    history: []
+  };
+
+  const existIdx = assignedKeys.findIndex(k => k.id === rec.id);
+  if (existIdx >= 0) assignedKeys[existIdx] = rec; else assignedKeys.push(rec);
+  DormDB.saveAssignedKeys(assignedKeys);
+  closeModal('assignedKeyModal');
+  renderAssigned();
+  renderDashboard();
+  showToast('Assigned key issued for ' + name);
+}
+
+function returnAssignedKey(id) {
+  const k = assignedKeys.find(k => k.id === id);
+  if (!k) return;
+  const refund = confirm(`Mark key returned for ${k.studentName} (Room ${k.room})?\n\nClick OK to confirm return.\nWas the deposit refunded?`);
+  k.status = 'Returned';
+  k.returnDate = new Date().toISOString().slice(0,10);
+  k.depositRefunded = refund;
+  k.history.push({ action: 'Returned', date: new Date().toISOString(), depositRefunded: refund });
+  DormDB.saveAssignedKeys(assignedKeys);
+  renderAssigned();
+  renderDashboard();
+  showToast('Key returned' + (refund ? ' · Deposit refunded' : ' · Deposit retained'));
+}
+
+function markAssignedLost(id) {
+  const k = assignedKeys.find(k => k.id === id);
+  if (!k) return;
+  const fine = prompt(`Mark assigned key LOST for ${k.studentName} (Room ${k.room}).\n\nEnter fine amount (฿) or 0 if waived:`, String(cfg.fineAmountCash || 50));
+  if (fine === null) return;
+  k.status = 'Lost';
+  k.lostFine = parseFloat(fine) || 0;
+  k.lostFinePaid = false;
+  k.history.push({ action: 'MarkedLost', date: new Date().toISOString(), fine: k.lostFine });
+  DormDB.saveAssignedKeys(assignedKeys);
+  renderAssigned();
+  renderDashboard();
+  showToast('Assigned key marked lost' + (k.lostFine ? ' · Fine: ' + k.lostFine + ' ฿' : ' · Fine waived'));
+}
+
+// ── MS Forms Borrow Log Import ─────────────────────────────────────────────────
+function importBorrowFromForms(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) { showToast('No rows found in file', 'error'); return; }
+
+      // Flexible column mapping
+      const hdrs = Object.keys(rows[0]);
+      const norm = s => String(s).toLowerCase().trim();
+      const find = (...kws) => hdrs.find(h => kws.every(kw => norm(h).includes(kw))) || '';
+
+      const COL = {
+        formsId:        hdrs.find(h => norm(h) === 'id') || '',
+        timeOut:        hdrs.find(h => norm(h).includes('completion time')) || '',
+        action:         find('action'),
+        borrowerName:   find('student','name') || find('borrower') || find('name'),
+        room:           find('room'),
+        studentId:      find('student','id') || find('student id'),
+        keyType:        find('key type') || find('key','type') || find('type'),
+        purpose:        find('reason') || find('purpose'),
+        expectedReturn: find('expected') || find('return time'),
+        monitorName:    find('monitor'),
+        notes:          find('note'),
+      };
+
+      const existingFormsIds = new Set(keys.filter(k => k.formsId).map(k => k.formsId));
+      let newCheckouts = 0, matched = 0, unmatched = 0, skipped = 0;
+
+      rows.forEach(row => {
+        const fid = String(row[COL.formsId] || '').trim();
+        if (fid && existingFormsIds.has(fid)) { skipped++; return; }
+
+        const rawAction = norm(String(row[COL.action] || ''));
+        const isCheckout = rawAction.includes('checkout') || rawAction.includes('check out') || rawAction.includes('borrow');
+        const isReturn   = rawAction.includes('return');
+        if (!isCheckout && !isReturn) { skipped++; return; }
+
+        const borrowerName = String(row[COL.borrowerName] || '').trim();
+        const rawRoom      = String(row[COL.room] || '').trim();
+        const room         = rawRoom.replace(/^room\s*/i,'').replace(/ac$/i,'').trim() || rawRoom;
+        const studentId    = String(row[COL.studentId] || '').trim();
+        const keyType      = String(row[COL.keyType] || '').trim();
+        const purpose      = String(row[COL.purpose] || '').trim();
+        const monitorName  = String(row[COL.monitorName] || '').trim();
+        const notes        = String(row[COL.notes] || '').trim();
+        const timeOutVal   = row[COL.timeOut] ? (row[COL.timeOut] instanceof Date ? row[COL.timeOut].toISOString() : String(row[COL.timeOut])) : new Date().toISOString();
+        const expReturn    = row[COL.expectedReturn] ? (row[COL.expectedReturn] instanceof Date ? row[COL.expectedReturn].toISOString() : String(row[COL.expectedReturn])) : '';
+
+        if (!borrowerName) { skipped++; return; }
+
+        if (isCheckout) {
+          // Warn if already open checkout for same student+room
+          const dupOpen = keys.find(k => (k.status === 'Checked Out' || k.status === 'Overdue') &&
+            norm(k.borrowerName) === norm(borrowerName) && norm(k.room) === norm(room));
+          const key = emptyKey(room, keyType || 'Spare');
+          key.keyId         = 'forms-' + (fid || Date.now() + newCheckouts);
+          key.status        = 'Checked Out';
+          key.borrowerName  = borrowerName;
+          key.borrowerType  = 'student';
+          key.studentId     = studentId;
+          key.purpose       = purpose;
+          key.timeOut       = timeOutVal;
+          key.expectedReturn = expReturn;
+          key.monitorName   = monitorName;
+          key.notes         = notes + (dupOpen ? ' [⚠ possible duplicate checkout]' : '');
+          key.formsId       = fid;
+          keys.push(key);
+          if (fid) existingFormsIds.add(fid);
+          newCheckouts++;
+        } else if (isReturn) {
+          // Find most recent open checkout matching borrower + room
+          const openIdx = keys.reduce((best, k, i) => {
+            if ((k.status === 'Checked Out' || k.status === 'Overdue') &&
+                norm(k.borrowerName) === norm(borrowerName) && norm(k.room) === norm(room)) {
+              if (best === -1 || new Date(k.timeOut) > new Date(keys[best].timeOut)) return i;
+            }
+            return best;
+          }, -1);
+
+          if (openIdx >= 0) {
+            keys[openIdx].status     = 'Returned';
+            keys[openIdx].returnTime = timeOutVal;
+            keys[openIdx].history.push({ action: 'Returned', date: timeOutVal, via: 'Forms import' });
+            matched++;
+          } else {
+            // Unmatched return — store as standalone warning entry
+            const key = emptyKey(room, keyType || 'Spare');
+            key.keyId        = 'forms-ret-' + (fid || Date.now() + unmatched);
+            key.status       = 'ReturnOnly';
+            key.borrowerName = borrowerName;
+            key.studentId    = studentId;
+            key.timeOut      = timeOutVal;
+            key.monitorName  = monitorName;
+            key.notes        = '[⚠ No matching checkout found] ' + notes;
+            key.formsId      = fid;
+            keys.push(key);
+            if (fid) existingFormsIds.add(fid);
+            unmatched++;
+          }
+        }
+      });
+
+      DormDB.saveKeys(keys);
+      checkOverdue();
+      renderAll();
+      switchTab('borrow');
+
+      const parts = [];
+      if (newCheckouts) parts.push(newCheckouts + ' checkout' + (newCheckouts !== 1 ? 's' : ''));
+      if (matched)      parts.push(matched + ' return' + (matched !== 1 ? 's' : '') + ' matched');
+      if (unmatched)    parts.push(unmatched + ' unmatched ⚠️');
+      if (skipped)      parts.push(skipped + ' skipped (duplicates)');
+      showToast('Imported: ' + (parts.join(', ') || 'no new rows'));
+    } catch(err) {
+      console.error('Forms import error:', err);
+      showToast('Import failed: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 // ── Check-out flow ─────────────────────────────────────────────────────────────
@@ -891,6 +1278,7 @@ function loadSettings() {
   document.getElementById('s_fineCash').value    = cfg.fineAmountCash || 50;
   document.getElementById('s_fineAcct').value    = cfg.fineAmountAccount || 100;
   document.getElementById('s_semester').value    = cfg.semesterLabel || '';
+  document.getElementById('s_keyDeposit').value  = cfg.keyDepositAmount ?? 100;
 }
 
 function saveSettings() {
@@ -899,7 +1287,8 @@ function saveSettings() {
     workerReturnHours:    parseInt(document.getElementById('s_workerHrs').value)   || 8,
     fineAmountCash:       parseFloat(document.getElementById('s_fineCash').value)  || 50,
     fineAmountAccount:    parseFloat(document.getElementById('s_fineAcct').value)  || 100,
-    semesterLabel:        document.getElementById('s_semester').value.trim()
+    semesterLabel:        document.getElementById('s_semester').value.trim(),
+    keyDepositAmount:     parseFloat(document.getElementById('s_keyDeposit').value) ?? 100,
   };
   DormDB.saveKeysConfig(cfg);
   showToast('Settings saved');

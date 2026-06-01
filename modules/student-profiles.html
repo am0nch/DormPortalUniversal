@@ -360,6 +360,12 @@ tr:hover td{background:#f4f8fc}
             <div class="ff"><label>Deposit Date</label><input id="fKeysDate" type="date"></div>
             <div class="ff"><label>Received by (Dean)</label><input id="fReceivedBy"></div>
             <div class="ff"><label>Remarks</label><input id="fRemarks"></div>
+            <div class="ff" style="align-self:flex-end;padding-bottom:6px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">
+                <input type="checkbox" id="fKeyReceived" style="width:16px;height:16px">
+                🔑 Key received by student
+              </label>
+            </div>
           </div>
         </div>
 
@@ -439,6 +445,8 @@ async function init() {
   profiles = DormDB.getProfiles();
   await migratePhotosToIDB();
   renderList();
+  DormDB.on('dormProfiles',      () => { profiles = DormDB.getProfiles(); renderList(); });
+  DormDB.on('dormKeysAssigned',  () => { profiles = DormDB.getProfiles(); renderList(); });
 }
 
 // ── Render list ────────────────────────────────────────────────────────────
@@ -480,7 +488,7 @@ function renderList() {
     const completeCls = pct >= 90 ? 'badge-green' : pct >= 50 ? 'badge-yellow' : 'badge-red';
     const sourceLbl = { registrar: 'Registrar', msforms: 'MS Forms', manual: 'Manual' }[p.source] || p.source || 'Manual';
     return `<tr>
-      <td><strong>${esc(name)}</strong></td>
+      <td><strong>${esc(name)}</strong>${p.keyReceived ? ' <span title="Key received" style="font-size:.85em">🔑</span>' : ''}</td>
       <td>${esc(p.studentId || '—')}</td>
       <td>${esc(room)}</td>
       <td>${esc(p.department || '—')}</td>
@@ -598,6 +606,7 @@ async function openEditModal(id) {
   set('fKeysAmt',      p?.keysDepositAmount || '');
   set('fKeysDate',     p?.keysDepositDate);
   set('fReceivedBy',   p?.receivedBy);
+  document.getElementById('fKeyReceived').checked = p?.keyReceived || false;
   set('fRemarks',      p?.remarks);
 
   document.getElementById('photoPreview').style.display = 'none';
@@ -692,6 +701,7 @@ async function saveProfile(e) {
     keysDepositAmount: parseFloat(g('fKeysAmt')) || 0,
     keysDepositDate: g('fKeysDate'),
     receivedBy:     g('fReceivedBy'),
+    keyReceived:    document.getElementById('fKeyReceived').checked,
     remarks:        g('fRemarks'),
     source:         existing?.source ?? 'manual',
     createdAt:      existing?.createdAt ?? now,
@@ -939,7 +949,7 @@ function emptyProfile() {
     friend3Name:'',friend3Phone:'',friend3Staying:'',
     bloodType:'',drugAllergy:'',medHistory:'',medication:'',preferredHospital:'',
     emergencyName:'',emergencyPhone:'',emergencyRelation:'',emergencyAddress:'',
-    keysDepositAmount:0,keysDepositDate:'',receivedBy:'',remarks:'',
+    keysDepositAmount:0,keysDepositDate:'',receivedBy:'',keyReceived:false,remarks:'',
   };
 }
 

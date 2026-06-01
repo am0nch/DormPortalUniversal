@@ -176,6 +176,12 @@ body{background:#f0f4f8;min-height:100vh}
   <span class="sec-head">Occupants & Side Assignment</span>
   <div id="occupantBlocks" class="occ-block"></div>
 
+  <!-- KEY ISSUANCE — move-in only -->
+  <div id="keyIssuanceSection" style="display:none;margin-bottom:14px;border:2px solid #1e3a5f;border-radius:8px;padding:12px">
+    <div style="font-weight:700;color:#1e3a5f;margin-bottom:8px;font-size:.9rem">🔑 Key Issuance &amp; Deposit</div>
+    <div id="keyIssuanceRows"></div>
+  </div>
+
   <div id="moveInRef" style="display:none;margin-bottom:10px">
     <span style="font-size:.78rem;color:#2c7a4d;background:#e8f5e9;padding:4px 10px;border-radius:6px;display:inline-block">
       ✅ Paired with move-in inspection: <strong id="moveInRefLabel"></strong>
@@ -422,6 +428,37 @@ function populateOccupants(){
   });
   container.dataset.count=slots.length;
   syncSideDropdowns();
+
+  // Build key issuance rows (move-in only)
+  const kiRows = document.getElementById('keyIssuanceRows');
+  const today  = document.getElementById('insp_date').value || new Date().toISOString().slice(0,10);
+  const defDeposit = (DormDB.getKeysConfig().keyDepositAmount || 100);
+  kiRows.innerHTML = slots.map((s,i) => `
+    <div style="border-top:${i>0?'1px solid #e0e0e0':'none'};padding:${i>0?'8px 0 0':'0'};margin-top:${i>0?'8px':'0'}">
+      <strong style="font-size:.82rem">${escapeHtml(s.name)}${s.side?' (Side '+s.side+')':''}</strong>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer">
+          <input type="checkbox" id="ki_issued_${i}" onchange="onKiIssuedChange(${i})">
+          Key issued to student
+        </label>
+        <div style="display:flex;align-items:center;gap:4px;font-size:.8rem">
+          <span>฿</span>
+          <input type="number" id="ki_depositAmt_${i}" value="${defDeposit}" min="0" style="width:60px;padding:3px 5px;border:1px solid #ccc;border-radius:4px">
+        </div>
+        <input type="date" id="ki_depositDate_${i}" value="${today}" style="font-size:.8rem;padding:3px 6px;border:1px solid #ccc;border-radius:4px">
+        <select id="ki_depositMethod_${i}" style="font-size:.8rem;padding:3px 5px;border:1px solid #ccc;border-radius:4px">
+          <option value="Cash">Cash</option>
+          <option value="QR">QR</option>
+          <option value="Not Paid">Not Paid</option>
+        </select>
+      </div>
+    </div>`).join('');
+  // Keep deposit date in sync when insp_date changes
+  document.getElementById('insp_date').oninput = function() {
+    slots.forEach((_,i) => { const el=document.getElementById('ki_depositDate_'+i); if(el)el.value=this.value; });
+  };
+  const type = document.getElementById('insp_type').value;
+  document.getElementById('keyIssuanceSection').style.display = type === 'move-in' && slots.length ? 'block' : 'none';
 }
 
 function getOccupants(){
@@ -501,6 +538,16 @@ function onTypeChange(){
     document.getElementById('moveInRef').style.display='none';
     document.getElementById('chargesPreview').style.display='none';
   }
+  const kiSection = document.getElementById('keyIssuanceSection');
+  const hasOccs = parseInt(document.getElementById('occupantBlocks').dataset.count||0) > 0;
+  kiSection.style.display = (document.getElementById('insp_type').value === 'move-in' && hasOccs) ? 'block' : 'none';
+}
+
+function onKiIssuedChange(i) {
+  // Visual feedback: bold row when key is issued
+  const cb = document.getElementById('ki_issued_' + i);
+  const row = cb?.closest('div[style]');
+  if (row) row.style.background = cb?.checked ? '#f0fff4' : '';
 }
 
 function readSideItems(side){
@@ -660,9 +707,81 @@ function saveInspection(){
   };
   inspections.unshift(rec);
   DormDB.saveInspections(inspections);
+  if (type === 'move-in') _writeKeyIssuanceFromInspection(rec);
   closeModal('inspModal');
   renderList();
   showToast(`✅ ${type==='move-in'?'Move-In':'Move-Out'} inspection saved for Room ${room}`);
+}
+
+function _writeKeyIssuanceFromInspection(rec) {
+  const count = parseInt(document.getElementById('occupantBlocks').dataset.count || 0);
+  let keysUpdated = 0;
+
+  const assignedKeys = DormDB.getAssignedKeys();
+  const profiles     = DormDB.getProfiles();
+  const cfg          = DormDB.getKeysConfig();
+
+  for (let i = 0; i < count; i++) {
+    const issued = document.getElementById('ki_issued_' + i);
+    if (!issued || !issued.checked) continue;
+
+    const occ = rec.occupants[i] || {};
+    const method  = document.getElementById('ki_depositMethod_' + i)?.value || 'Cash';
+    const depPaid = method !== 'Not Paid';
+    const depAmt  = parseFloat(document.getElementById('ki_depositAmt_' + i)?.value) || (cfg.keyDepositAmount || 100);
+    const depDate = document.getElementById('ki_depositDate_' + i)?.value || rec.date;
+    const receivedBy = DormDB.getCurrentUser();
+
+    // Upsert into assigned keys (match on studentId+room; fallback name+room)
+    const matchIdx = assignedKeys.findIndex(k =>
+      k.room === rec.room &&
+      (occ.studentId ? k.studentId === occ.studentId : k.studentName === occ.name)
+    );
+    const keyRec = {
+      id:            matchIdx >= 0 ? assignedKeys[matchIdx].id : Date.now() + i,
+      room:          rec.room,
+      studentName:   occ.name,
+      studentId:     occ.studentId || '',
+      side:          occ.side || '',
+      keyLabel:      rec.room + (occ.side ? '-' + occ.side : ''),
+      depositPaid:   depPaid,
+      depositAmount: depAmt,
+      depositDate:   depDate,
+      depositMethod: method,
+      receivedBy,
+      issuedDate:    rec.date,
+      status:        'With Student',
+      returnDate: '', depositRefunded: false,
+      lostFine: 0, lostFinePaid: false,
+      notes: 'Issued via Move-In Inspection',
+      source: 'inspection',
+      inspectionId: rec.id,
+      history: matchIdx >= 0 ? (assignedKeys[matchIdx].history || []) : []
+    };
+    if (matchIdx >= 0) assignedKeys[matchIdx] = keyRec;
+    else assignedKeys.push(keyRec);
+
+    // Update student profile if one exists
+    const pIdx = profiles.findIndex(p =>
+      (occ.studentId && p.studentId === occ.studentId) ||
+      ((p.firstName + ' ' + p.surname).trim() === occ.name)
+    );
+    if (pIdx >= 0) {
+      profiles[pIdx].keyReceived      = true;
+      profiles[pIdx].keysDepositAmount = depAmt;
+      profiles[pIdx].keysDepositDate   = depDate;
+      profiles[pIdx].receivedBy        = receivedBy;
+      profiles[pIdx].updatedAt         = new Date().toISOString();
+    }
+
+    keysUpdated++;
+  }
+
+  if (keysUpdated > 0) {
+    DormDB.saveAssignedKeys(assignedKeys);
+    DormDB.saveProfiles(profiles);
+    showToast(`🔑 Key records saved for ${keysUpdated} student${keysUpdated !== 1 ? 's' : ''}`);
+  }
 }
 
 function pushMaintenanceStubs(room,sideA,sideB,shared,bathCond){

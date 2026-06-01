@@ -26,8 +26,9 @@ const DormDB = (() => {
     PWD:         'dormPwdHash',
     // New modules
     PROFILES:    'dormProfiles',
-    KEYS_INV:    'dormKeysInv',
-    KEYS_CFG:    'dormKeysConfig',
+    KEYS_INV:      'dormKeysInv',
+    KEYS_CFG:      'dormKeysConfig',
+    KEYS_ASSIGNED: 'dormKeysAssigned',
     INSPECTIONS: 'dormInspections',
     INVENTORY:    'dormInventory',
     INV_TEMPLATE: 'dormInvTemplate',
@@ -159,8 +160,10 @@ const DormDB = (() => {
     saveProfiles:    (d) => _w(K.PROFILES, d),
     getKeys:         ()  => _r(K.KEYS_INV, []),
     saveKeys:        (d) => _w(K.KEYS_INV, d),
-    getKeysConfig:   ()  => _r(K.KEYS_CFG, { fineAmountCash:50, fineAmountAccount:100, studentReturnMinutes:15, workerReturnHours:8, semesterLabel:'' }),
-    saveKeysConfig:  (d) => _w(K.KEYS_CFG, d),
+    getKeysConfig:    ()  => _r(K.KEYS_CFG, { fineAmountCash:50, fineAmountAccount:100, studentReturnMinutes:15, workerReturnHours:8, semesterLabel:'', keyDepositAmount:100 }),
+    saveKeysConfig:   (d) => _w(K.KEYS_CFG, d),
+    getAssignedKeys:  ()  => _r(K.KEYS_ASSIGNED, []),
+    saveAssignedKeys: (d) => _w(K.KEYS_ASSIGNED, d),
     getInspections:  ()  => _r(K.INSPECTIONS, []),
     saveInspections: (d) => _w(K.INSPECTIONS, d),
     getInventory:    ()  => _r(K.INVENTORY, []),
@@ -183,6 +186,7 @@ const DormDB = (() => {
       const history  = _r(K.HISTORY, []);
       const away     = _r(K.AWAY, []);
       const keys     = _r(K.KEYS_INV, []);
+      const assigned = _r(K.KEYS_ASSIGNED, []);
       const maint    = _r(K.MAINTENANCE, []);
       const inspect  = _r(K.INSPECTIONS, []);
       const invent   = _r(K.INVENTORY, []);
@@ -206,6 +210,8 @@ const DormDB = (() => {
         maintenanceFlagged: invent.filter(i => i.maintenanceFlag && !i.maintenancePushed).length,
         profileCount:       profiles.length,
         profilesComplete:   profiles.filter(p => pctOf(p) >= 90).length,
+        depositsCollected:  assigned.filter(k => k.depositPaid).length,
+        depositsPending:    assigned.filter(k => !k.depositPaid && k.status === 'With Student').length,
       };
     },
 
@@ -287,15 +293,26 @@ const DormDB = (() => {
     },
     async importAll(dump) {
       const valid = new Set(Object.values(K));
+      // Clear any managed key absent from the backup so restore is a true
+      // point-in-time snapshot, not an overlay on top of current state.
+      for (const v of Object.values(K)) {
+        if (!(v in dump)) { localStorage.removeItem(v); _broadcast(v); }
+      }
       for (const [k, v] of Object.entries(dump)) {
         if (k === '_photos') continue;
         if (valid.has(k) && v !== null) {
-        if (typeof v === 'string') localStorage.setItem(k, v);
-        else _w(k, v);
-      }
+          if (typeof v === 'string') localStorage.setItem(k, v);
+          else _w(k, v);
+        }
       }
       if (dump._photos) {
         try {
+          const db = await _openIDB();
+          // Clear IDB before restoring so deleted photos don't persist as orphans
+          await new Promise((res, rej) => {
+            const req = db.transaction('photos', 'readwrite').objectStore('photos').clear();
+            req.onsuccess = res; req.onerror = () => rej(req.error);
+          });
           for (const [id, dataURL] of Object.entries(dump._photos)) {
             await this.savePhoto(id, _dataURLtoBlob(dataURL));
           }

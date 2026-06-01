@@ -277,6 +277,16 @@ async function restoreAll(input) {
   await DormDB.importAll(dump);
   refreshStats();
   updateHeader();
+  // Re-sync dorm selector dropdown to the restored value; without this the
+  // dropdown still shows the pre-restore selection and would overwrite on next change.
+  const _rs = localStorage.getItem('dormNameSelect');
+  const _rc = localStorage.getItem('dormNameCustom');
+  if (_rs) {
+    document.getElementById('menuDormSelect').value = _rs;
+    const _ci = document.getElementById('menuCustomDorm');
+    _ci.style.display = _rs === 'Other' ? 'inline-block' : 'none';
+    if (_rs === 'Other' && _rc) _ci.value = _rc;
+  }
   const toast = document.createElement('div');
   toast.textContent = '✅ Backup restored successfully';
   Object.assign(toast.style, {
@@ -325,7 +335,8 @@ DormDB.on('dormData',        refreshStats);
 DormDB.on('dormQueue',       refreshStats);
 DormDB.on('dormHistory',     refreshStats);
 DormDB.on('dormAway',        refreshStats);
-DormDB.on('dormKeysInv',     refreshStats);
+DormDB.on('dormKeysInv',      refreshStats);
+DormDB.on('dormKeysAssigned', refreshStats);
 DormDB.on('dormMaintenance', refreshStats);
 DormDB.on('dormInspections', refreshStats);
 DormDB.on('dormInventory',   refreshStats);

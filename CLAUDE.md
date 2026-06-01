@@ -47,22 +47,22 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 ---
 
-## File stats (as of 2026-05-31, session 23)
+## File stats (as of 2026-06-01, session 24)
 
 | File | Lines | Size | Notes |
 |------|-------|------|-------|
-| `index.html` | 331 | ~16 KB | Main menu, 12 module cards (10 ready), live stats, dorm selector |
-| `dorm-db.js` | 291 | ~12 KB | Central data API + IndexedDB photo subsystem |
-| `modules/room-reservations.html` | 1,804 | ~130 KB | Active room reservations module |
-| `modules/student-profiles.html` | 1,124 | ~52 KB | Student profiles, print cards, CSV/Excel import |
-| `modules/floor-plan.html` | 494 | ~24 KB | Visual room grid + bathroom pairing config |
-| `modules/utilities.html` | 644 | ~34 KB | Electricity & hot water billing |
-| `modules/reports.html` | 1,050 | ~82 KB | 8-tab report hub (archive, room, custom, pivot, holds, storage, clearance, fee collection) |
-| `modules/room-inspection.html` | 1,024 | ~55 KB | Move-in/out checklists, charge calc, cost sheet |
-| `modules/key-inventory.html` | 1,178 | ~54 KB | Key checkout/return/lost, overdue alerts, fine recording, shift print, ledger, agreement |
-| `modules/inventory.html` | 1,078 | ~55 KB | Asset inventory — Code 39 barcodes, room template, maintenance flags |
-| `modules/userguide.html` | 1,637 | ~75 KB | Dean's User Guide — all 9 ready modules + About/Version History/Roadmap/Legal sections |
-| `modules/handbook.html` | 1,860 | ~88 KB | APIU Residence Hall Handbook — 50+ policies, fines table; roadmap cross-links to User Guide |
+| `index.html` | 335 | ~16 KB | Main menu, 12 module cards (10 ready), live stats, dorm selector |
+| `dorm-db.js` | 317 | ~13 KB | Central data API + IndexedDB photo subsystem + full settings setters |
+| `modules/room-reservations.html` | 1,868 | ~1.0 MB | Active room reservations module (SheetJS bundled inline) |
+| `modules/student-profiles.html` | 1,164 | ~1.0 MB | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline) |
+| `modules/floor-plan.html` | 497 | ~24 KB | Visual room grid + bathroom pairing config |
+| `modules/utilities.html` | 674 | ~1.0 MB | Electricity & hot water billing (SheetJS bundled inline) |
+| `modules/reports.html` | 1,053 | ~82 KB | 8-tab report hub (archive, room, custom, pivot, holds, storage, clearance, fee collection) |
+| `modules/room-inspection.html` | 1,146 | ~58 KB | Move-in/out checklists, key issuance section (🔑), charge calc, cost sheet |
+| `modules/key-inventory.html` | 1,570 | ~68 KB | Assigned key tracking + borrow log (MS Forms import), overdue alerts, fine recording |
+| `modules/inventory.html` | 1,081 | ~55 KB | Asset inventory — Code 39 barcodes, room template, maintenance flags |
+| `modules/userguide.html` | 1,642 | ~75 KB | Dean's User Guide — all 9 ready modules + About/Version History/Roadmap/Legal sections |
+| `modules/handbook.html` | 1,865 | ~88 KB | APIU Residence Hall Handbook — 50+ policies, fines table; roadmap cross-links to User Guide |
 
 ---
 
@@ -466,14 +466,35 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 
 ## Pending items
 
-- [ ] 4 changes from previous Python script that failed to apply (changes 13, 14, 15, 22)
-- [ ] Bundle SheetJS 0.20.2 inline — replace `<script src="https://cdn.sheetjs.com/xlsx-0.20.2/...">` in **both** `room-reservations.html` line 6 and `utilities.html` line 6 in a single session
-- [ ] Q1: Refactor table event listeners to use event delegation on tbody (performance)
+- [ ] 4 changes from previous Python script that failed to apply (changes 13, 14, 15, 22) — original diffs unknown
 - [ ] Build 2 remaining modules: Staff Scheduling, Maintenance (Room Inspection ✅, Key Inventory ✅, Inventory ✅)
 - [ ] Password gate re-enable (code removed, ready to re-add to `index.html` when ready)
-- [ ] Set up GitHub remote and enable GitHub Pages (git init ✅, initial commit ✅; pending remote add + push)
+- [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
 
 ---
+
+## Completed improvements (2026-06-02, session 25)
+
+- [x] **Key Inventory — Assigned Key lifecycle:** New `🗂️ Assigned` tab with `dormKeysAssigned` storage key; `emptyAssignedKey()` data model; full issue/return/lost flow; configurable deposit amount (default 100 ฿) in Settings; `returnAssignedKey()` with deposit refund flag; `markAssignedLost()` with fine recording; Dashboard adds "Assigned (With Students)" + "Deposits Pending" stat cards. (1,181 → 1,570 lines)
+- [x] **Key Inventory — Borrow Log rename:** "Active" tab renamed to "Borrow Log" (`tab-borrow`); `renderBorrow()` replaces `renderActive()`; `ReturnOnly` status support with ⚠️ warning badge; Monitor name column added.
+- [x] **Key Inventory — MS Forms import:** `importBorrowFromForms()` — accepts `.xlsx`/`.csv` from MS Forms response export; flexible keyword column mapping; checkout/return rows auto-matched; idempotent via `formsId`; unmatched returns shown as `ReturnOnly` ⚠️; import summary toast. `emptyKey()` gets `formsId` + `monitorName` fields.
+- [x] **Room Inspection — Key Issuance section:** Move-in form gets per-occupant key issuance block (Key issued checkbox + deposit amount + date + method); hidden on move-out. `_writeKeyIssuanceFromInspection()` on save → upserts `dormKeysAssigned` + updates `dormProfiles` keyReceived/deposit fields simultaneously. (1,027 → 1,146 lines)
+- [x] **Student Profiles — keyReceived field:** `keyReceived: false` in `emptyProfile()`; "🔑 Key received" checkbox in edit modal; `renderList()` shows 🔑 badge; `DormDB.on('dormKeysAssigned', ...)` subscription added — live sync when inspection saves keys. (1,154 → 1,164 lines)
+- [x] **dorm-db.js:** `KEYS_ASSIGNED: 'dormKeysAssigned'`; `getAssignedKeys/saveAssignedKeys`; `keyDepositAmount: 100` in `getKeysConfig()` defaults; `depositsCollected`/`depositsPending` in `getMenuStats()`. (311 → 317 lines)
+- [x] **index.html:** `DormDB.on('dormKeysAssigned', refreshStats)` subscription added. (334 → 335 lines)
+- [x] `CLAUDE.md` — File stats updated (session 25)
+
+## Completed improvements (2026-06-01, session 24)
+
+- [x] **Architecture — SheetJS CDN removed:** Bundled `xlsx.full.min.js` inline in `room-reservations.html`, `utilities.html`, `student-profiles.html`. All 3 files now fully offline-capable (~1 MB each with bundle).
+- [x] **Architecture — DormDB setters added:** `dorm-db.js` now exposes `saveDormName`, `saveMaxOcc`, `saveCurrentUser`, `saveLastSave`, `getLastSave`, `getFloor`, `saveFloor`, `getCols`, `saveCols`, `getPhotosFlag`, `setPhotosFlag`. All 15 direct `localStorage` calls in `room-reservations.html` + 2 in `student-profiles.html` routed through DormDB — cross-tab sync now works for all shared settings.
+- [x] **Performance — O(n²) fix:** Pre-compute `occMap`/`iqMap`/`histMap` Maps before `renderTable()` row loop. Eliminates 600 full-array scans per render for a 200-row table.
+- [x] **Performance — Event delegation:** `addInteractivity()` replaced with one-time `initTableDelegation()` on `tbody` (capture-phase focus + keydown). Per-render listener attachment eliminated; `data-ri`/`data-ci` attrs drive navigation.
+- [x] **UX — Scroll-to-top:** Added sticky ⇧ button to all 8 modules that were missing it (`room-reservations`, `utilities`, `student-profiles`, `floor-plan`, `reports`, `room-inspection`, `key-inventory`, `inventory`). All 10 modules now consistent.
+- [x] **UX — Back-nav param:** `?back=` URL param handler added to `utilities.html` and `student-profiles.html` (others already had it). All modules now support contextual back-link labels.
+- [x] **UX — Dorm name in nav:** `#navDorm` span added to `guide-nav` in `userguide.html` and `handbook.html`; populated via `DormDB.getDormName()`. All modules now show dorm name.
+- [x] **UX — Photo export failure:** `index.html` `exportAll()` now alerts user if `dump._photosFailed > 0`; `dorm-db.js` tracks failure count in export.
+- [x] `CLAUDE.md` — File stats + pending items updated (session 24)
 
 ## Completed improvements (2026-05-31, session 23)
 
