@@ -8,3 +8,6 @@ clearance_a5_preview.html
 
 # VS Code workspace config (local only)
 *.code-workspace
+
+# Backend lives in its own private repo (DormPortalBackend)
+backend/
