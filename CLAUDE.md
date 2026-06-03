@@ -31,7 +31,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 |------|--------|
 | **Multi-module layout** | `index.html` (menu) + `dorm-db.js` (data API) at root; module HTML files in `modules/` subfolder. |
 | **No build process** | No npm, no webpack, no transpilation. Vanilla JS (ES6+) only. |
-| **No external CDN** | SheetJS must be bundled inline. No other external dependencies. *(Pending: still CDN in room-reservations.html and utilities.html — see Pending Items.)* |
+| **No external CDN** | SheetJS must be bundled inline. No other external dependencies. All three SheetJS-using modules (room-reservations, utilities, student-profiles) are fully bundled as of session 24. |
 | **No backend** | All persistence is via `localStorage` + `IndexedDB` (auto-save) and `.xlsx` / `.json` export/import (manual save). |
 | **Storage split** | Text/JSON data → `localStorage` via `DormDB`. Photos (profile pics) → IndexedDB via `DormDB.getPhoto/savePhoto/deletePhoto` (async). Never store base64 photos in `dormProfiles`. |
 | **Data access** | All modules read/write through `DormDB` (from `dorm-db.js`). No direct `localStorage` calls for data keys. |
@@ -47,7 +47,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 ---
 
-## File stats (as of 2026-06-01, session 24)
+## File stats (as of 2026-06-02, session 25)
 
 | File | Lines | Size | Notes |
 |------|-------|------|-------|
@@ -473,6 +473,11 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 
 ---
 
+## Completed improvements (2026-06-02, session 26)
+
+- [x] **Backend — domain rename:** `sarra2.apiu.ac.th` → `sarra2.apiu.edu` across all backend config files (`Makefile`, `config.py`, `.env.example`, `docker-compose.yml`, `BACKEND_DOCS.md`, `ABSORPTION_GUIDE.md`). Email addresses (`dorm@apiu.ac.th`, `mail.apiu.ac.th`) correctly left unchanged.
+- [x] **CLAUDE.md — quality infrastructure:** Added Ultrathink triggers table (11 scenarios), L99 quality gate checklist (6 categories), cross-module dependency map (14 DormDB keys), Known Pitfalls table (10 documented bugs), Manual Smoke Tests section (4 scenarios), and Autocompact rules. Session workflow updated with steps 4 (ultrathink check), 6 (L99 gate), 8 (autocompact signal).
+
 ## Completed improvements (2026-06-02, session 25)
 
 - [x] **Key Inventory — Assigned Key lifecycle:** New `🗂️ Assigned` tab with `dormKeysAssigned` storage key; `emptyAssignedKey()` data model; full issue/return/lost flow; configurable deposit amount (default 100 ฿) in Settings; `returnAssignedKey()` with deposit refund flag; `markAssignedLost()` with fine recording; Dashboard adds "Assigned (With Students)" + "Deposits Pending" stat cards. (1,181 → 1,570 lines)
@@ -688,9 +693,12 @@ All rooms default to 2 beds. Max occupants configurable via dropdown (1–4). Cu
    - Menu / navigation → `index.html`
    - Data API / new keys → `dorm-db.js`
 3. Run `grep -n "TODO\|FIXME\|PENDING"` on the relevant file to check inline notes
-4. Plan change → confirm → apply via targeted str_replace
-5. Run verification: `wc -l <file>`
-6. **After every session — sync all MD files** (see rule below)
+4. **Check Ultrathink Triggers table** — if the task matches, apply maximum reasoning depth before writing a single line
+5. Plan change → confirm → apply via targeted str_replace
+6. **Run L99 quality gate** — tick every applicable checkbox before marking the task done
+7. Run verification: `wc -l <file>`
+8. **Check autocompact signal** — suggest `/compact` if context is long or a major phase just completed
+9. **After every session — sync all MD files** (see rule below)
 
 ---
 
@@ -722,3 +730,161 @@ This rule also fires automatically at the end of every session where code was ch
 4. Update memory/project_state.md (completed work + remaining pending items)
 5. Move completed items from Pending to Completed improvements in CLAUDE.md
 ```
+
+---
+
+## Ultrathink triggers
+
+When a task matches any row below, apply maximum reasoning depth — think through all side effects, data flows, and failure modes **before writing any code**. For user messages: prepend `ultrathink` to activate extended thinking.
+
+| Trigger | Risk if skipped |
+|---------|----------------|
+| New module creation | Missing DormDB key, no index.html card stat, broken new-module checklist step → module never loads data |
+| Cross-module data relationship change | Subscriber module doesn't get `DormDB.on()` → stale UI in second tab or second module |
+| Data model change (`emptyStudent`, `emptyProfile`, `emptyKey`, `emptyAssignedKey`) | Missing `ensureStudent()` propagation → silent data loss on Excel import/restore |
+| Any change touching 4 or more files simultaneously | Partial application leaves system in broken intermediate state |
+| `recalcWaiting()` or room availability logic | Breaks reservation badges, status text, and hold/solo locking across all rooms |
+| Backend Phase 1 — `dorm-db.js` async rewrite | One missed `await` breaks an entire module silently |
+| SARRA2 absorption planning | Irreversible architectural decisions; wrong JWT field = auth fails for all users |
+| Print layout code (A4/A5) | `@page` size, margin, and `page-break` errors only visible in print preview — not on screen |
+| Conflict/merge/sync logic | Incorrect version comparison causes silent data loss with no error shown |
+| Adding a column to the room-reservations table | `_COL_DEFS` n-values must be sequential; wrong index hides the wrong column silently |
+| Security-adjacent code (auth, CORS, DEV_MODE gating) | DEV_MODE left `true` in production bypasses all JWT validation |
+
+---
+
+## L99 quality gate — pre-ship checklist
+
+"L99" = zero known bugs shipped. Run every applicable item before calling a task done.
+
+### Data model integrity
+- [ ] New field → added to `emptyStudent()`/`emptyProfile()`/`emptyKey()` **AND** `ensureStudent()` **AND** `saveToExcel()` column list **AND** `loadFromInput()` reader
+- [ ] No raw `{}` or partial object pushed to `fullData`, `incomingQueue`, `roomHistory`, or any DormDB-managed array — always use the `empty*()` factory
+- [ ] No direct `localStorage.setItem/getItem` for any `dorm*` key — always through `DormDB`
+
+### Cross-module correctness
+- [ ] Module reads another module's DormDB key → `DormDB.on(KEYS.X, handler)` subscription exists in that module
+- [ ] New DormDB key → constant added to `DormDB.KEYS` in `dorm-db.js` + getter/setter pair + `getMenuStats()` updated if countable + `exportAll/importAll` covers it
+- [ ] Check the **Cross-module dependency map** below — update every module listed as a reader for the affected key
+
+### String replace safety
+- [ ] `grep -n "target string"` run first → confirmed unique before applying `str_replace`
+- [ ] After edit: `wc -l` confirms file changed by expected amount (unexpected large delta = red flag)
+
+### New module (full checklist)
+- [ ] `dorm-db.js` script loaded **first** — no CDN scripts before it
+- [ ] `DormDB.KEYS.X` constant exists before module tries to use it
+- [ ] `DormDB.on()` subscriptions for all foreign keys read by this module
+- [ ] Nav bar shows dorm name via `DormDB.getDormName()` and user via `DormDB.getCurrentUser()`
+- [ ] `index.html` card set `ready: true` with correct stat pills from `getMenuStats()`
+- [ ] CLAUDE.md updated: module list, file stats table, function list
+
+### Rendering and UI
+- [ ] New column in room-reservations → `_COL_DEFS` entry added + total column count comment updated in architecture section
+- [ ] Print layout → `@page { size: A4/A5 portrait/landscape; margin: 12mm; }` present, tested in print preview
+- [ ] Every async save shows a toast confirming success or failure
+- [ ] Scroll-to-top ⇧ button present (all modules must have it)
+
+### Zero console errors
+- [ ] No reference to a function before it is defined
+- [ ] No broken `DormDB.KEYS.X` where X doesn't exist in `dorm-db.js`
+- [ ] All event handlers attached inside `init()`, called at page bottom
+
+### Backend readiness (Phase 1 prep)
+- [ ] Any new `DormDB.get*()` call written so it can be made async with minimal refactor (no sync-only assumptions)
+
+---
+
+## Cross-module dependency map
+
+When you change a DormDB key, every module in the **Read by** column must be checked for subscription and rendering correctness.
+
+| DormDB key | Written by | Read by |
+|------------|-----------|---------|
+| `dormData` | room-reservations | reports (all tabs), floor-plan (occupancy), utilities (billing), room-inspection (_getInspectionCharges), key-inventory (generate from rooms), student-profiles (profile badge room lookup), index.html (stats) |
+| `dormHistory` | room-reservations (vacateAndArchive) | reports (archive tab) |
+| `dormQueue` | room-reservations | reports (archive tab context) |
+| `dormAway` | room-reservations (markStudentAway) | reports (fee collection — unpaid storage) |
+| `dormProfiles` | student-profiles | room-reservations (_hasProfile badge), floor-plan (occupant names) |
+| `dormKeysInv` | key-inventory (borrow log tab) | reports (fee collection — lost key fines), index.html (keysOverdue stat) |
+| `dormKeysAssigned` | key-inventory (assigned tab), room-inspection (key issuance) | student-profiles (keyReceived live sync), index.html (depositsCollected/depositsPending) |
+| `dormInspections` | room-inspection | room-reservations (_getInspectionCharges → clearance pre-fill), reports (clearance tab inspection charges) |
+| `dormInventory` | inventory | index.html (lowStock, maintenanceFlagged stats) |
+| `dormMaintenance` | room-inspection (push stubs), inventory (push stubs) | index.html (maintenanceFlagged stat) |
+| `dormFloorPlan` | floor-plan | (standalone — no cross-module readers) |
+| `dormUtilities` | utilities | (standalone — no cross-module readers) |
+| `dormKeysConfig` | key-inventory (settings) | key-inventory (fine/deposit calc), room-inspection (deposit default) |
+| `dormInspConfig` | room-inspection (settings) | room-inspection (default charges, semester label) |
+| `dormNameSelect` / `dormNameCustom` | index.html (dorm selector) | all modules (getDormName()) |
+
+---
+
+## Known pitfalls — do not reintroduce
+
+These bugs have been fixed before. Check this list when working in the affected area.
+
+| Area | Pitfall | Fix |
+|------|---------|-----|
+| Column picker panel | Added `window.scrollY` to `position:fixed` top offset → panel jumps when page is scrolled | Remove `window.scrollY`; `position:fixed` is already viewport-relative |
+| renderTable() performance | Full-array `.filter()` inside the row loop → O(n²) for 200 rows | Pre-compute `occMap`, `iqMap`, `histMap` Maps before the loop |
+| AC room normalization | `426` vs `426AC` treated as different rooms in utilities billing | Use `getStudentSlotsFlexible()` which strips the AC suffix for matching |
+| Maintenance stubs | `status: 'open'` (lowercase) didn't match `getMenuStats()` check for `'Open'` | Always write `status: 'Open'` (Title case) |
+| Edit Charges modal | Bathroom cost appeared as editable inline line AND as `ec_bathCost` → silent double-edit | `ec_bathCost` is the sole control; remove inline bathroom line |
+| Shared charge split | Used live occupant count for per-person calculation → wrong if one occupant leaves mid-semester | Use `c.splitBy` (set at generate time), not live count |
+| `importAll()` crash | `JSON.parse` on plain string values like `dormUserName = "Richmond"` threw SyntaxError | Plain strings: restore via `localStorage.setItem` directly, not through `_w` |
+| Photo in localStorage | Base64 photos stored in `dormProfiles` → quota exceeded at ~30 students with photos | Photos go to IndexedDB via `DormDB.savePhoto/getPhoto`; never in `dormProfiles` |
+| `_COL_DEFS` n-values | Non-sequential n-values cause column hide/show to target wrong CSS nth-child | n-values must be sequential 1-based integers; verify after any column add/remove |
+| DEV_MODE in production | `DEV_MODE=true` in docker-compose.yml bypasses all JWT validation | `docker-compose.yml` must always have `DEV_MODE: "false"`; only `.env` / `docker-compose.dev.yml` set it true |
+| Excel import `ensureStudent` | Importing a row without passing through `ensureStudent()` → missing fields break `recalcWaiting()` | Always `ensureStudent(row)` every externally-sourced row before pushing to `fullData` |
+
+---
+
+## Manual smoke tests — run after changes
+
+### After any room-reservations.html change
+- [ ] Type a student name → appears in table → autosave runs (unsaved indicator disappears) → hard reload → name persists
+- [ ] Clearance modal opens for a student with `moveOutReason` set
+- [ ] Column visibility toggle (Columns ▾) opens and hides/shows a column correctly
+- [ ] Floor filter dropdown filters rows correctly
+- [ ] Search box finds a student by name
+- [ ] Undo/Redo buttons revert and re-apply a name change
+
+### After any dorm-db.js change
+- [ ] Export All Data → download completes → re-import → all data intact, no console errors
+- [ ] Open two browser tabs → edit data in one → other tab reflects change (BroadcastChannel)
+- [ ] `getMenuStats()` returns correct counts visible on index.html card pills
+
+### After any print layout change
+- [ ] Open browser print preview (Ctrl+P) → correct page count, no content clipped at edges
+- [ ] `@page` size matches the intended paper (A4 portrait/landscape, A5 portrait)
+- [ ] Sidebar/nav hidden in print (check `@media print { display: none }`)
+
+### After any new module
+- [ ] Module card on `index.html` shows correct stats
+- [ ] Back button returns to correct previous page
+- [ ] Dorm name appears in module nav bar
+- [ ] No console errors on first load (open DevTools before navigating)
+- [ ] Module works when localStorage is empty (first-time use)
+
+---
+
+## Context management — autocompact
+
+`/compact` compresses conversation history to free context for new work. Apply it proactively — the memory files persist across sessions, but the conversation does not.
+
+### When to suggest `/compact`
+
+| Signal | Action |
+|--------|--------|
+| A major task phase just completed (new module shipped, large feature done) | Sync memory files first → then suggest `/compact` |
+| About to start a completely different task in the same session | Suggest `/compact` before beginning the new task |
+| Session has had 6+ back-and-forth exchanges on a single problem | Suggest `/compact` |
+| Many file reads have accumulated (context is visibly long) | Suggest `/compact` |
+
+### Always before compacting
+1. Run the MD sync rule — update `CLAUDE.md` stats + all relevant memory files
+2. Confirm memory files saved — those survive; the conversation does not
+3. Then tell the user: _"Context is getting long — run `/compact` before we continue so the next task starts clean"_
+
+### Never compact mid-edit
+Complete the current edit, run `wc -l`, confirm the change is correct — then compact. Never compact while a str_replace sequence is in progress.
