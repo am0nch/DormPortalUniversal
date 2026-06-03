@@ -35,6 +35,7 @@ body{background:#f0f4f8;min-height:100vh}
 .stat-pill.green{background:#e8f5e9;color:#2e7d32}
 .stat-pill.gray{background:#f0f0f0;color:#555}
 .coming-tag{position:absolute;top:12px;right:14px;font-size:.65rem;background:#e9ecef;color:#888;padding:2px 7px;border-radius:10px;font-weight:600}
+.menu-section{font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#888;border-bottom:1px solid #dde3eb;margin:20px 0 8px;padding-bottom:4px;grid-column:1 / -1}
 
 /* ── Footer ── */
 .menu-footer{margin-top:32px;padding-top:18px;border-top:1px solid #d9e6f5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:.74rem;color:#aaa}
@@ -81,7 +82,9 @@ body{background:#f0f4f8;min-height:100vh}
 
 <script>
 const MODULES = [
+  // ── OPERATIONS ─────────────────────────────────────────────────────────────
   {
+    section: 'Operations',
     icon: '🛏️',
     title: 'Room Reservations',
     desc: 'Student beds, check-in/out, clearance forms, room holds, and incoming queue.',
@@ -96,6 +99,7 @@ const MODULES = [
     }
   },
   {
+    section: 'Operations',
     icon: '👤',
     title: 'Student Profiles',
     desc: 'Full student directory — IDs, contacts, course, year, and personal records.',
@@ -111,6 +115,7 @@ const MODULES = [
     }
   },
   {
+    section: 'Operations',
     icon: '🏢',
     title: 'Floor Plan',
     desc: 'Visual room grid with occupancy status and hot water bathroom pairing configuration.',
@@ -123,6 +128,7 @@ const MODULES = [
     }
   },
   {
+    section: 'Operations',
     icon: '⚡',
     title: 'Electricity & Hot Water',
     desc: 'Track utility meter readings and split bills equally among room occupants per billing period.',
@@ -131,6 +137,7 @@ const MODULES = [
     getStats() { return []; }
   },
   {
+    section: 'Operations',
     icon: '📊',
     title: 'Reports',
     desc: 'Custom reports, pivot summaries, hold and storage reports, and the full room history archive.',
@@ -143,6 +150,7 @@ const MODULES = [
     }
   },
   {
+    section: 'Operations',
     icon: '🔑',
     title: 'Key Inventory',
     desc: 'Track every room key — assignments, returns, lost keys, and spare stock.',
@@ -156,6 +164,7 @@ const MODULES = [
     }
   },
   {
+    section: 'Operations',
     icon: '🔍',
     title: 'Room Inspection',
     desc: 'Move-in and move-out checklists per room side (A=door / B=balcony). Auto-calculates damage charges and pre-fills clearance forms.',
@@ -168,6 +177,7 @@ const MODULES = [
     }
   },
   {
+    section: 'Operations',
     icon: '📦',
     title: 'Inventory',
     desc: 'Track all dorm assets — furniture, appliances, fixtures — with barcode labels and room template comparison.',
@@ -181,27 +191,67 @@ const MODULES = [
       return pills;
     }
   },
+  // ── STUDENT AFFAIRS ────────────────────────────────────────────────────────
   {
-    icon: '📖',
-    title: "Dean's User Guide",
-    desc: 'Complete reference for all modules — room reservations, inspections, inventory, key tracking, reports, and more.',
-    file: 'modules/userguide.html',
-    ready: true,
-    getStats() {
-      return [{ label: '10 modules covered', cls: 'blue' }];
+    section: 'Student Affairs',
+    icon: '🌙',
+    title: 'Nightly Attendance',
+    desc: 'Nightly bed checks and curfew tracking — pre-filled from SARRA2 leave records. Mobile-friendly roster.',
+    file: 'modules/attendance.html',
+    ready: false,
+    getStats(s) {
+      const pills = [];
+      if (s.lastNightAbsent > 0)  pills.push({ label: s.lastNightAbsent + ' absent last night', cls: 'orange' });
+      if (s.studentsOnLeave > 0)  pills.push({ label: s.studentsOnLeave + ' on leave', cls: 'blue' });
+      if (!s.lastNightAbsent && !s.studentsOnLeave) pills.push({ label: 'All present', cls: 'green' });
+      return pills;
     }
   },
   {
-    icon: '📋',
-    title: 'Residence Hall Handbook',
-    desc: 'Interactive reference for all APIU hall policies — fines, leave rules, conduct, safety, and the system development roadmap.',
-    file: 'modules/handbook.html',
-    ready: true,
-    getStats() {
-      return [{ label: '50+ policies', cls: 'blue' }, { label: 'Fines reference', cls: 'orange' }];
+    section: 'Student Affairs',
+    icon: '🚨',
+    title: 'Incident Reports',
+    desc: 'Document behavioral incidents, track follow-ups, and export citizenship point deductions for SARRA2.',
+    file: 'modules/incidents.html',
+    ready: false,
+    getStats(s) {
+      const pills = [];
+      if (s.unresolvedIncidents > 0) pills.push({ label: s.unresolvedIncidents + ' unresolved', cls: 'red' });
+      else pills.push({ label: 'No open incidents', cls: 'green' });
+      return pills;
     }
   },
   {
+    section: 'Student Affairs',
+    icon: '🏠',
+    title: 'Student Admin',
+    desc: "Off-campus move requests with 30-day notice tracking, waiver eligibility, and a private dean's assistance log.",
+    file: 'modules/student-admin.html',
+    ready: false,
+    getStats(s) {
+      const pills = [];
+      if (s.pendingOffCampus > 0) pills.push({ label: s.pendingOffCampus + ' pending', cls: 'orange' });
+      else pills.push({ label: 'No pending requests', cls: 'green' });
+      return pills;
+    }
+  },
+  // ── STAFF & FACILITIES ─────────────────────────────────────────────────────
+  {
+    section: 'Staff & Facilities',
+    icon: '👥',
+    title: 'Dorm Workers',
+    desc: 'HR register for RAs, Monitors, Janitors, and SWP workers. Job descriptions, agreements, and SARRA2 cross-reference.',
+    file: 'modules/dorm-workers.html',
+    ready: false,
+    getStats(s) {
+      const pills = [];
+      if (s.activeWorkers > 0) pills.push({ label: s.activeWorkers + ' active workers', cls: 'blue' });
+      else pills.push({ label: 'No workers registered', cls: 'gray' });
+      return pills;
+    }
+  },
+  {
+    section: 'Staff & Facilities',
     icon: '📅',
     title: 'Staff Scheduling',
     desc: 'Manage worker shifts, duty rosters, and attendance for dorm staff.',
@@ -210,6 +260,7 @@ const MODULES = [
     getStats() { return []; }
   },
   {
+    section: 'Staff & Facilities',
     icon: '🔧',
     title: 'Maintenance',
     desc: 'Log plant and repair service requests — track status from open to resolved.',
@@ -222,12 +273,43 @@ const MODULES = [
       return pills;
     }
   },
+  // ── REFERENCE ──────────────────────────────────────────────────────────────
+  {
+    section: 'Reference',
+    icon: '📖',
+    title: "Dean's User Guide",
+    desc: 'Complete reference for all modules — room reservations, inspections, inventory, key tracking, reports, and more.',
+    file: 'modules/userguide.html',
+    ready: true,
+    getStats() {
+      return [{ label: '10 modules covered', cls: 'blue' }];
+    }
+  },
+  {
+    section: 'Reference',
+    icon: '📋',
+    title: 'Residence Hall Handbook',
+    desc: 'Interactive reference for all APIU hall policies — fines, leave rules, conduct, safety, and the system development roadmap.',
+    file: 'modules/handbook.html',
+    ready: true,
+    getStats() {
+      return [{ label: '50+ policies', cls: 'blue' }, { label: 'Fines reference', cls: 'orange' }];
+    }
+  },
 ];
 
 function renderCards(stats) {
   const grid = document.getElementById('moduleGrid');
   grid.innerHTML = '';
+  let lastSection = null;
   MODULES.forEach(m => {
+    if (m.section !== lastSection) {
+      lastSection = m.section;
+      const h = document.createElement('h2');
+      h.className = 'menu-section';
+      h.textContent = m.section;
+      grid.appendChild(h);
+    }
     const pills = m.getStats(stats);
     const pillsHtml = pills.length
       ? pills.map(p => `<span class="stat-pill ${p.cls}">${p.label}</span>`).join('')
@@ -337,9 +419,13 @@ DormDB.on('dormHistory',     refreshStats);
 DormDB.on('dormAway',        refreshStats);
 DormDB.on('dormKeysInv',      refreshStats);
 DormDB.on('dormKeysAssigned', refreshStats);
-DormDB.on('dormMaintenance', refreshStats);
-DormDB.on('dormInspections', refreshStats);
-DormDB.on('dormInventory',   refreshStats);
+DormDB.on('dormMaintenance',  refreshStats);
+DormDB.on('dormInspections',  refreshStats);
+DormDB.on('dormInventory',    refreshStats);
+DormDB.on('dormAttendance',   refreshStats);
+DormDB.on('dormIncidents',    refreshStats);
+DormDB.on('dormOffCampusReq', refreshStats);
+DormDB.on('dormWorkers',      refreshStats);
 </script>
 </body>
 </html>
