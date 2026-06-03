@@ -11,3 +11,8 @@ clearance_a5_preview.html
 
 # Backend lives in its own private repo (DormPortalBackend)
 backend/
+
+# Generated / unrelated scripts
+DormPortal API - Swagger UI.html
+DormPortal API - Swagger UI_files/
+setup-deepseek.sh
