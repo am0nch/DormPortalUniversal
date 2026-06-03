@@ -198,7 +198,7 @@ const MODULES = [
     title: 'Nightly Attendance',
     desc: 'Nightly bed checks and curfew tracking — pre-filled from SARRA2 leave records. Mobile-friendly roster.',
     file: 'modules/attendance.html',
-    ready: false,
+    ready: true,
     getStats(s) {
       const pills = [];
       if (s.lastNightAbsent > 0)  pills.push({ label: s.lastNightAbsent + ' absent last night', cls: 'orange' });
