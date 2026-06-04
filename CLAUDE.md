@@ -81,6 +81,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 | File | Status | Rule |
 |------|--------|------|
+| `SARRA2_INTEGRATION.md` | External integration guide | Edit when CSV formats or integration seams change. |
 | `Dorm Manager.code-workspace` | VS Code workspace config | Do not edit. Auto-managed by VS Code. Git-ignored. |
 | `userguide.md` | User documentation | Edit only when asked to update docs. |
 | `*.xlsx` (data exports) | User data files | Never edit programmatically. Git-ignored. |
