@@ -227,7 +227,7 @@ const MODULES = [
     title: 'Student Admin',
     desc: "Off-campus move requests with 30-day notice tracking, waiver eligibility, and a private dean's assistance log.",
     file: 'modules/student-admin.html',
-    ready: false,
+    ready: true,
     getStats(s) {
       const pills = [];
       if (s.pendingOffCampus > 0) pills.push({ label: s.pendingOffCampus + ' pending', cls: 'orange' });

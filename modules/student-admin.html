@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Student Admin — APIU</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.sa-nav{background:#1565c0;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.sa-nav a{color:#bbdefb;text-decoration:none;font-size:.85rem;font-weight:600}
+.sa-nav a:hover{color:#fff}
+.nav-title{font-weight:700;font-size:1rem}
+.nav-dorm{font-size:.78rem;opacity:.75}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#1565c0;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top.show{display:flex}
+.sa-wrap{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
+.tab-btn.active{background:#1565c0;color:#fff}
+.tab-btn:hover:not(.active){background:#f0f4f8}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Stat cards */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.sc{background:#fff;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.sc .sv{font-size:1.6rem;font-weight:800;color:#1565c0;line-height:1.1}
+.sc .sl{font-size:.68rem;color:#888;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sc.orange .sv{color:#e65100}.sc.red .sv{color:#c62828}.sc.green .sv{color:#2e7d32}
+/* Record cards */
+.rec-card{background:#fff;border-radius:8px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #ddd;overflow:hidden}
+.rec-card.status-pending{border-left-color:#ffa726}
+.rec-card.status-under-review{border-left-color:#42a5f5}
+.rec-card.status-approved{border-left-color:#66bb6a}
+.rec-card.status-rejected{border-left-color:#ef5350}
+.rec-card.status-completed{border-left-color:#26c6da}
+.rec-card.overdue{border-left-color:#c62828}
+.rec-hdr{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.rec-hdr:hover{background:#f5f9ff}
+.rec-body{display:none;padding:12px 14px;border-top:1px solid #f0f0f0;font-size:.8rem}
+.rec-body.open{display:block}
+.rec-title{font-size:.9rem;font-weight:700;color:#333}
+.rec-meta{font-size:.74rem;color:#888;margin-top:3px}
+.badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:4px}
+.badge-pending{background:#fff8e1;color:#f57f17}
+.badge-review{background:#e3f2fd;color:#1565c0}
+.badge-approved{background:#e8f5e9;color:#2e7d32}
+.badge-rejected{background:#fdecea;color:#c62828}
+.badge-completed{background:#e0f7fa;color:#00838f}
+.badge-ok{background:#e8f5e9;color:#2e7d32}
+.badge-warn{background:#fdecea;color:#c62828}
+.badge-blue{background:#e3f2fd;color:#1565c0}
+.badge-gray{background:#f0f0f0;color:#666}
+/* Form */
+.sa-form{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.77rem;font-weight:600;color:#444;margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.84rem}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#1565c0}
+.fg-row{display:flex;gap:12px}.fg-row .fg{flex:1}
+.sec-head{font-size:.88rem;font-weight:700;color:#1565c0;margin:0 0 12px;padding-bottom:7px;border-bottom:2px solid #e3f2fd}
+/* Student chips in assistance log */
+.student-chip{display:inline-flex;align-items:center;gap:4px;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:.77rem;font-weight:600;margin:2px}
+.student-chip .rm{background:none;border:none;cursor:pointer;color:#c62828;font-size:.85rem;padding:0 0 0 2px;line-height:1}
+.student-entry-assist{background:#f0f7ff;border-radius:8px;padding:10px;margin-bottom:8px;border:1px solid #bbdefb;position:relative}
+/* Notice compliance */
+.notice-ok{color:#2e7d32;font-weight:700}
+.notice-bad{color:#c62828;font-weight:700}
+/* Reports */
+.report-block{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px}
+.report-block h3{font-size:.88rem;color:#1565c0;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e3f2fd}
+table.rpt{width:100%;border-collapse:collapse;font-size:.8rem}
+table.rpt th{background:#e3f2fd;color:#1565c0;padding:6px 10px;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+table.rpt td{padding:6px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+table.rpt tr:last-child td{border-bottom:none}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
+.btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-orange{background:#e65100;color:#fff}.btn-orange:hover{opacity:.88}
+.btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
+.btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}
+.btn-ghost{background:#f0f4f8;color:#333;border:1px solid #d0d0d0}.btn-ghost:hover{background:#e8e8e8}
+.btn-sm{padding:5px 10px;font-size:.75rem}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.callout{border-radius:8px;padding:10px 14px;font-size:.79rem;margin-bottom:12px}
+.callout-info{background:#e3f2fd;color:#1565c0;border:1px solid #90caf9}
+.callout-warn{background:#fff8e1;color:#e65100;border:1px solid #ffd54f}
+.callout-success{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:560px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:.98rem;font-weight:700;color:#1565c0;margin-bottom:14px}
+.toast{position:fixed;bottom:24px;right:20px;background:#1565c0;color:#fff;padding:10px 18px;border-radius:8px;font-size:.86rem;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+@media(max-width:540px){
+  .fg-row{flex-direction:column}
+  .btn-row{flex-direction:column}
+}
+@media print{
+  .sa-nav,.tab-bar,.btn,.btn-row,.scroll-top{display:none!important}
+  .tab-panel{display:block!important}
+  .rec-body{display:block!important}
+  @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+
+<nav class="sa-nav">
+  <div>
+    <a id="backLink" href="../index.html">← Menu</a>
+    <span class="nav-title" style="margin-left:12px">🏠 Student Admin</span>
+    <span class="nav-dorm" id="navDorm"></span>
+  </div>
+  <div style="font-size:.78rem;opacity:.75" id="navUser"></div>
+</nav>
+
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">⇧</button>
+
+<div class="sa-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('offcampus')">🏘️ Off-Campus Requests</button>
+    <button class="tab-btn" onclick="switchTab('assistance')">🤝 Assistance Log</button>
+    <button class="tab-btn" onclick="switchTab('reports')">📊 Reports</button>
+  </div>
+
+  <!-- ── OFF-CAMPUS REQUESTS ─────────────────────────────────────────────── -->
+  <div id="tab-offcampus" class="tab-panel active">
+    <div class="callout callout-info">
+      <strong>Policy:</strong> Students must give <strong>one month written notice</strong> before moving off-campus (APIU Handbook). The 30-day badge turns green when the target date is ≥30 days after the notice date.
+    </div>
+    <div class="stat-row" id="ocStatRow"></div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-primary" onclick="openOcModal()">+ New Request</button>
+      <select id="ocStatusFilter" onchange="renderOffCampus()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem;font-weight:600">
+        <option value="">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Under Review">Under Review</option>
+        <option value="Approved">Approved</option>
+        <option value="Rejected">Rejected</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+    <div id="ocList"></div>
+  </div>
+
+  <!-- ── ASSISTANCE LOG ──────────────────────────────────────────────────── -->
+  <div id="tab-assistance" class="tab-panel">
+    <div class="stat-row" id="asStatRow"></div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-primary" onclick="openAsModal()">+ Log Assistance</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:#555">
+        <input type="checkbox" id="showPendingOnly" onchange="renderAssistance()"> Show follow-ups only
+      </label>
+    </div>
+    <div id="asList"></div>
+  </div>
+
+  <!-- ── REPORTS ─────────────────────────────────────────────────────────── -->
+  <div id="tab-reports" class="tab-panel">
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-ghost" onclick="printReports()">🖨️ Print Report</button>
+    </div>
+    <div id="reportContent"></div>
+  </div>
+</div>
+
+<!-- ── OFF-CAMPUS MODAL ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="ocModal">
+  <div class="modal-box">
+    <div class="modal-title" id="ocModalTitle">Off-Campus Move Request</div>
+
+    <div class="fg-row">
+      <div class="fg" style="flex:2">
+        <label>Student Name</label>
+        <input type="text" id="oc_name" placeholder="Type to search..." oninput="ocStudentSearch(this.value)">
+        <div id="ocSuggest" style="background:#fff;border:1px solid #ddd;border-radius:6px;max-height:140px;overflow-y:auto;display:none;margin-top:2px;z-index:999;position:relative"></div>
+      </div>
+      <div class="fg">
+        <label>Room</label>
+        <input type="text" id="oc_room" placeholder="Auto-fill from roster">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Student ID</label>
+      <input type="text" id="oc_studentId">
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Request Date</label>
+        <input type="date" id="oc_requestDate">
+      </div>
+      <div class="fg">
+        <label>Target Move Date</label>
+        <input type="date" id="oc_targetMoveDate" oninput="checkNoticeCompliance()">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Written Notice Given Date</label>
+        <input type="date" id="oc_noticeGivenDate" oninput="checkNoticeCompliance()">
+      </div>
+      <div class="fg" style="display:flex;align-items:flex-end">
+        <div id="noticeComplianceDisplay" style="padding:6px 10px;border-radius:6px;font-size:.8rem;font-weight:700;flex:1;text-align:center;background:#f0f4f8;color:#888">
+          Enter both dates
+        </div>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Reason</label>
+        <select id="oc_reason">
+          <option value="">— Select —</option>
+          <option>Financial</option><option>Academic</option><option>Family</option>
+          <option>Health</option><option>Personal</option><option>Graduation</option>
+          <option>Internship</option><option>Other</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Status</label>
+        <select id="oc_status">
+          <option>Pending</option><option>Under Review</option>
+          <option>Approved</option><option>Rejected</option><option>Completed</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Reason Detail</label>
+      <textarea id="oc_reasonDetail" rows="2" placeholder="Additional context..."></textarea>
+    </div>
+    <div class="fg">
+      <label>New Address</label>
+      <input type="text" id="oc_newAddress" placeholder="Off-campus address">
+    </div>
+    <div class="fg">
+      <label>Exemption / Waiver Category</label>
+      <select id="oc_waiverCategory">
+        <option value="">— None —</option>
+        <option>Commute &lt;50km</option><option>6+ Semesters</option>
+        <option>Married</option><option>Health/Disability</option>
+        <option>Internship</option><option>Self-Supporting</option>
+      </select>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="oc_waiverDoc" style="width:auto">
+      <label for="oc_waiverDoc" style="font-size:.8rem;font-weight:600;color:#444">Waiver documentation on file</label>
+    </div>
+    <div style="border-top:1px solid #e0e0e0;margin:12px 0;padding-top:12px">
+      <p class="sec-head" style="margin-bottom:10px">Parent / Guardian Approval</p>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="oc_parentApproval" style="width:auto">
+      <label for="oc_parentApproval" style="font-size:.8rem;font-weight:600;color:#444">Parent/guardian approved this request</label>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Parent Name</label><input type="text" id="oc_parentName"></div>
+      <div class="fg"><label>Parent Contact</label><input type="text" id="oc_parentContact"></div>
+    </div>
+    <div style="border-top:1px solid #e0e0e0;margin:12px 0;padding-top:12px">
+      <p class="sec-head" style="margin-bottom:10px">Review Notes</p>
+    </div>
+    <div class="fg">
+      <label>Reviewed By</label>
+      <input type="text" id="oc_reviewedBy">
+    </div>
+    <div class="fg">
+      <label>Review Notes</label>
+      <textarea id="oc_reviewNotes" rows="2"></textarea>
+    </div>
+    <input type="hidden" id="oc_editId">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveOcRequest()">Save Request</button>
+      <button class="btn btn-ghost" onclick="closeModal('ocModal')">Cancel</button>
+      <button class="btn btn-red btn-sm" id="oc_deleteBtn" style="margin-left:auto;display:none" onclick="deleteOcRequest()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ASSISTANCE MODAL ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="asModal">
+  <div class="modal-box">
+    <div class="modal-title" id="asModalTitle">Log Assistance</div>
+    <div class="fg-row">
+      <div class="fg"><label>Date</label><input type="date" id="as_date"></div>
+      <div class="fg"><label>Time</label><input type="time" id="as_time"></div>
+    </div>
+    <div class="fg">
+      <label>Type of Assistance</label>
+      <select id="as_type">
+        <option value="">— Select —</option>
+        <option>Hospital Transport</option><option>Airport Transport</option>
+        <option>Emergency Response</option><option>Financial Assistance</option>
+        <option>Counseling</option><option>Administrative Help</option>
+        <option>Disciplinary Follow-up</option><option>Family Liaison</option><option>Other</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Students Involved</label>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input type="text" id="as_studentSearch" placeholder="Type name or ID..." oninput="asStudentSearch(this.value)" style="flex:1">
+        <button class="btn btn-ghost btn-sm" onclick="addAsStudentManual()">+ Add</button>
+      </div>
+      <div id="asSuggest" style="background:#fff;border:1px solid #ddd;border-radius:6px;max-height:120px;overflow-y:auto;display:none;margin-bottom:4px;z-index:999;position:relative"></div>
+      <div id="asStudentChips"></div>
+    </div>
+    <div class="fg">
+      <label>Description</label>
+      <textarea id="as_description" rows="3" placeholder="What happened? What assistance was provided?"></textarea>
+    </div>
+    <div class="fg">
+      <label>Outcome</label>
+      <textarea id="as_outcome" rows="2" placeholder="Result / resolution..."></textarea>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Hours Spent</label>
+        <input type="number" id="as_hours" min="0" step=".5" value="0">
+      </div>
+      <div class="fg">
+        <label>Out-of-Pocket Cost (฿)</label>
+        <input type="number" id="as_cost" min="0" value="0">
+      </div>
+    </div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="as_followup" style="width:auto" onchange="toggleAsFollowup()">
+      <label for="as_followup" style="font-size:.8rem;font-weight:600;color:#444">Follow-up required</label>
+    </div>
+    <div id="asFollowupFields" style="display:none">
+      <div class="fg-row">
+        <div class="fg">
+          <label>Follow-up Date</label>
+          <input type="date" id="as_followupDate">
+        </div>
+        <div class="fg" style="display:flex;align-items:center;gap:8px;padding-top:20px">
+          <input type="checkbox" id="as_followupDone" style="width:auto">
+          <label for="as_followupDone" style="font-size:.8rem;font-weight:600;color:#444">Completed</label>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Follow-up Notes</label>
+        <textarea id="as_followupNotes" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Provided By</label>
+      <input type="text" id="as_providedBy">
+    </div>
+    <input type="hidden" id="as_editId">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveAssistance()">Save</button>
+      <button class="btn btn-ghost" onclick="closeModal('asModal')">Cancel</button>
+      <button class="btn btn-red btn-sm" id="as_deleteBtn" style="margin-left:auto;display:none" onclick="deleteAssistance()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CLEARANCE MODAL (initiate off-campus clearance) ──────────────────────── -->
+<div class="modal-overlay" id="clearanceConfirmModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">Initiate Clearance</div>
+    <p style="font-size:.85rem;color:#333;margin-bottom:14px" id="clearanceConfirmMsg"></p>
+    <div class="btn-row">
+      <button class="btn btn-green" id="clearanceYesBtn">✅ Start Clearance</button>
+      <button class="btn btn-ghost" onclick="closeModal('clearanceConfirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-title" id="confirmTitle">Confirm</div>
+    <p style="font-size:.85rem;color:#444;margin-bottom:16px" id="confirmMsg"></p>
+    <div class="btn-row">
+      <button class="btn btn-red" id="confirmYes">Yes, proceed</button>
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+let offCampusReqs = [];
+let assistanceLogs = [];
+let _asStudents = []; // temp list of students for current assistance modal
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function daysBetween(d1, d2) {
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+}
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(name.toLowerCase().slice(0,4))));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'offcampus') renderOffCampus();
+  if (name === 'assistance') renderAssistance();
+  if (name === 'reports')    renderReports();
+}
+function statusClass(s) {
+  return {
+    'Pending':      'status-pending',
+    'Under Review': 'status-under-review',
+    'Approved':     'status-approved',
+    'Rejected':     'status-rejected',
+    'Completed':    'status-completed',
+  }[s] || '';
+}
+function statusBadge(s) {
+  const cls = { 'Pending':'pending','Under Review':'review','Approved':'approved','Rejected':'rejected','Completed':'completed' }[s] || 'gray';
+  return `<span class="badge badge-${cls}">${escapeHtml(s)}</span>`;
+}
+
+// ── Notice compliance ─────────────────────────────────────────────────────────
+function checkNoticeCompliance() {
+  const notice = document.getElementById('oc_noticeGivenDate').value;
+  const target  = document.getElementById('oc_targetMoveDate').value;
+  const el = document.getElementById('noticeComplianceDisplay');
+  if (!notice || !target) { el.style.background='#f0f4f8'; el.style.color='#888'; el.textContent='Enter both dates'; return; }
+  const days = daysBetween(notice, target);
+  if (days >= 30) {
+    el.style.background='#e8f5e9'; el.style.color='#2e7d32';
+    el.textContent = `✅ ${days} days — OK`;
+  } else {
+    el.style.background='#fdecea'; el.style.color='#c62828';
+    el.textContent = `⚠️ Only ${days} days — need 30`;
+  }
+}
+function noticeOk(req) {
+  if (!req.noticeGivenDate || !req.targetMoveDate) return false;
+  return daysBetween(req.noticeGivenDate, req.targetMoveDate) >= 30;
+}
+
+// ── Off-Campus student search ──────────────────────────────────────────────────
+function ocStudentSearch(val) {
+  const sug = document.getElementById('ocSuggest');
+  if (!val || val.length < 2) { sug.style.display='none'; return; }
+  const rooms = DormDB.getRooms().filter(r => r.name && r.name.toLowerCase().includes(val.toLowerCase()));
+  if (!rooms.length) { sug.style.display='none'; return; }
+  sug.style.display='block';
+  sug.innerHTML = rooms.slice(0,8).map(r =>
+    `<div style="padding:6px 10px;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f0f0"
+       onmousedown="ocSelectStudent('${escapeHtml(r.name)}','${escapeHtml(r.room)}','${escapeHtml(r.studentId||r.clearance?.studentId||'')}')"
+       >${escapeHtml(r.name)} <span style="color:#888">(Room ${escapeHtml(r.room)})</span></div>`
+  ).join('');
+}
+function ocSelectStudent(name, room, id) {
+  document.getElementById('oc_name').value = name;
+  document.getElementById('oc_room').value = room;
+  document.getElementById('oc_studentId').value = id;
+  document.getElementById('ocSuggest').style.display='none';
+}
+
+// ── Off-Campus modal ───────────────────────────────────────────────────────────
+function emptyOcReq() {
+  return {
+    id: Date.now(), studentId: '', studentName: '', room: '',
+    requestDate: today(), targetMoveDate: '', noticeGivenDate: '',
+    thirtyDayNoticeOK: false, reason: '', reasonDetail: '', newAddress: '',
+    waiverCategory: '', waiverDocumented: false,
+    parentApproval: false, parentName: '', parentContact: '',
+    status: 'Pending', reviewedBy: '', reviewDate: '', reviewNotes: '',
+    linkedClearanceInitiated: false, createdBy: '', createdAt: new Date().toISOString(),
+  };
+}
+function openOcModal(id) {
+  const isEdit = id != null;
+  document.getElementById('ocModalTitle').textContent = isEdit ? 'Edit Off-Campus Request' : 'New Off-Campus Request';
+  document.getElementById('oc_deleteBtn').style.display = isEdit ? '' : 'none';
+  document.getElementById('oc_editId').value = id || '';
+  document.getElementById('ocSuggest').style.display = 'none';
+
+  let req = isEdit ? offCampusReqs.find(r => r.id === id) : null;
+  if (isEdit && !req) return;
+
+  document.getElementById('oc_name').value           = req ? req.studentName     : '';
+  document.getElementById('oc_room').value           = req ? req.room            : '';
+  document.getElementById('oc_studentId').value      = req ? req.studentId       : '';
+  document.getElementById('oc_requestDate').value    = req ? req.requestDate     : today();
+  document.getElementById('oc_targetMoveDate').value = req ? req.targetMoveDate  : '';
+  document.getElementById('oc_noticeGivenDate').value= req ? req.noticeGivenDate : '';
+  document.getElementById('oc_reason').value         = req ? req.reason          : '';
+  document.getElementById('oc_status').value         = req ? req.status          : 'Pending';
+  document.getElementById('oc_reasonDetail').value   = req ? req.reasonDetail    : '';
+  document.getElementById('oc_newAddress').value     = req ? req.newAddress      : '';
+  document.getElementById('oc_waiverCategory').value = req ? req.waiverCategory  : '';
+  document.getElementById('oc_waiverDoc').checked    = req ? !!req.waiverDocumented : false;
+  document.getElementById('oc_parentApproval').checked= req ? !!req.parentApproval  : false;
+  document.getElementById('oc_parentName').value     = req ? req.parentName      : '';
+  document.getElementById('oc_parentContact').value  = req ? req.parentContact   : '';
+  document.getElementById('oc_reviewedBy').value     = req ? req.reviewedBy      : DormDB.getCurrentUser();
+  document.getElementById('oc_reviewNotes').value    = req ? req.reviewNotes     : '';
+  checkNoticeCompliance();
+  openModal('ocModal');
+}
+function saveOcRequest() {
+  const name = document.getElementById('oc_name').value.trim();
+  if (!name) { showToast('⚠️ Student name required'); return; }
+  const editId = document.getElementById('oc_editId').value;
+  const notice = document.getElementById('oc_noticeGivenDate').value;
+  const target  = document.getElementById('oc_targetMoveDate').value;
+
+  let req = editId ? offCampusReqs.find(r => r.id === Number(editId)) : null;
+  if (!req) { req = emptyOcReq(); offCampusReqs.push(req); }
+
+  req.studentName        = name;
+  req.room               = document.getElementById('oc_room').value.trim();
+  req.studentId          = document.getElementById('oc_studentId').value.trim();
+  req.requestDate        = document.getElementById('oc_requestDate').value;
+  req.targetMoveDate     = target;
+  req.noticeGivenDate    = notice;
+  req.thirtyDayNoticeOK  = noticeOk(req);
+  req.reason             = document.getElementById('oc_reason').value;
+  req.reasonDetail       = document.getElementById('oc_reasonDetail').value.trim();
+  req.newAddress         = document.getElementById('oc_newAddress').value.trim();
+  req.waiverCategory     = document.getElementById('oc_waiverCategory').value;
+  req.waiverDocumented   = document.getElementById('oc_waiverDoc').checked;
+  req.parentApproval     = document.getElementById('oc_parentApproval').checked;
+  req.parentName         = document.getElementById('oc_parentName').value.trim();
+  req.parentContact      = document.getElementById('oc_parentContact').value.trim();
+  req.status             = document.getElementById('oc_status').value;
+  req.reviewedBy         = document.getElementById('oc_reviewedBy').value.trim();
+  req.reviewNotes        = document.getElementById('oc_reviewNotes').value.trim();
+  if (!req.createdBy) req.createdBy = DormDB.getCurrentUser();
+
+  DormDB.saveOffCampusReq(offCampusReqs);
+  closeModal('ocModal');
+  renderOffCampus();
+  showToast('✅ Request saved');
+}
+function deleteOcRequest() {
+  const id = Number(document.getElementById('oc_editId').value);
+  askConfirm('Delete this off-campus request? This cannot be undone.', () => {
+    offCampusReqs = offCampusReqs.filter(r => r.id !== id);
+    DormDB.saveOffCampusReq(offCampusReqs);
+    closeModal('ocModal');
+    renderOffCampus();
+    showToast('Deleted');
+  });
+}
+
+// ── Initiate clearance (writes to dormData via Room Reservations key) ─────────
+function promptInitiateClearance(reqId) {
+  const req = offCampusReqs.find(r => r.id === reqId);
+  if (!req) return;
+  document.getElementById('clearanceConfirmMsg').textContent =
+    `Start the clearance process for ${req.studentName} (Room ${req.room||'?'})? ` +
+    `This will set their Room Reservations record to "Off Campus / Leaving Dorm" ` +
+    `with leave date ${fmtDate(req.targetMoveDate)}.`;
+  document.getElementById('clearanceYesBtn').onclick = () => {
+    initiateOffCampusClearance(reqId);
+    closeModal('clearanceConfirmModal');
+  };
+  openModal('clearanceConfirmModal');
+}
+function initiateOffCampusClearance(reqId) {
+  const req = offCampusReqs.find(r => r.id === reqId);
+  if (!req) return;
+  const rooms = DormDB.getRooms();
+  const si = rooms.findIndex(s =>
+    (s.studentId && s.studentId === req.studentId) ||
+    (s.clearance && s.clearance.studentId === req.studentId) ||
+    s.name === req.studentName
+  );
+  if (si < 0) { showToast('❌ Student not found in Room Reservations'); return; }
+  rooms[si].moveOutReason       = 'Off Campus';
+  rooms[si].offCampusType       = 'Leaving Dorm';
+  rooms[si].clearance           = rooms[si].clearance || {};
+  rooms[si].clearance.leaveDate = req.targetMoveDate;
+  DormDB.saveRooms(rooms);
+  req.linkedClearanceInitiated = true;
+  DormDB.saveOffCampusReq(offCampusReqs);
+  renderOffCampus();
+  showToast('✅ Clearance started — complete in Room Reservations');
+}
+
+// ── Render off-campus list ────────────────────────────────────────────────────
+function renderOffCampus() {
+  const filt = document.getElementById('ocStatusFilter').value;
+  let list = offCampusReqs.slice().sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+  if (filt) list = list.filter(r => r.status === filt);
+
+  const total   = offCampusReqs.length;
+  const pending  = offCampusReqs.filter(r => r.status === 'Pending').length;
+  const approved = offCampusReqs.filter(r => r.status === 'Approved').length;
+  const noNotice = offCampusReqs.filter(r => !r.thirtyDayNoticeOK).length;
+
+  document.getElementById('ocStatRow').innerHTML = `
+    <div class="sc"><div class="sv">${total}</div><div class="sl">Total Requests</div></div>
+    <div class="sc orange"><div class="sv">${pending}</div><div class="sl">Pending</div></div>
+    <div class="sc green"><div class="sv">${approved}</div><div class="sl">Approved</div></div>
+    <div class="sc red"><div class="sv">${noNotice}</div><div class="sl">Notice Issues</div></div>`;
+
+  if (!list.length) {
+    document.getElementById('ocList').innerHTML = `<div style="text-align:center;color:#999;padding:40px;font-size:.85rem">No requests found.</div>`;
+    return;
+  }
+  document.getElementById('ocList').innerHTML = list.map(req => {
+    const ok = req.thirtyDayNoticeOK;
+    const clearable = req.status === 'Approved' && !req.linkedClearanceInitiated;
+    const expanded = '';
+    return `<div class="rec-card ${statusClass(req.status)}" id="oc_card_${req.id}">
+      <div class="rec-hdr" onclick="toggleCard('oc_body_${req.id}')">
+        <div>
+          <div class="rec-title">${escapeHtml(req.studentName)} <span style="color:#888;font-size:.8rem">Room ${escapeHtml(req.room||'?')}</span>
+            ${statusBadge(req.status)}
+            <span class="badge ${ok?'badge-ok':'badge-warn'}" title="30-day notice">${ok?'✅ 30d OK':'⚠️ Notice'}</span>
+            ${req.linkedClearanceInitiated ? '<span class="badge badge-blue">Clearance Started</span>' : ''}
+          </div>
+          <div class="rec-meta">
+            ${escapeHtml(req.reason||'No reason')} · Target: ${fmtDate(req.targetMoveDate)}
+            ${req.waiverCategory ? `· Waiver: ${escapeHtml(req.waiverCategory)}` : ''}
+          </div>
+        </div>
+        <span style="color:#bbb;font-size:.8rem">▾</span>
+      </div>
+      <div class="rec-body" id="oc_body_${req.id}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div><strong>Request Date:</strong> ${fmtDate(req.requestDate)}</div>
+          <div><strong>Target Move:</strong> ${fmtDate(req.targetMoveDate)}</div>
+          <div><strong>Notice Given:</strong> ${fmtDate(req.noticeGivenDate)}</div>
+          <div class="${ok?'notice-ok':'notice-bad'}">
+            ${ok ? '✅ 30-day notice met' : '⚠️ 30-day notice not met'}
+            ${req.noticeGivenDate && req.targetMoveDate ? ` (${daysBetween(req.noticeGivenDate, req.targetMoveDate)} days)` : ''}
+          </div>
+          ${req.newAddress ? `<div style="grid-column:1/-1"><strong>New Address:</strong> ${escapeHtml(req.newAddress)}</div>` : ''}
+          ${req.reasonDetail ? `<div style="grid-column:1/-1"><strong>Details:</strong> ${escapeHtml(req.reasonDetail)}</div>` : ''}
+          ${req.waiverCategory ? `<div><strong>Waiver:</strong> ${escapeHtml(req.waiverCategory)}</div><div>${req.waiverDocumented?'✅ Docs on file':'📋 Docs needed'}</div>` : ''}
+          ${req.parentApproval ? `<div><strong>Parent:</strong> ${escapeHtml(req.parentName||'Yes')}</div><div>${escapeHtml(req.parentContact||'')}</div>` : ''}
+          ${req.reviewNotes ? `<div style="grid-column:1/-1"><strong>Notes:</strong> ${escapeHtml(req.reviewNotes)}</div>` : ''}
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" onclick="openOcModal(${req.id})">✏️ Edit</button>
+          ${clearable ? `<button class="btn btn-green btn-sm" onclick="promptInitiateClearance(${req.id})">🏠 Start Clearance</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleCard(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+// ── Assistance log ────────────────────────────────────────────────────────────
+function emptyAssistance() {
+  return {
+    id: Date.now(), date: today(), time: '', type: '',
+    students: [], description: '', outcome: '',
+    followUpRequired: false, followUpDate: '', followUpNotes: '', followUpCompleted: false,
+    hoursSpent: 0, cost: 0, providedBy: '', createdAt: new Date().toISOString(),
+  };
+}
+function asStudentSearch(val) {
+  const sug = document.getElementById('asSuggest');
+  if (!val || val.length < 2) { sug.style.display='none'; return; }
+  const rooms = DormDB.getRooms().filter(r => r.name &&
+    (r.name.toLowerCase().includes(val.toLowerCase()) || (r.studentId||'').includes(val))
+  );
+  if (!rooms.length) { sug.style.display='none'; return; }
+  sug.style.display='block';
+  sug.innerHTML = rooms.slice(0,8).map(r =>
+    `<div style="padding:6px 10px;cursor:pointer;font-size:.82rem;border-bottom:1px solid #f0f0f0"
+       onmousedown="asSelectStudent('${escapeHtml(r.name)}','${escapeHtml(r.room)}','${escapeHtml(r.studentId||r.clearance?.studentId||'')}')"
+       >${escapeHtml(r.name)} <span style="color:#888">(Room ${escapeHtml(r.room)})</span></div>`
+  ).join('');
+}
+function asSelectStudent(name, room, id) {
+  addAsChip({ name, room, studentId: id });
+  document.getElementById('as_studentSearch').value = '';
+  document.getElementById('asSuggest').style.display='none';
+}
+function addAsStudentManual() {
+  const val = document.getElementById('as_studentSearch').value.trim();
+  if (!val) return;
+  addAsChip({ name: val, room: '', studentId: '' });
+  document.getElementById('as_studentSearch').value = '';
+  document.getElementById('asSuggest').style.display='none';
+}
+function addAsChip(s) {
+  if (_asStudents.find(x => x.name === s.name)) return;
+  _asStudents.push(s);
+  renderAsChips();
+}
+function removeAsChip(name) {
+  _asStudents = _asStudents.filter(s => s.name !== name);
+  renderAsChips();
+}
+function renderAsChips() {
+  document.getElementById('asStudentChips').innerHTML = _asStudents.map(s =>
+    `<span class="student-chip">${escapeHtml(s.name)} ${s.room?`(${escapeHtml(s.room)})`:''}<button class="rm" onclick="removeAsChip('${escapeHtml(s.name)}')">×</button></span>`
+  ).join('');
+}
+function toggleAsFollowup() {
+  document.getElementById('asFollowupFields').style.display =
+    document.getElementById('as_followup').checked ? '' : 'none';
+}
+function openAsModal(id) {
+  const isEdit = id != null;
+  document.getElementById('asModalTitle').textContent = isEdit ? 'Edit Assistance Log' : 'Log Assistance';
+  document.getElementById('as_deleteBtn').style.display = isEdit ? '' : 'none';
+  document.getElementById('as_editId').value = id || '';
+  _asStudents = [];
+
+  let entry = isEdit ? assistanceLogs.find(a => a.id === id) : null;
+  if (isEdit && !entry) return;
+
+  document.getElementById('as_date').value         = entry ? entry.date        : today();
+  document.getElementById('as_time').value         = entry ? entry.time        : '';
+  document.getElementById('as_type').value         = entry ? entry.type        : '';
+  document.getElementById('as_description').value  = entry ? entry.description : '';
+  document.getElementById('as_outcome').value      = entry ? entry.outcome     : '';
+  document.getElementById('as_hours').value        = entry ? entry.hoursSpent  : 0;
+  document.getElementById('as_cost').value         = entry ? entry.cost        : 0;
+  document.getElementById('as_providedBy').value   = entry ? entry.providedBy  : DormDB.getCurrentUser();
+  document.getElementById('as_followup').checked   = entry ? !!entry.followUpRequired : false;
+  document.getElementById('as_followupDate').value = entry ? entry.followUpDate : '';
+  document.getElementById('as_followupDone').checked= entry ? !!entry.followUpCompleted : false;
+  document.getElementById('as_followupNotes').value = entry ? entry.followUpNotes : '';
+  document.getElementById('asFollowupFields').style.display = (entry && entry.followUpRequired) ? '' : 'none';
+  if (entry && entry.students) { _asStudents = [...entry.students]; renderAsChips(); }
+  else renderAsChips();
+
+  openModal('asModal');
+}
+function saveAssistance() {
+  const type = document.getElementById('as_type').value;
+  if (!type) { showToast('⚠️ Type of assistance required'); return; }
+  const editId = document.getElementById('as_editId').value;
+  let entry = editId ? assistanceLogs.find(a => a.id === Number(editId)) : null;
+  if (!entry) { entry = emptyAssistance(); assistanceLogs.push(entry); }
+
+  entry.date             = document.getElementById('as_date').value;
+  entry.time             = document.getElementById('as_time').value;
+  entry.type             = type;
+  entry.students         = [..._asStudents];
+  entry.description      = document.getElementById('as_description').value.trim();
+  entry.outcome          = document.getElementById('as_outcome').value.trim();
+  entry.hoursSpent       = Number(document.getElementById('as_hours').value)||0;
+  entry.cost             = Number(document.getElementById('as_cost').value)||0;
+  entry.providedBy       = document.getElementById('as_providedBy').value.trim();
+  entry.followUpRequired = document.getElementById('as_followup').checked;
+  entry.followUpDate     = document.getElementById('as_followupDate').value;
+  entry.followUpCompleted= document.getElementById('as_followupDone').checked;
+  entry.followUpNotes    = document.getElementById('as_followupNotes').value.trim();
+
+  DormDB.saveAssistance(assistanceLogs);
+  closeModal('asModal');
+  renderAssistance();
+  showToast('✅ Assistance log saved');
+}
+function deleteAssistance() {
+  const id = Number(document.getElementById('as_editId').value);
+  askConfirm('Delete this assistance log entry?', () => {
+    assistanceLogs = assistanceLogs.filter(a => a.id !== id);
+    DormDB.saveAssistance(assistanceLogs);
+    closeModal('asModal');
+    renderAssistance();
+    showToast('Deleted');
+  });
+}
+function renderAssistance() {
+  const pendingOnly = document.getElementById('showPendingOnly').checked;
+  const tod = today();
+  let list = assistanceLogs.slice().sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+  if (pendingOnly) list = list.filter(a => a.followUpRequired && !a.followUpCompleted);
+
+  const overdue = assistanceLogs.filter(a => a.followUpRequired && !a.followUpCompleted && a.followUpDate && a.followUpDate < tod).length;
+  const pending  = assistanceLogs.filter(a => a.followUpRequired && !a.followUpCompleted).length;
+  const totalHrs = assistanceLogs.reduce((s,a) => s + (Number(a.hoursSpent)||0), 0);
+
+  document.getElementById('asStatRow').innerHTML = `
+    <div class="sc"><div class="sv">${assistanceLogs.length}</div><div class="sl">Total Entries</div></div>
+    <div class="sc orange"><div class="sv">${pending}</div><div class="sl">Pending Follow-up</div></div>
+    <div class="sc red"><div class="sv">${overdue}</div><div class="sl">Overdue</div></div>
+    <div class="sc"><div class="sv">${totalHrs.toFixed(1)}</div><div class="sl">Hours Spent</div></div>`;
+
+  if (!list.length) {
+    document.getElementById('asList').innerHTML = `<div style="text-align:center;color:#999;padding:40px;font-size:.85rem">No entries found.</div>`;
+    return;
+  }
+  document.getElementById('asList').innerHTML = list.map(entry => {
+    const isOverdue = entry.followUpRequired && !entry.followUpCompleted && entry.followUpDate && entry.followUpDate < tod;
+    return `<div class="rec-card ${isOverdue ? 'overdue' : ''}">
+      <div class="rec-hdr" onclick="toggleCard('as_body_${entry.id}')">
+        <div>
+          <div class="rec-title">${escapeHtml(entry.type||'Assistance')}
+            ${isOverdue ? '<span class="badge badge-warn">⚠️ Overdue</span>' : ''}
+            ${entry.followUpRequired && !entry.followUpCompleted && !isOverdue ? '<span class="badge badge-pending">Follow-up Pending</span>' : ''}
+            ${entry.followUpCompleted ? '<span class="badge badge-approved">Follow-up Done</span>' : ''}
+          </div>
+          <div class="rec-meta">
+            ${fmtDate(entry.date)} ${entry.time||''} · ${entry.students.map(s=>s.name).join(', ')||'No students listed'}
+            · ${entry.providedBy||'Unknown'}
+          </div>
+        </div>
+        <span style="color:#bbb;font-size:.8rem">▾</span>
+      </div>
+      <div class="rec-body" id="as_body_${entry.id}">
+        ${entry.description ? `<p style="margin-bottom:8px"><strong>Description:</strong> ${escapeHtml(entry.description)}</p>` : ''}
+        ${entry.outcome ? `<p style="margin-bottom:8px"><strong>Outcome:</strong> ${escapeHtml(entry.outcome)}</p>` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;font-size:.79rem">
+          <div><strong>Hours:</strong> ${entry.hoursSpent||0}</div>
+          <div><strong>Cost:</strong> ${entry.cost ? `฿${entry.cost}` : '—'}</div>
+          ${entry.followUpRequired ? `
+            <div><strong>Follow-up Date:</strong> ${fmtDate(entry.followUpDate)}</div>
+            <div>${entry.followUpCompleted ? '✅ Completed' : '⏳ Pending'}</div>
+            ${entry.followUpNotes ? `<div style="grid-column:1/-1"><strong>Follow-up Notes:</strong> ${escapeHtml(entry.followUpNotes)}</div>` : ''}
+          ` : ''}
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" onclick="openAsModal(${entry.id})">✏️ Edit</button>
+          ${entry.followUpRequired && !entry.followUpCompleted ? `<button class="btn btn-green btn-sm" onclick="markFollowupDone(${entry.id})">✅ Mark Follow-up Done</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function markFollowupDone(id) {
+  const e = assistanceLogs.find(a => a.id === id);
+  if (!e) return;
+  e.followUpCompleted = true;
+  DormDB.saveAssistance(assistanceLogs);
+  renderAssistance();
+  showToast('✅ Follow-up marked complete');
+}
+
+// ── Reports tab ───────────────────────────────────────────────────────────────
+function renderReports() {
+  const tod = today();
+  // Off-campus summary by reason
+  const byReason = {};
+  offCampusReqs.forEach(r => { byReason[r.reason||'Other'] = (byReason[r.reason||'Other']||0)+1; });
+  const byStatus = {};
+  offCampusReqs.forEach(r => { byStatus[r.status] = (byStatus[r.status]||0)+1; });
+  const noticeRate = offCampusReqs.length ? Math.round(offCampusReqs.filter(r=>r.thirtyDayNoticeOK).length / offCampusReqs.length * 100) : 0;
+
+  // Assistance by type
+  const byType = {};
+  assistanceLogs.forEach(a => { byType[a.type||'Other'] = (byType[a.type||'Other']||0)+1; });
+  const totalHrs = assistanceLogs.reduce((s,a) => s + (Number(a.hoursSpent)||0), 0);
+  const totalCost = assistanceLogs.reduce((s,a) => s + (Number(a.cost)||0), 0);
+  const overdueFollowups = assistanceLogs.filter(a => a.followUpRequired && !a.followUpCompleted && a.followUpDate && a.followUpDate < tod);
+
+  document.getElementById('reportContent').innerHTML = `
+    <div class="report-block">
+      <h3>Off-Campus Move Requests — Summary</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <p style="font-size:.77rem;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase">By Status</p>
+          <table class="rpt">
+            <tr><th>Status</th><th>Count</th></tr>
+            ${Object.entries(byStatus).map(([s,c])=>`<tr><td>${escapeHtml(s)}</td><td>${c}</td></tr>`).join('')||'<tr><td colspan="2" style="color:#999">No data</td></tr>'}
+          </table>
+        </div>
+        <div>
+          <p style="font-size:.77rem;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase">By Reason</p>
+          <table class="rpt">
+            <tr><th>Reason</th><th>Count</th></tr>
+            ${Object.entries(byReason).map(([r,c])=>`<tr><td>${escapeHtml(r)}</td><td>${c}</td></tr>`).join('')||'<tr><td colspan="2" style="color:#999">No data</td></tr>'}
+          </table>
+        </div>
+      </div>
+      <p style="margin-top:12px;font-size:.82rem">
+        <strong>30-day notice compliance rate:</strong>
+        <span style="color:${noticeRate>=80?'#2e7d32':'#c62828'};font-weight:700">${noticeRate}%</span>
+        (${offCampusReqs.filter(r=>r.thirtyDayNoticeOK).length} of ${offCampusReqs.length})
+      </p>
+    </div>
+
+    <div class="report-block">
+      <h3>Dean's Assistance Log — Summary</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <p style="font-size:.77rem;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase">By Type</p>
+          <table class="rpt">
+            <tr><th>Type</th><th>Count</th></tr>
+            ${Object.entries(byType).map(([t,c])=>`<tr><td>${escapeHtml(t)}</td><td>${c}</td></tr>`).join('')||'<tr><td colspan="2" style="color:#999">No data</td></tr>'}
+          </table>
+        </div>
+        <div>
+          <p style="font-size:.77rem;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase">Totals</p>
+          <table class="rpt">
+            <tr><td>Total Entries</td><td><strong>${assistanceLogs.length}</strong></td></tr>
+            <tr><td>Hours Spent</td><td><strong>${totalHrs.toFixed(1)} hrs</strong></td></tr>
+            <tr><td>Out-of-Pocket Cost</td><td><strong>฿${totalCost.toLocaleString()}</strong></td></tr>
+            <tr><td>Overdue Follow-ups</td><td><strong style="color:#c62828">${overdueFollowups.length}</strong></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    ${overdueFollowups.length ? `
+    <div class="report-block" style="border-left:4px solid #c62828">
+      <h3 style="color:#c62828">⚠️ Overdue Follow-ups</h3>
+      <table class="rpt">
+        <tr><th>Date</th><th>Type</th><th>Students</th><th>Due</th><th>Provider</th></tr>
+        ${overdueFollowups.map(a=>`<tr>
+          <td>${fmtDate(a.date)}</td><td>${escapeHtml(a.type)}</td>
+          <td>${a.students.map(s=>escapeHtml(s.name)).join(', ')||'—'}</td>
+          <td style="color:#c62828">${fmtDate(a.followUpDate)}</td>
+          <td>${escapeHtml(a.providedBy||'—')}</td>
+        </tr>`).join('')}
+      </table>
+    </div>` : ''}`;
+}
+function printReports() {
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Student Admin Report — ${escapeHtml(DormDB.getDormName())}</title>
+  <style>
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:9pt;margin:0;padding:0;color:#222}
+  h1{font-size:12pt;margin-bottom:2mm}h2{font-size:10pt;color:#1565c0;margin:8pt 0 4pt;border-bottom:1pt solid #1565c0}
+  table{width:100%;border-collapse:collapse;margin-bottom:8pt}th,td{padding:3pt 6pt;text-align:left;border:1pt solid #ccc;font-size:8.5pt}
+  th{background:#e3f2fd}
+  p{font-size:8.5pt;margin:3pt 0}
+  @page{size:A4;margin:12mm}
+  </style></head><body>
+  <h1>📋 Student Admin Report — ${escapeHtml(DormDB.getDormName())}</h1>
+  <p>Printed: ${new Date().toLocaleString()}</p>
+  ${document.getElementById('reportContent').innerHTML}
+  </body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ── Dialogs ───────────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function askConfirm(msg, fn) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmYes').onclick = () => { closeModal('confirmModal'); fn(); };
+  openModal('confirmModal');
+}
+let _toastTimer;
+function showToast(msg, dur=3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['ocModal','asModal','clearanceConfirmModal','confirmModal'].forEach(closeModal);
+});
+window.addEventListener('scroll', ()=>{
+  document.getElementById('scrollTopBtn').classList.toggle('show', window.scrollY>300);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const back   = params.get('back');
+  if (back) {
+    const el = document.getElementById('backLink');
+    el.href        = back + '.html';
+    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  document.getElementById('navUser').textContent = DormDB.getCurrentUser();
+
+  offCampusReqs  = DormDB.getOffCampusReq();
+  assistanceLogs = DormDB.getAssistance();
+
+  DormDB.on(DormDB.KEYS.OFFCAMPUS_REQ, () => {
+    offCampusReqs = DormDB.getOffCampusReq();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-offcampus') renderOffCampus();
+    if (active?.id === 'tab-reports')   renderReports();
+  });
+  DormDB.on(DormDB.KEYS.ASSISTANCE, () => {
+    assistanceLogs = DormDB.getAssistance();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-assistance') renderAssistance();
+    if (active?.id === 'tab-reports')    renderReports();
+  });
+
+  renderOffCampus();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
