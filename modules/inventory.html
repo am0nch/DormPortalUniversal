@@ -80,6 +80,15 @@ table.h-tbl tr:hover td{background:#f7fafc}
 .empty-msg{color:#888;font-size:.82rem;padding:8px 0}
 
 #scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:#1e3a5f;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}#scrollTopBtn:hover{background:#2d5282;}@media print{#scrollTopBtn{display:none}}
+/* ── Bedding summary table ── */
+.bdg-summary{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:.82rem}
+.bdg-summary th{background:#1e3a5f;color:#fff;padding:7px 10px;text-align:center;white-space:nowrap}
+.bdg-summary th:first-child{text-align:left}
+.bdg-summary td{padding:7px 10px;border-bottom:1px solid #edf2f7;text-align:center}
+.bdg-summary .row-lbl{text-align:left;font-weight:600;color:#333;min-width:190px}
+.row-sold td{background:#fff3cd}.row-calc td{background:#e8f5e9;font-weight:700}
+.row-actual td{background:#e3f2fd;font-weight:700}.row-missing td{background:#fdecea;color:#c0392b;font-weight:700}
+.row-revenue td{background:#f3e5f5;font-weight:700}.bdg-ok{color:#27ae60}
 </style>
 </head>
 <body>
@@ -106,6 +115,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <button class="tab-btn" data-tab="labels" onclick="switchTab('labels')">🏷️ Labels</button>
   <button class="tab-btn" data-tab="maintenance" onclick="switchTab('maintenance')">🔧 Maintenance</button>
   <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
+  <button class="tab-btn" data-tab="bedding" onclick="switchTab('bedding')">🛏️ Bedding</button>
 </div>
 
 <!-- DASHBOARD -->
@@ -197,7 +207,37 @@ table.h-tbl tr:hover td{background:#f7fafc}
       <button class="btn btn-green btn-sm" onclick="addCustomLocation()">+ Add</button>
     </div>
   </div>
+</div><!-- end settings -->
+
+<!-- BEDDING -->
+<div id="tab-bedding" class="tab-panel">
+  <div class="filter-bar" style="background:#f0f4f0;padding:10px 12px;border-radius:8px;margin-bottom:14px;gap:8px">
+    <label style="font-size:.8rem;font-weight:600;color:#1e3a5f;white-space:nowrap">Semester:</label>
+    <select id="bddSemFilter" onchange="renderBeddingTab()" style="min-width:200px"></select>
+    <button class="btn btn-green" onclick="openSaleModal()">➕ Record Sale</button>
+    <button class="btn btn-blue" onclick="openStockModal('Starting')">📦 Stock Event</button>
+    <button class="btn" onclick="openCountModal()">🔢 Physical Count</button>
+    <button class="btn btn-orange" onclick="printBeddingReport()">🖨️ Print Report</button>
+    <button class="btn btn-gray btn-sm" onclick="openBeddingSettings()" title="Edit prices and current semester">⚙️ Prices</button>
+  </div>
+  <div class="sec-card">
+    <h3>📊 Inventory Summary</h3>
+    <div class="tbl-wrap"><table class="bdg-summary" id="bddSummaryTable"><tr><td style="color:#888;padding:12px">No data yet — add stock events and sales to see the summary.</td></tr></table></div>
+  </div>
+  <div class="sec-card">
+    <h3>📋 Sales Ledger <span id="bddSaleCount" style="font-size:.75rem;font-weight:400;color:#888"></span></h3>
+    <div class="tbl-wrap"><div id="bddSalesBody"><p class="empty-msg">No sales recorded yet.</p></div></div>
+  </div>
+  <div class="sec-card">
+    <h3>📦 Stock Events</h3>
+    <div class="tbl-wrap"><div id="bddStockBody"><p class="empty-msg">No stock events yet. Use "Stock Event" to record starting inventory or additions.</p></div></div>
+  </div>
+  <div class="sec-card">
+    <h3>🔢 Physical Counts</h3>
+    <div class="tbl-wrap"><div id="bddCountBody"><p class="empty-msg">No physical counts recorded yet.</p></div></div>
+  </div>
 </div>
+
 </div><!-- /container -->
 
 <!-- ITEM MODAL -->
@@ -283,6 +323,114 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('confirmModal')">Cancel</button>
       <button class="btn btn-red" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEDDING SALE MODAL -->
+<div class="modal" id="bddSaleModal">
+  <div class="modal-content" style="max-width:620px">
+    <span class="close-btn" onclick="closeModal('bddSaleModal')">&times;</span>
+    <h2 id="bddSaleModalTitle">🛏️ Record Bedding Sale</h2>
+    <input type="hidden" id="bdd_sale_id">
+    <div class="fg-row">
+      <div class="fg"><label>Date *</label><input type="date" id="bdd_sale_date"></div>
+      <div class="fg"><label>Semester *</label><input type="text" id="bdd_sale_semester" placeholder="e.g. 1st Semester 2026"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Room Number</label>
+        <input type="text" id="bdd_sale_room" placeholder="e.g. 404" oninput="bddLookupStudent()" list="bddRoomSuggestions">
+        <datalist id="bddRoomSuggestions"></datalist>
+      </div>
+      <div class="fg">
+        <label>Student</label>
+        <select id="bdd_sale_student" onchange="bddSelectStudent()"><option value="">— enter room number —</option></select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Student ID <span style="color:#aaa;font-weight:400">(auto-filled)</span></label><input type="text" id="bdd_sale_studentId" placeholder="Auto-filled from room lookup"></div>
+      <div class="fg"><label>Payment Method</label><select id="bdd_sale_payment"><option>Cash</option><option>QR</option><option>Account</option></select></div>
+    </div>
+    <div id="bddItemQtySection" style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
+      <div style="font-size:.78rem;font-weight:700;color:#1e3a5f;margin-bottom:10px">Items Purchased</div>
+      <div id="bddItemInputs"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0">
+      <strong style="font-size:.88rem">Total: ฿<span id="bddSaleTotal">0</span></strong>
+      <label style="font-size:.78rem;display:flex;align-items:center;gap:5px"><input type="checkbox" id="bdd_sale_paid" checked> Paid</label>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="bdd_sale_notes" placeholder="Optional" style="min-height:38px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('bddSaleModal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveBddSale()">💾 Save Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEDDING STOCK MODAL -->
+<div class="modal" id="bddStockModal">
+  <div class="modal-content" style="max-width:520px">
+    <span class="close-btn" onclick="closeModal('bddStockModal')">&times;</span>
+    <h2 id="bddStockModalTitle">📦 Stock Event</h2>
+    <input type="hidden" id="bdd_stock_id">
+    <div class="fg-row">
+      <div class="fg"><label>Type</label><select id="bdd_stock_type"><option>Starting</option><option>Addition</option></select></div>
+      <div class="fg"><label>Date *</label><input type="date" id="bdd_stock_date"></div>
+    </div>
+    <div class="fg"><label>Semester *</label><input type="text" id="bdd_stock_semester" placeholder="e.g. 1st Semester 2026"></div>
+    <div style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
+      <div style="font-size:.78rem;font-weight:700;color:#1e3a5f;margin-bottom:10px">Quantities</div>
+      <div id="bddStockQtySection"></div>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="bdd_stock_notes" placeholder="Optional (e.g. order reference)" style="min-height:38px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('bddStockModal')">Cancel</button>
+      <button class="btn btn-blue" onclick="saveBddStock()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEDDING COUNT MODAL -->
+<div class="modal" id="bddCountModal">
+  <div class="modal-content" style="max-width:540px">
+    <span class="close-btn" onclick="closeModal('bddCountModal')">&times;</span>
+    <h2>🔢 Record Physical Count</h2>
+    <input type="hidden" id="bdd_count_id">
+    <div class="fg-row">
+      <div class="fg"><label>Count Date *</label><input type="date" id="bdd_count_date"></div>
+      <div class="fg"><label>Semester *</label><input type="text" id="bdd_count_semester" placeholder="e.g. 1st Semester 2026"></div>
+    </div>
+    <div style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
+      <div style="display:grid;grid-template-columns:1fr 100px 100px;gap:8px;font-size:.75rem;font-weight:700;color:#1e3a5f;padding-bottom:6px;border-bottom:1px solid #ddd;margin-bottom:8px">
+        <span>Item</span><span style="text-align:center">Expected (calculated)</span><span style="text-align:center">Actual (physical)</span>
+      </div>
+      <div id="bddCountRows"></div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Conducted By</label><input type="text" id="bdd_count_by" placeholder="Name"></div>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="bdd_count_notes" placeholder="Optional" style="min-height:38px"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('bddCountModal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveBddCount()">💾 Save Count</button>
+    </div>
+  </div>
+</div>
+
+<!-- BEDDING SETTINGS MODAL -->
+<div class="modal" id="bddSettingsModal">
+  <div class="modal-content" style="max-width:460px">
+    <span class="close-btn" onclick="closeModal('bddSettingsModal')">&times;</span>
+    <h2>⚙️ Bedding Prices &amp; Settings</h2>
+    <div class="fg"><label>Current Semester (default for new records)</label><input type="text" id="bdd_cfg_semester" placeholder="e.g. 1st Semester 2026"></div>
+    <div style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
+      <div style="font-size:.78rem;font-weight:700;color:#1e3a5f;margin-bottom:10px">Item Prices (฿)</div>
+      <div id="bddPriceRows"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('bddSettingsModal')">Cancel</button>
+      <button class="btn btn-blue" onclick="saveBeddingSettings()">💾 Save</button>
     </div>
   </div>
 </div>
@@ -451,6 +599,7 @@ function switchTab(name) {
   if (name === 'labels')      { populateLabelsFilter(); renderLabels(); }
   if (name === 'maintenance') renderMaintenance();
   if (name === 'settings')    renderSettings();
+  if (name === 'bedding')    { populateBddSemFilter(); renderBeddingTab(); }
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
@@ -1040,6 +1189,512 @@ function printInventorySheet() {
   w.document.close();
 }
 
+// ── Bedding Inventory ─────────────────────────────────────────────────────────
+let _bddSemFilter = '';
+
+function populateBddSemFilter() {
+  const cfg  = DormDB.getBeddingCfg();
+  const set  = new Set([cfg.currentSemester]);
+  DormDB.getBedding().forEach(t => t.semester && set.add(t.semester));
+  DormDB.getBeddingStock().forEach(s => s.semester && set.add(s.semester));
+  DormDB.getBeddingCount().forEach(c => c.semester && set.add(c.semester));
+  const sems = [...set].filter(Boolean).sort();
+  const sel  = document.getElementById('bddSemFilter');
+  const prev = _bddSemFilter || sel.value;
+  sel.innerHTML = sems.map(s => `<option value="${escapeHtml(s)}"${s===prev?' selected':''}>${escapeHtml(s)}</option>`).join('');
+  if (!sel.value && sems.length) sel.value = sems[sems.length - 1];
+  _bddSemFilter = sel.value;
+}
+
+function renderBeddingTab() {
+  populateBddSemFilter();
+  const sem    = document.getElementById('bddSemFilter').value;
+  if (!sem) return;
+  _bddSemFilter = sem;
+  const cfg    = DormDB.getBeddingCfg();
+  const sales  = DormDB.getBedding().filter(t => t.semester === sem);
+  const stocks = DormDB.getBeddingStock().filter(s => s.semester === sem);
+  const counts = DormDB.getBeddingCount().filter(c => c.semester === sem);
+  renderBddSummary(sales, stocks, counts, cfg);
+  renderBddSalesBody(sales, cfg);
+  renderBddStockBody(stocks, cfg);
+  renderBddCountBody(counts, cfg);
+}
+
+function _bddCalc(items, sales, stocks) {
+  const st = {}, ad = {}, so = {};
+  items.forEach(it => { st[it.id] = 0; ad[it.id] = 0; so[it.id] = 0; });
+  stocks.forEach(ev => items.forEach(it => {
+    if (ev.type === 'Starting') st[it.id] += ev.items?.[it.id] || 0;
+    else                        ad[it.id] += ev.items?.[it.id] || 0;
+  }));
+  sales.forEach(s => items.forEach(it => { so[it.id] += s.items?.[it.id] || 0; }));
+  const calc = {};
+  items.forEach(it => { calc[it.id] = st[it.id] + ad[it.id] - so[it.id]; });
+  return { st, ad, so, calc };
+}
+
+function renderBddSummary(sales, stocks, counts, cfg) {
+  const items = cfg.items.filter(i => i.enabled);
+  const tbl   = document.getElementById('bddSummaryTable');
+  if (!items.length) { tbl.innerHTML = '<tr><td>No items configured.</td></tr>'; return; }
+
+  const { st, ad, so, calc } = _bddCalc(items, sales, stocks);
+  const latestCount = [...counts].sort((a,b) => b.countDate.localeCompare(a.countDate))[0];
+  const actual = {}, miss = {};
+  items.forEach(it => {
+    const ci = latestCount ? (latestCount.items.find(x => x.itemId === it.id) || {}) : {};
+    actual[it.id] = typeof ci.actual === 'number' ? ci.actual : null;
+    miss[it.id]   = actual[it.id] !== null ? Math.max(0, calc[it.id] - actual[it.id]) : 0;
+  });
+  const revenue = sales.reduce((a,s) => a + (s.total || 0), 0);
+  const revByItem = {};
+  items.forEach(it => { revByItem[it.id] = sales.reduce((a,s) => a + (s.items?.[it.id]||0) * (s.prices?.[it.id] ?? it.price), 0); });
+
+  const n = (v) => `<td>${v}</td>`;
+  const nMiss = (v) => `<td class="${v > 0 ? '' : 'bdg-ok'}" style="${v > 0 ? 'color:#c0392b' : 'color:#27ae60'}">${v}</td>`;
+  const totSt = items.reduce((a,it) => a + st[it.id], 0);
+  const totAd = items.reduce((a,it) => a + ad[it.id], 0);
+  const totSo = items.reduce((a,it) => a + so[it.id], 0);
+  const totCa = items.reduce((a,it) => a + calc[it.id], 0);
+  const totAc = items.every(it => actual[it.id] !== null) ? items.reduce((a,it) => a + actual[it.id], 0) : '—';
+  const totMi = items.reduce((a,it) => a + miss[it.id], 0);
+  const cStr  = latestCount ? ` (${latestCount.countDate})` : '';
+
+  tbl.innerHTML = `<thead><tr>
+    <th style="text-align:left;min-width:190px">Summary</th>
+    ${items.map(it => `<th>${escapeHtml(it.name)}</th>`).join('')}<th>Total</th>
+  </tr></thead><tbody>
+    <tr><td class="row-lbl">Starting Inventory</td>${items.map(it=>n(st[it.id])).join('')}${n(totSt)}</tr>
+    <tr><td class="row-lbl">+ Inventory Ordered/Added</td>${items.map(it=>n(ad[it.id])).join('')}${n(totAd)}</tr>
+    <tr class="row-sold"><td class="row-lbl">− Inventory Sold</td>${items.map(it=>n(so[it.id])).join('')}${n(totSo)}</tr>
+    <tr class="row-calc"><td class="row-lbl">= Total Left (calculated)</td>${items.map(it=>n(calc[it.id])).join('')}${n(totCa)}</tr>
+    <tr class="row-actual"><td class="row-lbl">Actual Stock${escapeHtml(cStr)}</td>${items.map(it=>n(actual[it.id]!==null?actual[it.id]:'—')).join('')}${n(totAc)}</tr>
+    <tr class="row-missing"><td class="row-lbl">Missing Stock</td>${items.map(it=>nMiss(miss[it.id])).join('')}${nMiss(totMi)}</tr>
+    <tr class="row-revenue"><td class="row-lbl">💰 Revenue</td>${items.map(it=>`<td>฿${revByItem[it.id].toLocaleString()}</td>`).join('')}<td>฿${revenue.toLocaleString()}</td></tr>
+  </tbody>`;
+}
+
+function renderBddSalesBody(sales, cfg) {
+  const items = cfg.items.filter(i => i.enabled);
+  document.getElementById('bddSaleCount').textContent = `— ${sales.length} record${sales.length!==1?'s':''}`;
+  const el = document.getElementById('bddSalesBody');
+  if (!sales.length) { el.innerHTML = '<p class="empty-msg">No sales recorded for this semester.</p>'; return; }
+  const sorted = [...sales].sort((a,b) => a.date.localeCompare(b.date));
+  el.innerHTML = `<table class="h-tbl"><thead><tr>
+    <th>#</th><th>Date</th><th>Room</th><th>Student</th>
+    ${items.map(it=>`<th>${escapeHtml(it.name)}</th>`).join('')}
+    <th>Total</th><th>Method</th><th>Paid</th><th></th>
+  </tr></thead><tbody>
+  ${sorted.map((s,i) => `<tr>
+    <td>${i+1}</td>
+    <td style="white-space:nowrap">${escapeHtml(s.date)}</td>
+    <td style="font-weight:700">${escapeHtml(s.room||'—')}</td>
+    <td><div style="font-weight:600;font-size:.8rem">${escapeHtml(s.studentName||'—')}</div><div style="font-size:.7rem;color:#888">${escapeHtml(s.studentId||'')}</div></td>
+    ${items.map(it=>`<td style="text-align:center">${s.items?.[it.id]||0}</td>`).join('')}
+    <td style="font-weight:700">฿${(s.total||0).toLocaleString()}</td>
+    <td>${escapeHtml(s.paymentMethod||'Cash')}</td>
+    <td style="text-align:center">${s.paid?'✅':'<span style="color:#e74c3c">⏳</span>'}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-sm" onclick="editBddSale(${s.id})">✏️</button>
+      <button class="btn btn-sm btn-red" onclick="deleteBddRecord('sale',${s.id})">🗑️</button>
+    </td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+
+function renderBddStockBody(stocks, cfg) {
+  const items = (cfg || DormDB.getBeddingCfg()).items.filter(i => i.enabled);
+  const el = document.getElementById('bddStockBody');
+  if (!stocks.length) { el.innerHTML = '<p class="empty-msg">No stock events yet. Use "Stock Event" to record starting inventory or additions.</p>'; return; }
+  const sorted = [...stocks].sort((a,b) => a.date.localeCompare(b.date));
+  el.innerHTML = `<table class="h-tbl"><thead><tr>
+    <th>Date</th><th>Type</th>
+    ${items.map(it=>`<th>${escapeHtml(it.name)}</th>`).join('')}
+    <th>Notes</th><th></th>
+  </tr></thead><tbody>
+  ${sorted.map(ev=>`<tr>
+    <td style="white-space:nowrap">${escapeHtml(ev.date)}</td>
+    <td><span class="badge ${ev.type==='Starting'?'b-fair':'b-good'}">${escapeHtml(ev.type)}</span></td>
+    ${items.map(it=>`<td style="text-align:center">${ev.items?.[it.id]||0}</td>`).join('')}
+    <td style="font-size:.75rem;color:#666">${escapeHtml(ev.notes||'')}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-sm" onclick="editBddStock(${ev.id})">✏️</button>
+      <button class="btn btn-sm btn-red" onclick="deleteBddRecord('stock',${ev.id})">🗑️</button>
+    </td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+
+function renderBddCountBody(counts, cfg) {
+  const items = (cfg || DormDB.getBeddingCfg()).items.filter(i => i.enabled);
+  const el = document.getElementById('bddCountBody');
+  if (!counts.length) { el.innerHTML = '<p class="empty-msg">No physical counts recorded yet.</p>'; return; }
+  const sorted = [...counts].sort((a,b) => b.countDate.localeCompare(a.countDate));
+  el.innerHTML = `<table class="h-tbl"><thead>
+    <tr><th>Count Date</th><th>By</th>${items.map(it=>`<th colspan="2" style="text-align:center">${escapeHtml(it.name)}</th>`).join('')}<th></th></tr>
+    <tr><th colspan="2"></th>${items.map(()=>'<th style="background:#2d5282;font-size:.72rem">Exp.</th><th style="background:#2d5282;font-size:.72rem">Act.</th>').join('')}<th></th></tr>
+  </thead><tbody>
+  ${sorted.map(ct=>{
+    const cells = items.map(it=>{
+      const ci = ct.items.find(x=>x.itemId===it.id)||{};
+      const miss = typeof ci.actual==='number' ? Math.max(0,(ci.expected||0)-ci.actual) : 0;
+      return `<td style="text-align:center">${ci.expected||0}</td><td style="text-align:center${miss>0?';color:#c0392b;font-weight:700':''}">${typeof ci.actual==='number'?ci.actual:'—'}</td>`;
+    });
+    return `<tr>
+      <td style="white-space:nowrap">${escapeHtml(ct.countDate)}</td>
+      <td style="font-size:.78rem">${escapeHtml(ct.conductedBy||'')}</td>
+      ${cells.join('')}
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="editBddCount(${ct.id})">✏️</button>
+        <button class="btn btn-sm btn-red" onclick="deleteBddRecord('count',${ct.id})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('')}
+  </tbody></table>`;
+}
+
+// ── Bedding modals ─────────────────────────────────────────────────────────────
+
+function _bddItemInputs(containerId, qty) {
+  const items = DormDB.getBeddingCfg().items.filter(i => i.enabled);
+  document.getElementById(containerId).innerHTML = items.map(it => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <label style="font-size:.8rem;font-weight:600;min-width:170px">${escapeHtml(it.name)} <span style="color:#888;font-weight:400">(฿${it.price})</span></label>
+      <input type="number" id="${qty}_${it.id}" value="0" min="0" max="999" style="width:64px;text-align:center;padding:4px 6px;border:1px solid #cdd6e0;border-radius:5px;font-size:.83rem" oninput="bddCalcTotal()">
+    </div>`).join('');
+}
+
+function openSaleModal(prefill) {
+  const cfg  = DormDB.getBeddingCfg();
+  const today = new Date().toISOString().slice(0,10);
+  _bddItemInputs('bddItemInputs', 'bdd_qty');
+  const rooms = [...new Set(DormDB.getRooms().map(s=>s.room).filter(Boolean))].sort();
+  document.getElementById('bddRoomSuggestions').innerHTML = rooms.map(r=>`<option value="${r}">`).join('');
+  if (prefill) {
+    document.getElementById('bdd_sale_id').value        = prefill.id;
+    document.getElementById('bddSaleModalTitle').textContent = '✏️ Edit Bedding Sale';
+    document.getElementById('bdd_sale_date').value      = prefill.date || today;
+    document.getElementById('bdd_sale_semester').value  = prefill.semester || cfg.currentSemester;
+    document.getElementById('bdd_sale_room').value      = prefill.room || '';
+    document.getElementById('bdd_sale_studentId').value = prefill.studentId || '';
+    document.getElementById('bdd_sale_payment').value   = prefill.paymentMethod || 'Cash';
+    document.getElementById('bdd_sale_paid').checked    = prefill.paid !== false;
+    document.getElementById('bdd_sale_notes').value     = prefill.notes || '';
+    document.getElementById('bdd_sale_student').innerHTML = prefill.studentName
+      ? `<option value="${escapeHtml(prefill.studentId||'')}|||${escapeHtml(prefill.studentName)}">${escapeHtml(prefill.studentName)}</option>`
+      : '<option value="">— enter room number —</option>';
+    cfg.items.filter(i=>i.enabled).forEach(it => { const el = document.getElementById('bdd_qty_'+it.id); if(el) el.value = prefill.items?.[it.id] || 0; });
+  } else {
+    document.getElementById('bdd_sale_id').value = '';
+    document.getElementById('bddSaleModalTitle').textContent = '🛏️ Record Bedding Sale';
+    document.getElementById('bdd_sale_date').value     = today;
+    document.getElementById('bdd_sale_semester').value = cfg.currentSemester;
+    document.getElementById('bdd_sale_room').value     = '';
+    document.getElementById('bdd_sale_studentId').value = '';
+    document.getElementById('bdd_sale_payment').value  = 'Cash';
+    document.getElementById('bdd_sale_paid').checked   = true;
+    document.getElementById('bdd_sale_notes').value    = '';
+    document.getElementById('bdd_sale_student').innerHTML = '<option value="">— enter room number —</option>';
+  }
+  bddCalcTotal();
+  document.getElementById('bddSaleModal').classList.add('open');
+}
+
+function editBddSale(id) { const s = DormDB.getBedding().find(x => x.id === id); if(s) openSaleModal(s); }
+
+function bddLookupStudent() {
+  const room = document.getElementById('bdd_sale_room').value.trim();
+  const sel  = document.getElementById('bdd_sale_student');
+  const idEl = document.getElementById('bdd_sale_studentId');
+  if (!room) { sel.innerHTML = '<option value="">— enter room number —</option>'; idEl.value = ''; return; }
+  const occ = DormDB.getRooms().filter(s => s.room === room && s.name && s.name.trim());
+  if (!occ.length) { sel.innerHTML = '<option value="">No student found in this room</option>'; idEl.value = ''; return; }
+  sel.innerHTML = occ.map(s => `<option value="${escapeHtml(s.studentId||'')}|||${escapeHtml(s.name)}">${escapeHtml(s.name)}${s.studentId?' ('+s.studentId+')':''}</option>`).join('');
+  bddSelectStudent();
+}
+
+function bddSelectStudent() {
+  const val = document.getElementById('bdd_sale_student').value;
+  const sep = val.indexOf('|||');
+  document.getElementById('bdd_sale_studentId').value = sep >= 0 ? val.slice(0, sep) : '';
+}
+
+function bddCalcTotal() {
+  const items = DormDB.getBeddingCfg().items.filter(i => i.enabled);
+  let total = 0;
+  items.forEach(it => { total += (parseInt(document.getElementById('bdd_qty_'+it.id)?.value)||0) * it.price; });
+  document.getElementById('bddSaleTotal').textContent = total.toLocaleString();
+}
+
+function saveBddSale() {
+  const cfg  = DormDB.getBeddingCfg();
+  const items = cfg.items.filter(i => i.enabled);
+  const date     = document.getElementById('bdd_sale_date').value;
+  const semester = document.getElementById('bdd_sale_semester').value.trim();
+  const room     = document.getElementById('bdd_sale_room').value.trim();
+  const selVal   = document.getElementById('bdd_sale_student').value;
+  const sep      = selVal.indexOf('|||');
+  const studentId   = document.getElementById('bdd_sale_studentId').value.trim();
+  const studentName = sep >= 0 ? selVal.slice(sep + 3) : '';
+  if (!date || !semester) { showToast('❌ Date and semester are required'); return; }
+  const itemsQty = {}, prices = {};
+  let total = 0, hasAny = false;
+  items.forEach(it => {
+    const qty = parseInt(document.getElementById('bdd_qty_'+it.id)?.value)||0;
+    itemsQty[it.id] = qty; prices[it.id] = it.price;
+    total += qty * it.price;
+    if (qty > 0) hasAny = true;
+  });
+  if (!hasAny) { showToast('❌ Enter at least one item quantity > 0'); return; }
+  const all = DormDB.getBedding();
+  const existId = document.getElementById('bdd_sale_id').value;
+  const record = {
+    date, semester, room, dorm: DormDB.getDormName(), studentId, studentName,
+    items: itemsQty, prices, total,
+    paymentMethod: document.getElementById('bdd_sale_payment').value,
+    paid: document.getElementById('bdd_sale_paid').checked,
+    notes: document.getElementById('bdd_sale_notes').value.trim(),
+    recordedBy: DormDB.getCurrentUser(),
+  };
+  if (existId) {
+    const idx = all.findIndex(x => x.id == existId);
+    if (idx >= 0) all[idx] = { ...all[idx], ...record };
+  } else {
+    all.push({ id: Date.now(), ...record, createdAt: new Date().toISOString() });
+  }
+  DormDB.saveBedding(all);
+  closeModal('bddSaleModal');
+  showToast('✅ Sale saved');
+  _bddSemFilter = semester;
+  renderBeddingTab();
+}
+
+function openStockModal(type, prefill) {
+  const cfg  = DormDB.getBeddingCfg();
+  const today = new Date().toISOString().slice(0,10);
+  _bddItemInputs('bddStockQtySection', 'bdd_stock_qty');
+  if (prefill) {
+    document.getElementById('bdd_stock_id').value       = prefill.id;
+    document.getElementById('bddStockModalTitle').textContent = '✏️ Edit Stock Event';
+    document.getElementById('bdd_stock_type').value     = prefill.type || 'Starting';
+    document.getElementById('bdd_stock_date').value     = prefill.date || today;
+    document.getElementById('bdd_stock_semester').value = prefill.semester || cfg.currentSemester;
+    document.getElementById('bdd_stock_notes').value    = prefill.notes || '';
+    cfg.items.filter(i=>i.enabled).forEach(it => { const el = document.getElementById('bdd_stock_qty_'+it.id); if(el) el.value = prefill.items?.[it.id]||0; });
+  } else {
+    document.getElementById('bdd_stock_id').value       = '';
+    document.getElementById('bddStockModalTitle').textContent = '📦 Stock Event';
+    document.getElementById('bdd_stock_type').value     = type || 'Starting';
+    document.getElementById('bdd_stock_date').value     = today;
+    document.getElementById('bdd_stock_semester').value = cfg.currentSemester;
+    document.getElementById('bdd_stock_notes').value    = '';
+  }
+  document.getElementById('bddStockModal').classList.add('open');
+}
+
+function editBddStock(id) { const s = DormDB.getBeddingStock().find(x => x.id === id); if(s) openStockModal(s.type, s); }
+
+function saveBddStock() {
+  const cfg  = DormDB.getBeddingCfg();
+  const items = cfg.items.filter(i => i.enabled);
+  const type     = document.getElementById('bdd_stock_type').value;
+  const date     = document.getElementById('bdd_stock_date').value;
+  const semester = document.getElementById('bdd_stock_semester').value.trim();
+  if (!date || !semester) { showToast('❌ Date and semester required'); return; }
+  const itemsQty = {};
+  items.forEach(it => { itemsQty[it.id] = parseInt(document.getElementById('bdd_stock_qty_'+it.id)?.value)||0; });
+  const all = DormDB.getBeddingStock();
+  const existId = document.getElementById('bdd_stock_id').value;
+  const record = { type, date, semester, items: itemsQty, notes: document.getElementById('bdd_stock_notes').value.trim(), recordedBy: DormDB.getCurrentUser() };
+  if (existId) {
+    const idx = all.findIndex(x => x.id == existId);
+    if (idx >= 0) all[idx] = { ...all[idx], ...record };
+  } else {
+    all.push({ id: Date.now(), ...record, createdAt: new Date().toISOString() });
+  }
+  DormDB.saveBeddingStock(all);
+  closeModal('bddStockModal');
+  showToast('✅ Stock event saved');
+  _bddSemFilter = semester;
+  renderBeddingTab();
+}
+
+function openCountModal(prefill) {
+  const cfg  = DormDB.getBeddingCfg();
+  const items = cfg.items.filter(i => i.enabled);
+  const today = new Date().toISOString().slice(0,10);
+  const sem   = document.getElementById('bddSemFilter')?.value || cfg.currentSemester;
+  // Pre-compute expected from stock - sales for current semester
+  const sales  = DormDB.getBedding().filter(t => t.semester === sem);
+  const stocks = DormDB.getBeddingStock().filter(s => s.semester === sem);
+  const { calc } = _bddCalc(items, sales, stocks);
+  document.getElementById('bddCountRows').innerHTML = items.map(it => {
+    const expVal = prefill ? (prefill.items.find(x=>x.itemId===it.id)||{}).expected ?? calc[it.id] : calc[it.id];
+    const actVal = prefill ? (prefill.items.find(x=>x.itemId===it.id)||{}).actual ?? '' : '';
+    return `<div style="display:grid;grid-template-columns:1fr 100px 100px;gap:8px;align-items:center;margin-bottom:8px">
+      <span style="font-size:.8rem;font-weight:600">${escapeHtml(it.name)}</span>
+      <input type="number" id="bdd_cexp_${it.id}" value="${expVal||0}" min="0" style="text-align:center;padding:4px 6px;border:1px solid #cdd6e0;border-radius:5px;font-size:.83rem">
+      <input type="number" id="bdd_cact_${it.id}" value="${actVal}" min="0" placeholder="count" style="text-align:center;padding:4px 6px;border:1px solid #e67e22;border-radius:5px;font-size:.83rem">
+    </div>`;
+  }).join('');
+  if (prefill) {
+    document.getElementById('bdd_count_id').value       = prefill.id;
+    document.getElementById('bdd_count_date').value     = prefill.countDate || today;
+    document.getElementById('bdd_count_semester').value = prefill.semester || cfg.currentSemester;
+    document.getElementById('bdd_count_by').value       = prefill.conductedBy || '';
+    document.getElementById('bdd_count_notes').value    = prefill.notes || '';
+  } else {
+    document.getElementById('bdd_count_id').value       = '';
+    document.getElementById('bdd_count_date').value     = today;
+    document.getElementById('bdd_count_semester').value = sem;
+    document.getElementById('bdd_count_by').value       = DormDB.getCurrentUser();
+    document.getElementById('bdd_count_notes').value    = '';
+  }
+  document.getElementById('bddCountModal').classList.add('open');
+}
+
+function editBddCount(id) { const c = DormDB.getBeddingCount().find(x => x.id === id); if(c) openCountModal(c); }
+
+function saveBddCount() {
+  const cfg  = DormDB.getBeddingCfg();
+  const items = cfg.items.filter(i => i.enabled);
+  const countDate = document.getElementById('bdd_count_date').value;
+  const semester  = document.getElementById('bdd_count_semester').value.trim();
+  if (!countDate || !semester) { showToast('❌ Date and semester required'); return; }
+  const countItems = items.map(it => ({
+    itemId: it.id, name: it.name,
+    expected: parseInt(document.getElementById('bdd_cexp_'+it.id)?.value)||0,
+    actual:   parseInt(document.getElementById('bdd_cact_'+it.id)?.value)||0,
+  }));
+  const all = DormDB.getBeddingCount();
+  const existId = document.getElementById('bdd_count_id').value;
+  const record = { countDate, semester, items: countItems, conductedBy: document.getElementById('bdd_count_by').value.trim(), notes: document.getElementById('bdd_count_notes').value.trim() };
+  if (existId) {
+    const idx = all.findIndex(x => x.id == existId);
+    if (idx >= 0) all[idx] = { ...all[idx], ...record };
+  } else {
+    all.push({ id: Date.now(), ...record, createdAt: new Date().toISOString() });
+  }
+  DormDB.saveBeddingCount(all);
+  closeModal('bddCountModal');
+  showToast('✅ Physical count saved');
+  _bddSemFilter = semester;
+  renderBeddingTab();
+}
+
+function deleteBddRecord(type, id) {
+  const labels = { sale: 'sale record', stock: 'stock event', count: 'physical count' };
+  document.getElementById('confirmTitle').textContent = 'Delete Record';
+  document.getElementById('confirmMsg').textContent   = `Delete this ${labels[type]||'record'}? This cannot be undone.`;
+  document.getElementById('confirmOkBtn').onclick = () => {
+    const getters = { sale: [DormDB.getBedding, DormDB.saveBedding], stock: [DormDB.getBeddingStock, DormDB.saveBeddingStock], count: [DormDB.getBeddingCount, DormDB.saveBeddingCount] };
+    const [g, s] = getters[type];
+    s(g().filter(x => x.id != id));
+    closeModal('confirmModal');
+    showToast('🗑️ Record deleted');
+    renderBeddingTab();
+  };
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function openBeddingSettings() {
+  const cfg = DormDB.getBeddingCfg();
+  document.getElementById('bdd_cfg_semester').value = cfg.currentSemester;
+  document.getElementById('bddPriceRows').innerHTML = cfg.items.map(it => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <label style="font-size:.8rem;font-weight:600;min-width:175px">${escapeHtml(it.name)}</label>
+      <span style="font-size:.8rem;color:#888">฿</span>
+      <input type="number" id="bdd_price_${it.id}" value="${it.price}" min="0" style="width:80px;padding:4px 8px;border:1px solid #cdd6e0;border-radius:5px;font-size:.83rem;text-align:right">
+      <label style="font-size:.78rem;display:flex;align-items:center;gap:4px"><input type="checkbox" id="bdd_ena_${it.id}" ${it.enabled?'checked':''}> Enabled</label>
+    </div>`).join('');
+  document.getElementById('bddSettingsModal').classList.add('open');
+}
+
+function saveBeddingSettings() {
+  const cfg = DormDB.getBeddingCfg();
+  cfg.currentSemester = document.getElementById('bdd_cfg_semester').value.trim() || cfg.currentSemester;
+  cfg.items.forEach(it => {
+    it.price   = parseInt(document.getElementById('bdd_price_'+it.id)?.value) || it.price;
+    it.enabled = document.getElementById('bdd_ena_'+it.id)?.checked ?? it.enabled;
+  });
+  DormDB.saveBeddingCfg(cfg);
+  closeModal('bddSettingsModal');
+  showToast('✅ Bedding settings saved');
+  renderBeddingTab();
+}
+
+function printBeddingReport() {
+  const sem = document.getElementById('bddSemFilter')?.value;
+  if (!sem) { showToast('❌ Select a semester first'); return; }
+  const cfg    = DormDB.getBeddingCfg();
+  const items  = cfg.items.filter(i => i.enabled);
+  const sales  = DormDB.getBedding().filter(t => t.semester === sem).sort((a,b)=>a.date.localeCompare(b.date));
+  const stocks = DormDB.getBeddingStock().filter(s => s.semester === sem);
+  const counts = DormDB.getBeddingCount().filter(c => c.semester === sem).sort((a,b)=>b.countDate.localeCompare(a.countDate));
+  const { st, ad, so, calc } = _bddCalc(items, sales, stocks);
+  const latestCount = counts[0];
+  const actual = {}, miss = {};
+  items.forEach(it => {
+    const ci = latestCount ? (latestCount.items.find(x=>x.itemId===it.id)||{}) : {};
+    actual[it.id] = typeof ci.actual === 'number' ? ci.actual : null;
+    miss[it.id]   = actual[it.id] !== null ? Math.max(0, calc[it.id] - actual[it.id]) : 0;
+  });
+  const revenue = sales.reduce((a,s) => a+(s.total||0), 0);
+  const revByItem = {};
+  items.forEach(it => { revByItem[it.id] = sales.reduce((a,s)=>a+(s.items?.[it.id]||0)*(s.prices?.[it.id]??it.price),0); });
+  const th = t => `<th style="background:#1e3a5f;color:#fff;padding:5pt 7pt;font-size:8pt;text-align:center;white-space:nowrap">${t}</th>`;
+  const td = (v,extra='') => `<td style="padding:4pt 7pt;border:1pt solid #ddd;text-align:center;font-size:8pt${extra}">${v}</td>`;
+  const sumRows = [
+    ['Starting Inventory', '#fff',       items.map(it=>td(st[it.id])).join(''),    td(items.reduce((a,it)=>a+st[it.id],0))],
+    ['+ Inventory Ordered/Added', '#fffde7', items.map(it=>td(ad[it.id])).join(''), td(items.reduce((a,it)=>a+ad[it.id],0))],
+    ['− Inventory Sold',   '#fff3cd',    items.map(it=>td(so[it.id])).join(''),    td(items.reduce((a,it)=>a+so[it.id],0))],
+    ['= Total Left (calculated)', '#e8f5e9;font-weight:700', items.map(it=>td(calc[it.id],'font-weight:700')).join(''), td(items.reduce((a,it)=>a+calc[it.id],0),'font-weight:700')],
+    [`Actual Stock${latestCount?' ('+latestCount.countDate+')':''}`, '#e3f2fd;font-weight:700', items.map(it=>td(actual[it.id]!==null?actual[it.id]:'—','font-weight:700')).join(''), td(items.every(it=>actual[it.id]!==null)?items.reduce((a,it)=>a+actual[it.id],0):'—','font-weight:700')],
+    ['Missing Stock',      '#fdecea;color:#c0392b;font-weight:700', items.map(it=>td(miss[it.id],';color:#c0392b;font-weight:700')).join(''), td(items.reduce((a,it)=>a+miss[it.id],0),';color:#c0392b;font-weight:700')],
+    ['💰 Revenue (฿)',    '#f3e5f5;font-weight:700', items.map(it=>`<td style="padding:4pt 7pt;border:1pt solid #ddd;text-align:center;font-size:8pt;font-weight:700">฿${revByItem[it.id].toLocaleString()}</td>`).join(''), `<td style="padding:4pt 7pt;border:1pt solid #ddd;text-align:center;font-size:8pt;font-weight:700">฿${revenue.toLocaleString()}</td>`],
+  ].map(([lbl,bg,cells,tot]) => `<tr style="background:${bg.split(';')[0]}"><td style="padding:5pt 7pt;border:1pt solid #ddd;font-size:8pt;${bg.includes(';')?bg.split(';').slice(1).join(';'):''}">${lbl}</td>${cells}${tot}</tr>`).join('');
+  const ledger = sales.length ? `
+    <h3 style="font-size:10pt;color:#1e3a5f;margin:10pt 0 4pt;border-bottom:1pt solid #1e3a5f">Sales Ledger (${sales.length} record${sales.length!==1?'s':''})</h3>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>
+        ${['#','Date','Room','Student','Student ID',...items.map(it=>it.name),'Total','Method','Paid'].map(h=>`<th style="background:#2d5282;color:#fff;padding:3pt 5pt;font-size:7pt;text-align:left">${h}</th>`).join('')}
+      </tr></thead><tbody>
+      ${sales.map((s,i) => `<tr style="background:${i%2?'#f8f9fa':'#fff'}">
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt">${i+1}</td>
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt">${s.date}</td>
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt;font-weight:700">${s.room||''}</td>
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt">${s.studentName||''}</td>
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt">${s.studentId||''}</td>
+        ${items.map(it=>`<td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt;text-align:center">${s.items?.[it.id]||0}</td>`).join('')}
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt;font-weight:700">฿${(s.total||0).toLocaleString()}</td>
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt">${s.paymentMethod||''}</td>
+        <td style="padding:3pt 5pt;border:1pt solid #eee;font-size:7pt;text-align:center">${s.paid?'✓':'⏳'}</td>
+      </tr>`).join('')}
+      </tbody></table>` : '<p style="font-size:8pt;color:#888">No sales recorded for this semester.</p>';
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bedding Report — ${escapeHtml(sem)}</title>
+    <style>body{font-family:'Segoe UI',Arial,sans-serif}@page{size:A4 landscape;margin:12mm}</style></head><body>
+    <div style="border-bottom:2pt solid #1e3a5f;padding-bottom:6pt;margin-bottom:8pt">
+      <h1 style="font-size:13pt;color:#1e3a5f;margin:0">${escapeHtml(DormDB.getDormName())} — Students Bedding Report</h1>
+      <p style="font-size:8pt;color:#555;margin:2pt 0 0">${escapeHtml(sem)} &nbsp;·&nbsp; Printed: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10pt">
+      <thead><tr>
+        <th style="background:#1e3a5f;color:#fff;padding:5pt 7pt;font-size:8pt;text-align:left;min-width:180pt">Summary</th>
+        ${items.map(it=>th(it.name)).join('')}${th('Total')}
+      </tr></thead><tbody>${sumRows}</tbody>
+    </table>
+    ${ledger}
+    <div style="margin-top:16pt;border-top:1pt solid #ccc;padding-top:8pt;display:flex;justify-content:space-between">
+      <span style="font-size:8pt">Prepared by: ________________________________</span>
+      <span style="font-size:8pt">Date: ______________</span>
+    </div>
+    <script>window.onload=()=>setTimeout(()=>window.print(),120);<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   const params = new URLSearchParams(location.search);
@@ -1066,12 +1721,26 @@ function init() {
     if (_isActive('tab-location'))  renderLocation();
     if (_isActive('tab-dashboard')) renderDashboard();
   });
+  DormDB.on(DormDB.KEYS.BEDDING,       () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
+  DormDB.on(DormDB.KEYS.BEDDING_STOCK, () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
+  DormDB.on(DormDB.KEYS.BEDDING_COUNT, () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
+  DormDB.on(DormDB.KEYS.BEDDING_CFG,   () => { if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeItemModal(); closeModal('confirmModal'); }
+    if (e.key === 'Escape') {
+      closeItemModal(); closeModal('confirmModal');
+      closeModal('bddSaleModal'); closeModal('bddStockModal');
+      closeModal('bddCountModal'); closeModal('bddSettingsModal');
+    }
   });
   document.querySelectorAll('.modal').forEach(m => {
-    m.addEventListener('click', e => { if (e.target === m) { closeItemModal(); closeModal('confirmModal'); } });
+    m.addEventListener('click', e => {
+      if (e.target === m) {
+        closeItemModal(); closeModal('confirmModal');
+        closeModal('bddSaleModal'); closeModal('bddStockModal');
+        closeModal('bddCountModal'); closeModal('bddSettingsModal');
+      }
+    });
   });
 }
 init();

@@ -185,9 +185,11 @@ const MODULES = [
     ready: true,
     getStats(s) {
       const pills = [];
-      if (s.lowStock > 0)           pills.push({ label: s.lowStock + ' low stock', cls: 'orange' });
-      if (s.maintenanceFlagged > 0) pills.push({ label: s.maintenanceFlagged + ' needs repair', cls: 'red' });
-      if (!s.lowStock && !s.maintenanceFlagged) pills.push({ label: 'No issues', cls: 'green' });
+      if (s.lowStock > 0)            pills.push({ label: s.lowStock + ' low stock', cls: 'orange' });
+      if (s.maintenanceFlagged > 0)  pills.push({ label: s.maintenanceFlagged + ' needs repair', cls: 'red' });
+      if (s.beddingSoldThisSem > 0)  pills.push({ label: s.beddingSoldThisSem + ' bedding sold', cls: 'blue' });
+      if (s.beddingMissing > 0)      pills.push({ label: s.beddingMissing + ' bedding missing', cls: 'red' });
+      if (!s.lowStock && !s.maintenanceFlagged && !s.beddingMissing) pills.push({ label: 'No issues', cls: 'green' });
       return pills;
     }
   },

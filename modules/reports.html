@@ -70,6 +70,7 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
   <button class="tab-btn" data-tab="fees" onclick="switchTab('fees')">💰 Fee Collection</button>
   <button class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')">📅 Attendance</button>
   <button class="tab-btn" data-tab="incidents" onclick="switchTab('incidents')">🚨 Incidents</button>
+  <button class="tab-btn" data-tab="bedding" onclick="switchTab('bedding')">🛏️ Bedding</button>
 </div>
 
 <!-- ── ARCHIVE TAB ── -->
@@ -299,6 +300,15 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
   <div id="incReportBody"></div>
 </div>
 
+<div id="tab-bedding" class="tab-panel">
+  <div class="tab-toolbar">
+    <label style="font-size:.82rem;font-weight:700;color:#1e3a5f">🛏️ Bedding — Semester:</label>
+    <select id="bddRptSemSel" onchange="renderBeddingReport()" style="padding:4px 8px;border:1px solid #ccc;border-radius:6px;font-size:.82rem"></select>
+    <button class="btn btn-blue" onclick="printBeddingReport()">🖨️ Print Report</button>
+  </div>
+  <div id="bddRptBody"></div>
+</div>
+
 </div><!-- /container -->
 
 <script>
@@ -325,6 +335,7 @@ function switchTab(name) {
   if (name === 'fees') renderFees();
   if (name === 'attendance') renderAttendanceReport();
   if (name === 'incidents')  renderIncidentsReport();
+  if (name === 'bedding')    renderBeddingReport();
 }
 
 // ── ARCHIVE ────────────────────────────────────────────────────────────────
@@ -1228,14 +1239,178 @@ function printIncidentsReport() {
   win.document.close(); win.print();
 }
 
+// ── BEDDING REPORT ─────────────────────────────────────────────────────────
+function _bddRptCalc(items, sales, stocks) {
+  const st = {}, ad = {}, so = {};
+  items.forEach(it => { st[it.id] = 0; ad[it.id] = 0; so[it.id] = 0; });
+  stocks.filter(s => s.type === 'Starting').forEach(s => {
+    items.forEach(it => { st[it.id] += (s.items[it.id] || 0); });
+  });
+  stocks.filter(s => s.type === 'Addition').forEach(s => {
+    items.forEach(it => { ad[it.id] += (s.items[it.id] || 0); });
+  });
+  sales.forEach(s => {
+    items.forEach(it => { so[it.id] += (s.items[it.id] || 0); });
+  });
+  return { st, ad, so, calc: Object.fromEntries(items.map(it => [it.id, st[it.id] + ad[it.id] - so[it.id]])) };
+}
+
+function renderBeddingReport() {
+  const cfg       = DormDB.getBeddingCfg();
+  const allSales  = DormDB.getBedding();
+  const allStocks = DormDB.getBeddingStock();
+  const allCounts = DormDB.getBeddingCount();
+  const items     = cfg.items.filter(i => i.enabled);
+
+  const semSet = new Set([cfg.currentSemester]);
+  [...allSales, ...allStocks].forEach(r => { if (r.semester) semSet.add(r.semester); });
+  const sel    = document.getElementById('bddRptSemSel');
+  const curSel = sel.value || cfg.currentSemester;
+  sel.innerHTML = [...semSet].map(s => `<option value="${escapeHtml(s)}"${s===curSel?' selected':''}>${escapeHtml(s)}</option>`).join('');
+
+  const sem    = sel.value || cfg.currentSemester;
+  const sales  = allSales.filter(t => t.semester === sem);
+  const stocks = allStocks.filter(s => s.semester === sem);
+  const counts = allCounts.filter(c => c.semester === sem);
+
+  const { st, ad, so, calc } = _bddRptCalc(items, sales, stocks);
+  const latestCount = [...counts].sort((a, b) => (b.countDate || '').localeCompare(a.countDate || ''))[0];
+  const ac = latestCount ? Object.fromEntries(latestCount.items.map(i => [i.itemId, i.actual])) : {};
+  const revenue = sales.reduce((a, t) => a + (t.total || 0), 0);
+
+  const th = `<th>Row</th>` + items.map(i => `<th>${escapeHtml(i.name)}</th>`).join('') + `<th>Total</th>`;
+  const trow = (label, cls, vals, totOverride) => {
+    const total = totOverride !== undefined ? totOverride : vals.reduce((a, v) => a + (typeof v === 'number' ? v : 0), 0);
+    return `<tr class="${cls}"><td><strong>${escapeHtml(label)}</strong></td>${vals.map(v => `<td>${v}</td>`).join('')}<td><strong>${total}</strong></td></tr>`;
+  };
+
+  const stVals   = items.map(i => st[i.id]);
+  const adVals   = items.map(i => ad[i.id]);
+  const soVals   = items.map(i => so[i.id]);
+  const calcVals = items.map(i => calc[i.id]);
+  const acVals   = items.map(i => latestCount ? (ac[i.id] || 0) : '—');
+  const misVals  = items.map(i => latestCount ? Math.max(0, calc[i.id] - (ac[i.id] || 0)) : '—');
+  const acTotal  = latestCount ? items.reduce((a, i) => a + (ac[i.id] || 0), 0) : '—';
+  const misTotal = latestCount ? items.reduce((a, i) => a + Math.max(0, calc[i.id] - (ac[i.id] || 0)), 0) : '—';
+
+  const cash = sales.filter(t => t.paymentMethod === 'Cash').reduce((a, t) => a + (t.total || 0), 0);
+  const qr   = sales.filter(t => t.paymentMethod === 'QR').reduce((a, t) => a + (t.total || 0), 0);
+  const acc  = sales.filter(t => t.paymentMethod === 'Account').reduce((a, t) => a + (t.total || 0), 0);
+  const unpd = sales.filter(t => !t.paid).reduce((a, t) => a + (t.total || 0), 0);
+
+  document.getElementById('bddRptBody').innerHTML = `
+    <table class="h-tbl" style="margin-bottom:14px;border-collapse:collapse;width:100%">
+      <thead><tr style="background:#1e3a5f;color:#fff">${th}</tr></thead>
+      <tbody>
+        ${trow('Starting Inventory', '', stVals)}
+        ${trow('+ Ordered / Added', '', adVals)}
+        ${trow('− Sold', '', soVals)}
+        <tr style="background:#e8f4f8"><td><strong>= Calculated Stock</strong></td>${calcVals.map(v=>`<td><strong>${v}</strong></td>`).join('')}<td><strong>${calcVals.reduce((a,v)=>a+v,0)}</strong></td></tr>
+        <tr style="background:#f0fff4"><td><strong>Physical Count (actual)</strong></td>${acVals.map(v=>`<td>${v}</td>`).join('')}<td><strong>${acTotal}</strong></td></tr>
+        <tr style="background:#fff8e1"><td><strong>Missing Stock</strong></td>${misVals.map(v=>`<td>${typeof v==='number'&&v>0?'<span style="color:#c62828;font-weight:700">'+v+'</span>':v}</td>`).join('')}<td><strong>${typeof misTotal==='number'&&misTotal>0?'<span style="color:#c62828;font-weight:700">'+misTotal+'</span>':misTotal}</strong></td></tr>
+        <tr style="background:#e3f2fd"><td><strong>Revenue (฿)</strong></td>${items.map(i=>{ const r=sales.reduce((a,t)=>a+(t.items[i.id]||0)*(t.prices?.[i.id]||i.price),0); return `<td>฿${r.toLocaleString()}</td>`; }).join('')}<td><strong>฿${revenue.toLocaleString()}</strong></td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div class="stat-card"><div class="stat-num">${sales.length}</div><div class="stat-label">Transactions</div></div>
+      <div class="stat-card"><div class="stat-num">${new Set(sales.map(t=>t.room)).size}</div><div class="stat-label">Rooms Served</div></div>
+      <div class="stat-card"><div class="stat-num">฿${revenue.toLocaleString()}</div><div class="stat-label">Total Revenue</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#27ae60">฿${cash.toLocaleString()}</div><div class="stat-label">Cash</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#1565c0">฿${qr.toLocaleString()}</div><div class="stat-label">QR</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#6a1b9a">฿${acc.toLocaleString()}</div><div class="stat-label">Account</div></div>
+      ${unpd > 0 ? `<div class="stat-card"><div class="stat-num" style="color:#c62828">฿${unpd.toLocaleString()}</div><div class="stat-label">Unpaid</div></div>` : ''}
+    </div>
+    <p style="font-size:.78rem;color:#888">Physical count: ${latestCount ? `recorded ${latestCount.countDate} by ${escapeHtml(latestCount.conductedBy||'—')}` : 'No count recorded this semester'}</p>
+    ${sales.length ? `<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:700;font-size:.85rem">📋 Transaction List (${sales.length})</summary>
+    <table class="h-tbl" style="margin-top:6px;font-size:.78rem"><thead><tr><th>Date</th><th>Room</th><th>Student</th>${items.map(i=>`<th>${escapeHtml(i.name)}</th>`).join('')}<th>Total</th><th>Payment</th></tr></thead><tbody>
+    ${[...sales].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(t=>`<tr><td>${t.date||''}</td><td>${escapeHtml(t.room)}</td><td>${escapeHtml(t.studentName||'')}</td>${items.map(i=>`<td>${t.items[i.id]||0}</td>`).join('')}<td>฿${(t.total||0).toLocaleString()}</td><td>${escapeHtml(t.paymentMethod||'')}</td></tr>`).join('')}
+    </tbody></table></details>` : '<p style="color:#888;font-size:.82rem">No sales recorded this semester.</p>'}
+  `;
+}
+
+function printBeddingReport() {
+  const cfg       = DormDB.getBeddingCfg();
+  const sel       = document.getElementById('bddRptSemSel');
+  const sem       = sel.value || cfg.currentSemester;
+  const allSales  = DormDB.getBedding().filter(t => t.semester === sem);
+  const allStocks = DormDB.getBeddingStock().filter(s => s.semester === sem);
+  const allCounts = DormDB.getBeddingCount().filter(c => c.semester === sem);
+  const items     = cfg.items.filter(i => i.enabled);
+  const { st, ad, so, calc } = _bddRptCalc(items, allSales, allStocks);
+  const latestCount = [...allCounts].sort((a, b) => (b.countDate || '').localeCompare(a.countDate || ''))[0];
+  const ac          = latestCount ? Object.fromEntries(latestCount.items.map(i => [i.itemId, i.actual])) : {};
+  const revenue     = allSales.reduce((a, t) => a + (t.total || 0), 0);
+  const dormName    = DormDB.getDormName();
+  const printDate   = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  const thCols = items.map(i => `<th>${escapeHtml(i.name)}</th>`).join('');
+
+  const stVals   = items.map(i => st[i.id]);
+  const adVals   = items.map(i => ad[i.id]);
+  const soVals   = items.map(i => so[i.id]);
+  const calcVals = items.map(i => calc[i.id]);
+  const acVals   = items.map(i => latestCount ? ac[i.id] || 0 : '—');
+  const misVals  = items.map(i => latestCount ? Math.max(0, calc[i.id] - (ac[i.id] || 0)) : '—');
+  const revVals  = items.map(i => { const r = allSales.reduce((a, t) => a + (t.items[i.id] || 0) * (t.prices?.[i.id] || i.price), 0); return `฿${r.toLocaleString()}`; });
+  const misTotal = latestCount ? items.reduce((a, i) => a + Math.max(0, calc[i.id] - (ac[i.id] || 0)), 0) : '—';
+
+  const salesRows = [...allSales].sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(t =>
+    `<tr><td>${t.date || ''}</td><td>${escapeHtml(t.room)}</td><td>${escapeHtml(t.studentName || '')}</td>${items.map(i => `<td>${t.items[i.id] || 0}</td>`).join('')}<td>฿${(t.total || 0).toLocaleString()}</td><td>${escapeHtml(t.paymentMethod || '')}</td></tr>`
+  ).join('');
+
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bedding Report — ${escapeHtml(sem)}</title>
+  <style>
+    @page{size:A4 portrait;margin:12mm}
+    body{font-family:Arial,sans-serif;font-size:10pt;color:#000}
+    h1{font-size:14pt;margin:0 0 2px}
+    h2{font-size:11pt;margin:14px 0 4px;border-bottom:1px solid #000;padding-bottom:2px}
+    .meta{font-size:9pt;color:#444;margin-bottom:10px}
+    table{border-collapse:collapse;width:100%;margin-bottom:10px;font-size:9pt}
+    th,td{border:1px solid #000;padding:3px 6px;text-align:center}
+    td:first-child{text-align:left}
+    th{background:#1e3a5f;color:#fff}
+    .miss{color:#c00;font-weight:700}
+    .sig{margin-top:30px;border-top:1px solid #000;padding-top:6px;font-size:9pt}
+  </style></head><body>
+  <h1>🛏️ Bedding Inventory Report</h1>
+  <div class="meta">${escapeHtml(dormName)} &nbsp;|&nbsp; ${escapeHtml(sem)} &nbsp;|&nbsp; Printed: ${printDate}</div>
+  <h2>Inventory Summary</h2>
+  <table><thead><tr><th>Row</th>${thCols}<th>Total</th></tr></thead><tbody>
+    <tr><td>Starting Inventory</td>${stVals.map(v=>`<td>${v}</td>`).join('')}<td>${stVals.reduce((a,v)=>a+v,0)}</td></tr>
+    <tr><td>+ Ordered / Added</td>${adVals.map(v=>`<td>${v}</td>`).join('')}<td>${adVals.reduce((a,v)=>a+v,0)}</td></tr>
+    <tr><td>− Sold</td>${soVals.map(v=>`<td>${v}</td>`).join('')}<td>${soVals.reduce((a,v)=>a+v,0)}</td></tr>
+    <tr style="background:#e8f4f8"><td><strong>= Calculated Stock</strong></td>${calcVals.map(v=>`<td><strong>${v}</strong></td>`).join('')}<td><strong>${calcVals.reduce((a,v)=>a+v,0)}</strong></td></tr>
+    <tr><td>Physical Count (actual)</td>${acVals.map(v=>`<td>${v}</td>`).join('')}<td>${latestCount?items.reduce((a,i)=>a+(ac[i.id]||0),0):'—'}</td></tr>
+    <tr><td>Missing Stock</td>${misVals.map(v=>typeof v==='number'&&v>0?`<td class="miss">${v}</td>`:`<td>${v}</td>`).join('')}<td${typeof misTotal==='number'&&misTotal>0?' class="miss"':''}>${misTotal}</td></tr>
+    <tr><td>Revenue (฿)</td>${revVals.map(v=>`<td>${v}</td>`).join('')}<td>฿${revenue.toLocaleString()}</td></tr>
+  </tbody></table>
+  ${allSales.length ? `<h2>Sales Ledger (${allSales.length} transaction${allSales.length!==1?'s':''})</h2>
+  <table><thead><tr><th>Date</th><th>Room</th><th>Student</th>${thCols}<th>Total</th><th>Payment</th></tr></thead>
+  <tbody>${salesRows}</tbody></table>` : ''}
+  ${latestCount ? `<h2>Physical Count — ${latestCount.countDate}</h2>
+  <p style="font-size:9pt">Conducted by: ${escapeHtml(latestCount.conductedBy||'—')}</p>
+  <table><thead><tr><th>Item</th><th>Expected</th><th>Actual</th><th>Missing</th></tr></thead><tbody>
+  ${latestCount.items.map(i=>`<tr><td>${escapeHtml(i.name)}</td><td>${i.expected||0}</td><td>${i.actual||0}</td><td${Math.max(0,(i.expected||0)-(i.actual||0))>0?' class="miss"':''}>${Math.max(0,(i.expected||0)-(i.actual||0))}</td></tr>`).join('')}
+  </tbody></table>` : ''}
+  <div class="sig">Prepared by: ________________________&nbsp;&nbsp;&nbsp; Date: ________________________</div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(() => { w.focus(); w.print(); }, 120);
+}
+
 // ── Live reload on data changes ────────────────────────────────────────────
 const _isActive = id => document.getElementById(id).classList.contains('active');
 DormDB.on('dormData',    () => { renderArchive(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-holds')) renderHolds(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-room')) renderRoomReport(); if(_isActive('tab-clearance')){ renderClearance(); populateClearanceRooms(); } if(_isActive('tab-fees')) renderFees(); });
 DormDB.on('dormHistory', () => { renderArchive(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); });
 DormDB.on('dormAway',    () => { if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-fees')) renderFees(); });
 DormDB.on('dormKeysInv',    () => { if(_isActive('tab-fees'))       renderFees(); });
-DormDB.on('dormAttendance', () => { if(_isActive('tab-attendance')) renderAttendanceReport(); });
-DormDB.on('dormIncidents',  () => { if(_isActive('tab-incidents'))  renderIncidentsReport(); });
+DormDB.on('dormAttendance',    () => { if(_isActive('tab-attendance')) renderAttendanceReport(); });
+DormDB.on('dormIncidents',     () => { if(_isActive('tab-incidents'))  renderIncidentsReport(); });
+DormDB.on('dormBedding',       () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
+DormDB.on('dormBeddingStock',  () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
+DormDB.on('dormBeddingCount',  () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
+DormDB.on('dormBeddingCfg',    () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
 
 // Initial render
 renderArchive();
