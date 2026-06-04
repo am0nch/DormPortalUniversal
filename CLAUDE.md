@@ -65,7 +65,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/reports.html` | 1,420 | 11-tab report hub (+ Attendance + Incidents + Bedding tabs) |
 | `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
-| `modules/inventory.html` | 1,769 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab; semester selects |
+| `modules/inventory.html` | 1,770 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab; semester selects |
 | `modules/attendance.html` | 1,215 | Nightly attendance, curfew countdown, SARRA2 leave import, session history; semester select |
 | `modules/incidents.html` | 977 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking; semester selects |
 | `modules/student-admin.html` | 1,002 | Off-campus move requests + Dean's assistance log |
