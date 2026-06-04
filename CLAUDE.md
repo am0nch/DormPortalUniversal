@@ -56,18 +56,18 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 | File | Lines | Notes |
 |------|-------|-------|
-| `index.html` | 433 | Main menu, 16 module cards (all ready), section headers, live stats |
-| `dorm-db.js` | 409 | Central data API; 14 new keys incl. 4 bedding keys; getMenuStats bedding fields |
-| `modules/room-reservations.html` | 1,868 | Active room reservations (SheetJS bundled inline) |
-| `modules/student-profiles.html` | 1,164 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline) |
+| `index.html` | 592 | Main menu, 16 module cards (all ready), section headers, live stats; semester badge + modal |
+| `dorm-db.js` | 425 | Central data API; 15 new keys incl. 4 bedding + SEMESTER_CFG; getSemesterCfg/saveSemesterCfg/getCurrentSemester |
+| `modules/room-reservations.html` | 1,909 | Active room reservations (SheetJS bundled inline); semester col 18 + filter |
+| `modules/student-profiles.html` | 1,186 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline); enrollmentSemester field |
 | `modules/floor-plan.html` | 497 | Visual room grid + bathroom pairing config |
 | `modules/utilities.html` | 674 | Electricity & hot water billing (SheetJS bundled inline) |
 | `modules/reports.html` | 1,420 | 11-tab report hub (+ Attendance + Incidents + Bedding tabs) |
 | `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
-| `modules/inventory.html` | 1,750 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab |
-| `modules/attendance.html` | 1,198 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
-| `modules/incidents.html` | 959 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking |
+| `modules/inventory.html` | 1,769 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab; semester selects |
+| `modules/attendance.html` | 1,215 | Nightly attendance, curfew countdown, SARRA2 leave import, session history; semester select |
+| `modules/incidents.html` | 977 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking; semester selects |
 | `modules/student-admin.html` | 1,002 | Off-campus move requests + Dean's assistance log |
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
@@ -347,7 +347,7 @@ s.roomHold.active && (s.summer || s.firstSem)
 ### Column visibility
 `applyColVis` `toggleColPicker` `toggleCol` `initColPicker`
 > `toggleColPicker()` uses `position:fixed` panel. Top = `br.bottom + 4` — do NOT add `window.scrollY`.
-> Columns are hidden by storing 1-based CSS nth-child indices in `dormCols`. Current table has 17 columns (n values 1–17). When adding a new column: add it to `_COL_DEFS` and `initColPicker()` labels list and increment the total count here.
+> Columns are hidden by storing 1-based CSS nth-child indices in `dormCols`. Current table has 18 columns (n values 1–18). When adding a new column: add it to `_COL_DEFS` and `initColPicker()` labels list and increment the total count here.
 
 ### Dialogs
 `askConfirm` `askPrompt` `_doConfirmYes` `_doConfirmNo` `_doPromptOk` `openModal` `closeModal` `showToast`
@@ -431,6 +431,7 @@ s.roomHold.active && (s.summer || s.firstSem)
 | 15 | 🧍 Solo | `solo` | Checkbox |
 | 16 | 🏠 Hold | `roomHold.active` | Checkbox + 💳 payment button |
 | 17 | 📋 Clearance | — | Button for all `graduating && moveOutReason` students |
+| 18 | 📅 Semester | `semester` | Hidden by default; `<select>` from shared semester registry |
 
 ---
 
@@ -492,6 +493,18 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [x] **`modules/inventory.html`** — Added 7th tab (🛏️ Bedding): semester filter toolbar; Summary section (matches Excel layout: Starting/Added/Sold/Calculated/Physical/Missing/Revenue rows); Sales Ledger; Stock Events; Physical Counts. 4 modals (sale, stock, count, settings). Student lookup from dormData. Print A4 portrait report. All reads/writes via DormDB (BF-016 compliant). (1,081 → 1,750 lines)
 - [x] **`modules/reports.html`** — Added 11th tab (🛏️ Bedding): semester selector, read-only summary table, payment breakdown stat cards, collapsible transaction list, 🖨️ Print Report button. `renderBeddingReport()` + `printBeddingReport()`. DormDB.on subscriptions for all 4 bedding keys. (1,245 → 1,420 lines)
 - [x] **`index.html`** — Inventory card `getStats()` updated to show `beddingSoldThisSem` (blue pill) + `beddingMissing` (red pill). (431 → 433 lines)
+
+## Completed improvements (2026-06-04, session 36 — Shared Semester Registry)
+
+- [x] **`dorm-db.js`** — Added `K.SEMESTER_CFG: 'dormSemesterCfg'`; `getSemesterCfg()` (defaults: 3 semesters), `saveSemesterCfg()`, `getCurrentSemester()` helper. `exportAll`/`importAll` cover new key automatically. (409 → 425 lines)
+- [x] **`index.html`** — Semester badge (`📅 Semester: [label]`) + `✏️ Manage` button in header right column; full `semesterModal` with Set Current / Registry table / + Add form; `openSemesterModal`, `closeSemesterModal`, `setCurrentSemester`, `addSemesterToList`, `deleteSemesterFromList`, `_renderSemesterTable`, `refreshSemesterHeader`; `DormDB.on(SEMESTER_CFG, refreshSemesterHeader)` subscription. (433 → 592 lines)
+- [x] **`modules/room-reservations.html`** — `semester: ''` added to `emptyStudent()` + `ensureStudent()` guard; column 18 (`📅 Semester`, hidden by default) in `_COL_DEFS`; per-row `<select>` cell populated from registry; `_semesterOptions()` helper; semester filter `<select>` in filter-area; `populateSemesterFilter()` seeding from registry + data; `applyFilter()` extended for semester filtering; toolbar semester badge (`#rrSemLabel`); `saveToExcel()` exports `Semester` column; `loadFromInput()` reads `Semester` column; `DormDB.on(SEMESTER_CFG, ...)` subscription. (1,868 → 1,909 lines)
+- [x] **`modules/student-profiles.html`** — `enrollmentSemester: ''` in `emptyProfile()`; `<select id="fEnrollmentSemester">` in Academic section of edit modal; `populateSemesterSelect()` helper; `openEditModal()` calls helper + sets value; `saveProfile()` reads value; `renderList()` shows semester pill badge; `DormDB.on(SEMESTER_CFG, populateSemesterSelect)`. (1,164 → 1,186 lines)
+- [x] **`modules/attendance.html`** — `cfg_semester` + `archiveSemLabel` text inputs → `<select>`; `populateAttSemSelects()` helper; `loadSettings()` uses selects + falls back to `getCurrentSemester()`; `saveSettings()` fallback; `DormDB.on(SEMESTER_CFG, populateAttSemSelects)`. (1,198 → 1,215 lines)
+- [x] **`modules/incidents.html`** — `cfg_semester` + `f_semester` text inputs → `<select>`; `populateIncSemSelects()` helper; `loadSettings()` / `saveSettings()` updated; `DormDB.on(SEMESTER_CFG, populateIncSemSelects)`. (959 → 977 lines)
+- [x] **`modules/inventory.html`** — 4 bedding semester text inputs (`bdd_sale_semester`, `bdd_stock_semester`, `bdd_count_semester`, `bdd_cfg_semester`) → `<select>`; `populateBddSemSelects()` helper called by all 4 modal openers; `populateBddSemFilter()` seeds from shared registry first; `DormDB.on(SEMESTER_CFG, ...)` subscription. (1,750 → 1,769 lines)
+- [x] **`CLAUDE.md`** — File stats table updated; column count 17 → 18 in architecture section; column 18 added to table.
+- **Deferred:** `room-inspection.html` BF-016 violation (uses `localStorage('dormInspSemester')` directly) — noted for next session.
 
 ## Completed improvements (2026-06-04, post-expansion bugfixes)
 

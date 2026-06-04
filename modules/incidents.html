@@ -157,7 +157,7 @@ body{background:#f0f4f8;min-height:100vh}
 
       <div class="fg">
         <label>Semester Label</label>
-        <input type="text" id="f_semester" placeholder="e.g. 1st Semester 2026">
+        <select id="f_semester"><option value="">— select semester —</option></select>
       </div>
 
       <div style="margin-bottom:12px">
@@ -269,7 +269,7 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
     <div class="sf">
       <h3>📋 Semester</h3>
-      <div class="fg"><label>Semester Label</label><input type="text" id="cfg_semester" placeholder="e.g. 1st Semester 2026"></div>
+      <div class="fg"><label>Semester Label</label><select id="cfg_semester"><option value="">— select semester —</option></select></div>
     </div>
     <div class="btn-row"><button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button></div>
   </div>
@@ -876,7 +876,20 @@ function loadSettings() {
   document.getElementById('pts_moderate').value = pts.moderate ?? 1;
   document.getElementById('pts_major').value    = pts.major    ?? 3;
   document.getElementById('pts_emergency').value= pts.emergency?? 5;
-  document.getElementById('cfg_semester').value = incCfg.semesterLabel||'';
+  populateIncSemSelects();
+  document.getElementById('cfg_semester').value = incCfg.semesterLabel || DormDB.getCurrentSemester();
+}
+function populateIncSemSelects() {
+  const list = DormDB.getSemesterCfg().list;
+  const opts = '<option value="">— select semester —</option>' +
+    list.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
+  ['cfg_semester','f_semester'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = opts;
+    if (cur) el.value = cur;
+  });
 }
 function saveSettings() {
   const fines = {};
@@ -890,7 +903,7 @@ function saveSettings() {
     major:     Number(document.getElementById('pts_major').value)||3,
     emergency: Number(document.getElementById('pts_emergency').value)||5,
   };
-  incCfg.semesterLabel = document.getElementById('cfg_semester').value.trim();
+  incCfg.semesterLabel = document.getElementById('cfg_semester').value || DormDB.getCurrentSemester();
   DormDB.saveIncidentsCfg(incCfg);
   showToast('✅ Settings saved');
 }
@@ -948,6 +961,11 @@ function init() {
     document.getElementById('f_attSessId').value = sessId;
     switchTab('new');
   }
+
+  populateIncSemSelects();
+  const defSem = incCfg.semesterLabel || DormDB.getCurrentSemester();
+  document.getElementById('f_semester').value = defSem;
+  DormDB.on(DormDB.KEYS.SEMESTER_CFG, populateIncSemSelects);
 
   renderDashboard();
   addStudentEntry();

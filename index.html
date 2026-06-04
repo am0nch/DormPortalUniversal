@@ -67,6 +67,12 @@ body{background:#f0f4f8;min-height:100vh}
           style="display:none;font-size:.75rem;width:120px;padding:2px 6px;border-radius:5px;border:1px solid #ccc"
           oninput="updateMenuDorm()">
       </div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:6px;justify-content:flex-end">
+        <label style="font-size:.75rem;color:#888">📅 Semester:</label>
+        <strong id="headerSemester" style="font-size:.75rem;color:#1e3a5f">—</strong>
+        <button onclick="openSemesterModal()"
+          style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">✏️ Manage</button>
+      </div>
     </div>
   </div>
 
@@ -428,6 +434,159 @@ DormDB.on('dormAttendance',   refreshStats);
 DormDB.on('dormIncidents',    refreshStats);
 DormDB.on('dormOffCampusReq', refreshStats);
 DormDB.on('dormWorkers',      refreshStats);
+DormDB.on('dormBedding',      refreshStats);
+
+function refreshSemesterHeader() {
+  const el = document.getElementById('headerSemester');
+  if (el) el.textContent = DormDB.getCurrentSemester();
+}
+
+function openSemesterModal() {
+  const cfg = DormDB.getSemesterCfg();
+  const sel = document.getElementById('smCurrentSel');
+  sel.innerHTML = cfg.list.map(s =>
+    `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
+  ).join('');
+  _renderSemesterTable(cfg);
+  document.getElementById('smAddLabel').value = '';
+  document.getElementById('smAddType').value = 'Academic';
+  document.getElementById('smAddStart').value = '';
+  document.getElementById('smAddEnd').value = '';
+  document.getElementById('semesterModal').style.display = 'flex';
+}
+
+function closeSemesterModal() {
+  document.getElementById('semesterModal').style.display = 'none';
+}
+
+function setCurrentSemester() {
+  const label = document.getElementById('smCurrentSel').value;
+  if (!label) return;
+  const cfg = DormDB.getSemesterCfg();
+  cfg.current = label;
+  DormDB.saveSemesterCfg(cfg);
+  refreshSemesterHeader();
+  const el = document.getElementById('smCurrentSel');
+  el.closest('.sm-section').querySelector('.sm-current-badge').textContent = '✅ Now current: ' + label;
+  setTimeout(() => { el.closest('.sm-section').querySelector('.sm-current-badge').textContent = ''; }, 3000);
+}
+
+function addSemesterToList() {
+  const label = document.getElementById('smAddLabel').value.trim();
+  if (!label) return alert('Semester label is required.');
+  const cfg = DormDB.getSemesterCfg();
+  if (cfg.list.some(s => s.label === label)) return alert('A semester with that label already exists.');
+  cfg.list.push({
+    label,
+    type:      document.getElementById('smAddType').value,
+    startDate: document.getElementById('smAddStart').value,
+    endDate:   document.getElementById('smAddEnd').value,
+  });
+  DormDB.saveSemesterCfg(cfg);
+  document.getElementById('smCurrentSel').innerHTML = cfg.list.map(s =>
+    `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
+  ).join('');
+  _renderSemesterTable(cfg);
+  document.getElementById('smAddLabel').value = '';
+  document.getElementById('smAddStart').value = '';
+  document.getElementById('smAddEnd').value = '';
+}
+
+function deleteSemesterFromList(label) {
+  const cfg = DormDB.getSemesterCfg();
+  if (cfg.current === label) return alert('Cannot delete the current semester. Set another semester as current first.');
+  if (!confirm('Delete "' + label + '"?')) return;
+  cfg.list = cfg.list.filter(s => s.label !== label);
+  DormDB.saveSemesterCfg(cfg);
+  document.getElementById('smCurrentSel').innerHTML = cfg.list.map(s =>
+    `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
+  ).join('');
+  _renderSemesterTable(cfg);
+}
+
+function _renderSemesterTable(cfg) {
+  const tbody = document.getElementById('smListTbody');
+  tbody.innerHTML = cfg.list.map(s => `
+    <tr>
+      <td style="padding:6px 8px">${s.label}${s.label === cfg.current ? ' <span style="color:#1565c0;font-size:.7rem">★ current</span>' : ''}</td>
+      <td style="padding:6px 8px">${s.type || ''}</td>
+      <td style="padding:6px 8px">${s.startDate || ''}</td>
+      <td style="padding:6px 8px">${s.endDate || ''}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <button onclick="deleteSemesterFromList('${s.label.replace(/'/g,"\\'")}')
+" style="font-size:.7rem;padding:1px 7px;border:1px solid #e57373;color:#c62828;background:#fff;border-radius:4px;cursor:pointer">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+refreshSemesterHeader();
+DormDB.on(DormDB.KEYS.SEMESTER_CFG, refreshSemesterHeader);
 </script>
+
+<!-- Semester Management Modal -->
+<div id="semesterModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:min(620px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="background:#1e3a5f;color:#fff;padding:16px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:1rem">📅 Semester Registry</strong>
+      <button onclick="closeSemesterModal()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div style="padding:20px">
+      <!-- Set Current -->
+      <div class="sm-section" style="margin-bottom:20px">
+        <label style="font-size:.8rem;font-weight:700;color:#1e3a5f;display:block;margin-bottom:6px">Set Current Semester</label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select id="smCurrentSel" style="font-size:.82rem;padding:4px 8px;border:1px solid #ccc;border-radius:6px;flex:1;min-width:180px"></select>
+          <button onclick="setCurrentSemester()" style="padding:5px 14px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem">✅ Set as Current</button>
+        </div>
+        <div class="sm-current-badge" style="font-size:.75rem;color:#2e7d32;margin-top:4px"></div>
+      </div>
+      <!-- Registry table -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:.8rem;font-weight:700;color:#1e3a5f;display:block;margin-bottom:6px">Semester Registry</label>
+        <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+          <thead>
+            <tr style="background:#f0f4f8">
+              <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #d9e6f5">Label</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #d9e6f5">Type</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #d9e6f5">Start</th>
+              <th style="padding:6px 8px;text-align:left;border-bottom:2px solid #d9e6f5">End</th>
+              <th style="padding:6px 8px;border-bottom:2px solid #d9e6f5"></th>
+            </tr>
+          </thead>
+          <tbody id="smListTbody"></tbody>
+        </table>
+      </div>
+      <!-- Add form -->
+      <div style="background:#f8fafd;border:1px solid #d9e6f5;border-radius:8px;padding:14px">
+        <label style="font-size:.8rem;font-weight:700;color:#1e3a5f;display:block;margin-bottom:10px">+ Add Semester</label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
+          <div>
+            <label style="font-size:.73rem;color:#555;display:block;margin-bottom:3px">Label (required)</label>
+            <input id="smAddLabel" type="text" placeholder="e.g. 1st Semester 2027"
+              style="width:100%;font-size:.8rem;padding:5px 8px;border:1px solid #ccc;border-radius:6px">
+          </div>
+          <div>
+            <label style="font-size:.73rem;color:#555;display:block;margin-bottom:3px">Type</label>
+            <select id="smAddType" style="font-size:.8rem;padding:5px 8px;border:1px solid #ccc;border-radius:6px">
+              <option value="Academic">Academic</option>
+              <option value="Summer">Summer</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:8px">
+          <div>
+            <label style="font-size:.73rem;color:#555;display:block;margin-bottom:3px">Start Date</label>
+            <input id="smAddStart" type="date" style="width:100%;font-size:.8rem;padding:5px 8px;border:1px solid #ccc;border-radius:6px">
+          </div>
+          <div>
+            <label style="font-size:.73rem;color:#555;display:block;margin-bottom:3px">End Date</label>
+            <input id="smAddEnd" type="date" style="width:100%;font-size:.8rem;padding:5px 8px;border:1px solid #ccc;border-radius:6px">
+          </div>
+          <button onclick="addSemesterToList()" style="padding:5px 14px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
