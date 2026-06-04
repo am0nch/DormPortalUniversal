@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Staff Scheduling — APIU</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.ss-nav{background:#004d40;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.ss-nav a{color:#b2dfdb;text-decoration:none;font-size:.85rem;font-weight:600}
+.ss-nav a:hover{color:#fff}
+.nav-title{font-weight:700;font-size:1rem}
+.nav-dorm{font-size:.78rem;opacity:.75}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#004d40;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top.show{display:flex}
+.ss-wrap{max-width:1060px;margin:0 auto;padding:20px 16px 40px}
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
+.tab-btn.active{background:#004d40;color:#fff}
+.tab-btn:hover:not(.active){background:#f0f4f8}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Week grid */
+.week-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.week-label{font-weight:700;font-size:.9rem;color:#004d40}
+.grid-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.grid-table{min-width:680px;width:100%;border-collapse:collapse;background:#fff}
+.grid-table th{background:#004d40;color:#fff;padding:8px 6px;font-size:.74rem;font-weight:700;text-align:center;position:sticky;top:0;z-index:10}
+.grid-table th.worker-col{background:#00695c;text-align:left;padding-left:10px;min-width:130px}
+.grid-table td{border:1px solid #e0e0e0;padding:0;vertical-align:top;min-width:80px;height:52px}
+.grid-table td.worker-cell{padding:8px 10px;font-size:.78rem;font-weight:600;background:#f9fffe;border-right:2px solid #b2dfdb}
+.shift-cell{cursor:pointer;padding:4px;height:100%;display:flex;flex-direction:column;gap:2px}
+.shift-cell:hover{background:#e0f2f1}
+.shift-chip{background:#004d40;color:#fff;border-radius:4px;padding:2px 5px;font-size:.67rem;font-weight:600;line-height:1.3;cursor:pointer}
+.shift-chip.cat-ra{background:#6a1b9a}.shift-chip.cat-monitor{background:#1565c0}
+.shift-chip.cat-janitor{background:#2e7d32}.shift-chip.cat-swp{background:#e65100}
+.shift-chip.on-duty{outline:2px solid #ffeb3b;outline-offset:1px}
+.add-shift-btn{width:100%;height:100%;background:none;border:none;cursor:pointer;color:#ccc;font-size:.85rem}
+.add-shift-btn:hover{color:#004d40}
+/* Category filter chips */
+.cat-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.cat-chip{padding:4px 12px;border-radius:14px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid transparent}
+.cat-chip.all{background:#eceff1;color:#37474f;border-color:#cfd8dc}
+.cat-chip.ra{background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8}
+.cat-chip.monitor{background:#e3f2fd;color:#1565c0;border-color:#90caf9}
+.cat-chip.janitor{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
+.cat-chip.swp{background:#fff3e0;color:#e65100;border-color:#ffcc80}
+.cat-chip.active{box-shadow:0 0 0 2px currentColor}
+/* On-duty banner */
+.on-duty-banner{background:#e0f7fa;border:1px solid #80deea;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.82rem;color:#006064}
+/* My schedule */
+.my-shift-card{background:#fff;border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #004d40}
+/* Settings */
+.sf{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px}
+.sf h3{font-size:.88rem;color:#004d40;font-weight:700;margin-bottom:12px;border-bottom:1px solid #e0f2f1;padding-bottom:7px}
+/* Form elements */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.77rem;font-weight:600;color:#444;margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.84rem}
+.fg input:focus,.fg select:focus{outline:none;border-color:#004d40}
+.fg-row{display:flex;gap:12px}.fg-row .fg{flex:1}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
+.btn-primary{background:#004d40;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
+.btn-ghost{background:#f0f4f8;color:#333;border:1px solid #d0d0d0}.btn-ghost:hover{background:#e8e8e8}
+.btn-sm{padding:5px 10px;font-size:.75rem}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:.98rem;font-weight:700;color:#004d40;margin-bottom:14px}
+.toast{position:fixed;bottom:24px;right:20px;background:#004d40;color:#fff;padding:10px 18px;border-radius:8px;font-size:.86rem;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+@media(max-width:600px){.fg-row{flex-direction:column}}
+@media print{
+  .ss-nav,.tab-bar,.btn,.btn-row,.week-nav .btn,.scroll-top,.cat-filters{display:none!important}
+  .tab-panel{display:block!important}
+  .grid-wrap{overflow:visible}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+</head>
+<body>
+
+<nav class="ss-nav">
+  <div>
+    <a id="backLink" href="../index.html">← Menu</a>
+    <span class="nav-title" style="margin-left:12px">📅 Staff Scheduling</span>
+    <span class="nav-dorm" id="navDorm"></span>
+  </div>
+  <div style="font-size:.78rem;opacity:.75" id="navUser"></div>
+</nav>
+
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">⇧</button>
+
+<div class="ss-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="weekly" onclick="switchTab('weekly')">📆 Weekly View</button>
+    <button class="tab-btn" data-tab="my" onclick="switchTab('my')">👤 My Schedule</button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
+  </div>
+
+  <!-- ── WEEKLY VIEW ─────────────────────────────────────────────────────── -->
+  <div id="tab-weekly" class="tab-panel active">
+    <div class="week-nav">
+      <button class="btn btn-ghost btn-sm" onclick="shiftWeek(-1)">◀ Prev</button>
+      <span class="week-label" id="weekLabel"></span>
+      <button class="btn btn-ghost btn-sm" onclick="shiftWeek(1)">Next ▶</button>
+      <button class="btn btn-ghost btn-sm" onclick="goToday()">Today</button>
+      <button class="btn btn-primary btn-sm" onclick="printShiftSheet()">🖨️ Print Shift Sheet</button>
+    </div>
+    <div id="onDutyBanner"></div>
+    <div class="cat-filters" id="catFilters">
+      <span class="cat-chip all active" onclick="setCatFilter('')">All</span>
+      <span class="cat-chip ra" onclick="setCatFilter('RA')">RAs</span>
+      <span class="cat-chip monitor" onclick="setCatFilter('Monitor')">Monitors</span>
+      <span class="cat-chip janitor" onclick="setCatFilter('Janitor')">Janitors</span>
+      <span class="cat-chip swp" onclick="setCatFilter('SWP')">SWP</span>
+    </div>
+    <div class="grid-wrap">
+      <table class="grid-table" id="schedGrid"></table>
+    </div>
+  </div>
+
+  <!-- ── MY SCHEDULE ─────────────────────────────────────────────────────── -->
+  <div id="tab-my" class="tab-panel">
+    <div id="myScheduleContent"></div>
+  </div>
+
+  <!-- ── SETTINGS ────────────────────────────────────────────────────────── -->
+  <div id="tab-settings" class="tab-panel">
+    <div class="sf">
+      <h3>Week Settings</h3>
+      <div class="fg">
+        <label>Week Starts On</label>
+        <select id="cfg_weekStart">
+          <option value="Sun">Sunday</option>
+          <option value="Mon">Monday</option>
+        </select>
+      </div>
+    </div>
+    <div class="sf">
+      <h3>Default Shift Times</h3>
+      <p style="font-size:.79rem;color:#888;margin-bottom:10px">Pre-filled when adding a new shift for each category.</p>
+      <div id="defaultShiftFields"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SHIFT MODAL ─────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="shiftModal">
+  <div class="modal-box">
+    <div class="modal-title" id="shiftModalTitle">Add Shift</div>
+    <div class="fg">
+      <label>Worker</label>
+      <select id="sm_worker" onchange="onWorkerSelect()">
+        <option value="">— Select Worker —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Day</label>
+      <select id="sm_day">
+        <option>Mon</option><option>Tue</option><option>Wed</option>
+        <option>Thu</option><option>Fri</option><option>Sat</option><option>Sun</option>
+      </select>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Start Time</label><input type="time" id="sm_start"></div>
+      <div class="fg"><label>End Time</label><input type="time" id="sm_end"></div>
+    </div>
+    <div class="fg"><label>Area / Location</label><input type="text" id="sm_area" placeholder="e.g. Floor 3, Main Lobby"></div>
+    <div class="fg"><label>Duties (optional)</label><textarea id="sm_duties" rows="2" placeholder="Key tasks for this shift..."></textarea></div>
+    <input type="hidden" id="sm_blockId">
+    <input type="hidden" id="sm_shiftIdx">
+    <input type="hidden" id="sm_prefillDay">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveShift()">Save Shift</button>
+      <button class="btn btn-ghost" onclick="closeModal('shiftModal')">Cancel</button>
+      <button class="btn btn-red btn-sm" id="sm_deleteBtn" style="margin-left:auto;display:none" onclick="deleteShift()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let schedule  = [];   // dormSchedule blocks
+let workers   = [];   // from dormWorkers
+let cfg       = {};   // from dormWorkersConfig (contains scheduleCfg sub-key)
+let weekOffset = 0;   // weeks from current week
+let catFilter  = '';  // '' = all
+
+const DAYS_MON = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const DAYS_SUN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}`;
+}
+function getWeekStart(offset) {
+  const startDay = (cfg.scheduleCfg && cfg.scheduleCfg.weekStartDay === 'Sun') ? 0 : 1;
+  const now = new Date();
+  const dow = now.getDay();
+  const diff = (dow - startDay + 7) % 7;
+  const start = new Date(now);
+  start.setDate(now.getDate() - diff + offset * 7);
+  start.setHours(0,0,0,0);
+  return start;
+}
+function isoDate(d) { return d.toISOString().slice(0,10); }
+function dayOrder() {
+  return (cfg.scheduleCfg && cfg.scheduleCfg.weekStartDay === 'Sun') ? DAYS_SUN : DAYS_MON;
+}
+function catChipClass(cat) {
+  return { RA:'cat-ra', Monitor:'cat-monitor', Janitor:'cat-janitor', SWP:'cat-swp' }[cat] || '';
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'weekly')   renderWeekly();
+  if (name === 'my')       renderMySchedule();
+  if (name === 'settings') renderSettings();
+}
+function shiftWeek(delta) { weekOffset += delta; renderWeekly(); }
+function goToday() { weekOffset = 0; renderWeekly(); }
+function setCatFilter(cat) {
+  catFilter = cat;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.toggle('active', c.textContent.trim().replace('s','') === cat || (cat === '' && c.classList.contains('all'))));
+  renderWeekly();
+}
+
+// ── Week rendering ────────────────────────────────────────────────────────────
+function renderWeekly() {
+  const ws    = getWeekStart(weekOffset);
+  const wsIso = isoDate(ws);
+  const days  = dayOrder();
+
+  // Build date labels for header
+  const dateCols = days.map((d, i) => {
+    const dt = new Date(ws);
+    dt.setDate(ws.getDate() + i);
+    return { day: d, date: isoDate(dt), label: `${d}<br><small>${fmtDate(isoDate(dt))}</small>` };
+  });
+
+  // Week label
+  const we = new Date(ws); we.setDate(ws.getDate() + 6);
+  document.getElementById('weekLabel').textContent =
+    `${ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${we.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+
+  // Current time for on-duty detection
+  const now    = new Date();
+  const curDay = days[now.getDay() === 0 && dayOrder()[0] === 'Mon' ? 6 : now.getDay() - (dayOrder()[0]==='Mon'?1:0)];
+  const curDayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()];
+  const curTime    = now.toTimeString().slice(0,5);
+  const isThisWeek = weekOffset === 0;
+
+  // Filter workers
+  let activeWorkers = workers.filter(w => w.status === 'Active');
+  if (catFilter) activeWorkers = activeWorkers.filter(w => w.category === catFilter);
+
+  // Build schedule blocks for this week — find or create per worker
+  function getBlock(wId) {
+    return schedule.find(b => b.workerId === wId && b.weekStart === wsIso);
+  }
+
+  // On-duty banner
+  let onDutyHTML = '';
+  if (isThisWeek) {
+    const onDuty = [];
+    schedule.filter(b => b.weekStart === wsIso).forEach(b => {
+      (b.shifts || []).forEach(s => {
+        if (s.day === curDayName && s.startTime <= curTime && s.endTime >= curTime) {
+          onDuty.push({ name: b.workerName, cat: b.category, area: s.area });
+        }
+      });
+    });
+    if (onDuty.length) {
+      onDutyHTML = `<div class="on-duty-banner">
+        🟢 <strong>On duty right now:</strong>
+        ${onDuty.map(w => `<strong>${escapeHtml(w.name)}</strong> (${escapeHtml(w.cat)})${w.area?' — '+escapeHtml(w.area):''}`).join(' · ')}
+      </div>`;
+    }
+  }
+  document.getElementById('onDutyBanner').innerHTML = onDutyHTML;
+
+  // Build grid
+  let html = `<thead><tr>
+    <th class="worker-col">Worker</th>
+    ${dateCols.map(c => `<th>${c.label}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  if (!activeWorkers.length) {
+    html += `<tr><td colspan="${days.length+1}" style="text-align:center;padding:24px;color:#aaa;font-size:.85rem">No active workers found. Add workers in <a href="dorm-workers.html" style="color:#004d40">Dorm Workers</a>.</td></tr>`;
+  } else {
+    activeWorkers.forEach(w => {
+      const block = getBlock(w.id);
+      html += `<tr>
+        <td class="worker-cell">
+          <div style="font-size:.78rem;font-weight:700">${escapeHtml(w.name)}</div>
+          <div style="font-size:.68rem;color:#80cbc4">${escapeHtml(w.category)}${w.floor?' · F'+escapeHtml(w.floor):''}</div>
+          <a href="dorm-workers.html?worker=${w.id}" style="font-size:.67rem;color:#80cbc4" title="Edit worker">✏️</a>
+        </td>
+        ${dateCols.map(c => {
+          const shifts = block ? (block.shifts||[]).filter(s => s.day === c.day) : [];
+          const cellId = `cell_${w.id}_${c.day}`;
+          return `<td>
+            <div class="shift-cell" id="${cellId}">
+              ${shifts.map((s, si) => {
+                const onNow = isThisWeek && c.day === curDayName && s.startTime <= curTime && s.endTime >= curTime;
+                return `<div class="shift-chip ${catChipClass(w.category)} ${onNow?'on-duty':''}"
+                  onclick="openShiftModal(${w.id},'${c.day}',${block?block.id:0},${si})"
+                  title="${escapeHtml(s.area||'')}">
+                  ${escapeHtml(s.startTime)}–${escapeHtml(s.endTime)}
+                  ${s.area ? `<br><span style="opacity:.8;font-size:.6rem">${escapeHtml(s.area.slice(0,14))}</span>` : ''}
+                </div>`;
+              }).join('')}
+              <button class="add-shift-btn" onclick="openShiftModal(${w.id},'${c.day}',${block?block.id:0},-1)" title="Add shift">+</button>
+            </div>
+          </td>`;
+        }).join('')}
+      </tr>`;
+    });
+  }
+  html += '</tbody>';
+  document.getElementById('schedGrid').innerHTML = html;
+}
+
+// ── Shift modal ───────────────────────────────────────────────────────────────
+function openShiftModal(workerId, day, blockId, shiftIdx) {
+  const w = workers.find(x => x.id === workerId);
+  if (!w) return;
+
+  // Populate worker dropdown
+  const sel = document.getElementById('sm_worker');
+  sel.innerHTML = workers.filter(x => x.status === 'Active')
+    .map(x => `<option value="${x.id}" ${x.id === workerId ? 'selected' : ''}>${escapeHtml(x.name)} (${escapeHtml(x.category)})</option>`)
+    .join('');
+
+  document.getElementById('sm_day').value      = day;
+  document.getElementById('sm_blockId').value  = blockId || '';
+  document.getElementById('sm_shiftIdx').value = shiftIdx;
+  document.getElementById('sm_prefillDay').value = day;
+
+  let shift = null;
+  const isEdit = shiftIdx >= 0;
+  if (isEdit && blockId) {
+    const block = schedule.find(b => b.id === blockId);
+    shift = block ? (block.shifts || [])[shiftIdx] : null;
+  }
+
+  // Pre-fill defaults from cfg
+  const catDefaults = (cfg.scheduleCfg && cfg.scheduleCfg.defaults && cfg.scheduleCfg.defaults[w.category]) || {};
+
+  document.getElementById('shiftModalTitle').textContent = isEdit ? 'Edit Shift' : 'Add Shift';
+  document.getElementById('sm_deleteBtn').style.display = isEdit ? '' : 'none';
+  document.getElementById('sm_start').value  = shift ? shift.startTime : (catDefaults.start || '08:00');
+  document.getElementById('sm_end').value    = shift ? shift.endTime   : (catDefaults.end   || '17:00');
+  document.getElementById('sm_area').value   = shift ? shift.area      : (w.assignedArea || '');
+  document.getElementById('sm_duties').value = shift ? shift.duties    : '';
+  onWorkerSelect();
+  openModal('shiftModal');
+}
+function onWorkerSelect() {
+  const wId = Number(document.getElementById('sm_worker').value);
+  const w   = workers.find(x => x.id === wId);
+  if (!w) return;
+  const catDefaults = (cfg.scheduleCfg && cfg.scheduleCfg.defaults && cfg.scheduleCfg.defaults[w.category]) || {};
+  if (!document.getElementById('sm_area').value) {
+    document.getElementById('sm_area').value = w.assignedArea || '';
+  }
+}
+function saveShift() {
+  const wId = Number(document.getElementById('sm_worker').value);
+  if (!wId) { showToast('⚠️ Select a worker'); return; }
+  const w = workers.find(x => x.id === wId);
+  if (!w) return;
+
+  const day      = document.getElementById('sm_day').value;
+  const start    = document.getElementById('sm_start').value;
+  const end      = document.getElementById('sm_end').value;
+  const area     = document.getElementById('sm_area').value.trim();
+  const duties   = document.getElementById('sm_duties').value.trim();
+  const shiftIdx = Number(document.getElementById('sm_shiftIdx').value);
+  const ws       = isoDate(getWeekStart(weekOffset));
+
+  if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
+  if (start >= end)   { showToast('⚠️ Start must be before end time'); return; }
+
+  // Find or create schedule block for this worker + week
+  let block = schedule.find(b => b.workerId === wId && b.weekStart === ws);
+  if (!block) {
+    block = { id: Date.now(), workerId: wId, workerName: w.name, category: w.category,
+              floor: w.floor, weekStart: ws, shifts: [], publishedBy: DormDB.getCurrentUser(), publishedAt: new Date().toISOString() };
+    schedule.push(block);
+  }
+
+  const newShift = { day, startTime: start, endTime: end, area, duties };
+  if (shiftIdx >= 0 && shiftIdx < block.shifts.length) {
+    block.shifts[shiftIdx] = newShift;
+  } else {
+    block.shifts.push(newShift);
+  }
+
+  DormDB.saveSchedule(schedule);
+  closeModal('shiftModal');
+  renderWeekly();
+  showToast('✅ Shift saved');
+}
+function deleteShift() {
+  const wId      = Number(document.getElementById('sm_worker').value);
+  const shiftIdx = Number(document.getElementById('sm_shiftIdx').value);
+  const ws       = isoDate(getWeekStart(weekOffset));
+  const block    = schedule.find(b => b.workerId === wId && b.weekStart === ws);
+  if (!block || shiftIdx < 0) return;
+  block.shifts.splice(shiftIdx, 1);
+  if (!block.shifts.length) {
+    schedule = schedule.filter(b => !(b.workerId === wId && b.weekStart === ws));
+  }
+  DormDB.saveSchedule(schedule);
+  closeModal('shiftModal');
+  renderWeekly();
+  showToast('Shift removed');
+}
+
+// ── My Schedule tab ───────────────────────────────────────────────────────────
+function renderMySchedule() {
+  const me = DormDB.getCurrentUser();
+  const myWorker = workers.find(w => w.name === me || w.name.toLowerCase() === me.toLowerCase());
+  const el = document.getElementById('myScheduleContent');
+
+  if (!myWorker) {
+    el.innerHTML = `<div style="text-align:center;padding:40px;color:#888">
+      <p style="font-size:.9rem;font-weight:700">No worker profile found for "${escapeHtml(me)}".</p>
+      <p style="font-size:.8rem;margin-top:8px">Add yourself in <a href="dorm-workers.html" style="color:#004d40">Dorm Workers</a> with your exact name, then return here.</p>
+    </div>`;
+    return;
+  }
+
+  // Show last 4 weeks + next 4 weeks of shifts
+  const myBlocks = schedule.filter(b => b.workerId === myWorker.id)
+    .sort((a,b) => a.weekStart.localeCompare(b.weekStart));
+
+  if (!myBlocks.length) {
+    el.innerHTML = `<p style="color:#aaa;text-align:center;padding:40px">No shifts scheduled for ${escapeHtml(myWorker.name)} yet.</p>`;
+    return;
+  }
+
+  el.innerHTML = `<h3 style="font-size:.9rem;color:#004d40;margin-bottom:12px">Schedule for ${escapeHtml(myWorker.name)}</h3>` +
+    myBlocks.map(block => {
+      const wk = new Date(block.weekStart);
+      const we = new Date(wk); we.setDate(wk.getDate() + 6);
+      return `<div class="my-shift-card">
+        <div style="font-size:.8rem;font-weight:700;color:#004d40;margin-bottom:6px">
+          Week of ${wk.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${we.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+        </div>
+        ${(block.shifts || []).sort((a,b)=>dayOrder().indexOf(a.day)-dayOrder().indexOf(b.day)).map(s =>
+          `<div style="display:flex;gap:10px;align-items:center;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:.8rem">
+            <span style="min-width:32px;font-weight:700;color:#37474f">${escapeHtml(s.day)}</span>
+            <span>${escapeHtml(s.startTime)} – ${escapeHtml(s.endTime)}</span>
+            ${s.area ? `<span style="color:#888">· ${escapeHtml(s.area)}</span>` : ''}
+          </div>`
+        ).join('')}
+      </div>`;
+    }).join('');
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+const CATS = ['RA','Monitor','Janitor','SWP'];
+function renderSettings() {
+  const sc = (cfg.scheduleCfg) || {};
+  document.getElementById('cfg_weekStart').value = sc.weekStartDay || 'Mon';
+
+  const defaults = sc.defaults || {};
+  document.getElementById('defaultShiftFields').innerHTML = CATS.map(cat => {
+    const d = defaults[cat] || {};
+    return `<div style="margin-bottom:12px;padding:10px;background:#f9fffe;border-radius:6px;border:1px solid #e0f2f1">
+      <div style="font-size:.77rem;font-weight:700;color:#37474f;margin-bottom:8px">${escapeHtml(cat)}</div>
+      <div style="display:flex;gap:10px">
+        <div class="fg" style="margin:0;flex:1"><label style="font-size:.72rem">Default Start</label>
+          <input type="time" id="def_${cat}_start" value="${escapeHtml(d.start||'08:00')}"></div>
+        <div class="fg" style="margin:0;flex:1"><label style="font-size:.72rem">Default End</label>
+          <input type="time" id="def_${cat}_end" value="${escapeHtml(d.end||'17:00')}"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function saveSettings() {
+  const sc = cfg.scheduleCfg || {};
+  sc.weekStartDay = document.getElementById('cfg_weekStart').value;
+  sc.defaults = {};
+  CATS.forEach(cat => {
+    sc.defaults[cat] = {
+      start: document.getElementById(`def_${cat}_start`).value,
+      end:   document.getElementById(`def_${cat}_end`).value,
+    };
+  });
+  cfg.scheduleCfg = sc;
+  DormDB.saveWorkersCfg(cfg);
+  showToast('✅ Settings saved');
+}
+
+// ── Print shift sheet ─────────────────────────────────────────────────────────
+function printShiftSheet() {
+  const ws   = getWeekStart(weekOffset);
+  const we   = new Date(ws); we.setDate(ws.getDate() + 6);
+  const wsIso = isoDate(ws);
+  const days  = dayOrder();
+  const dorm  = DormDB.getDormName();
+  const wkLabel = `${ws.toLocaleDateString('en-US',{month:'long',day:'numeric'})} – ${we.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}`;
+
+  // Group by category
+  const bycat = {};
+  schedule.filter(b => b.weekStart === wsIso).forEach(b => {
+    if (!bycat[b.category]) bycat[b.category] = [];
+    bycat[b.category].push(b);
+  });
+
+  let content = '';
+  for (const cat of CATS) {
+    const blocks = bycat[cat] || [];
+    if (!blocks.length) continue;
+    content += `<h2>${escapeHtml(cat)}</h2><table>
+      <tr><th>Worker</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr>
+      ${blocks.map(b => `<tr>
+        <td><strong>${escapeHtml(b.workerName)}</strong>${b.floor?`<br><small>F${b.floor}</small>`:''}</td>
+        ${days.map(d => {
+          const shifts = (b.shifts||[]).filter(s=>s.day===d);
+          return `<td style="font-size:7.5pt">${shifts.map(s=>`${s.startTime}–${s.endTime}${s.area?`<br><em>${s.area}</em>`:''}`).join('<hr style="margin:2pt">')}</td>`;
+        }).join('')}
+      </tr>`).join('')}
+    </table>`;
+  }
+
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Staff Schedule — ${escapeHtml(dorm)}</title>
+  <style>
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:9pt;color:#111;margin:0;padding:0}
+  h1{font-size:12pt;margin-bottom:1mm}h2{font-size:10pt;color:#004d40;margin:6pt 0 3pt;border-bottom:1pt solid #004d40}
+  table{width:100%;border-collapse:collapse;margin-bottom:8pt;table-layout:fixed}
+  th,td{border:1pt solid #ccc;padding:3pt 4pt;text-align:center;font-size:8pt;word-break:break-word}
+  th{background:#e0f2f1;color:#004d40}td:first-child{text-align:left;font-size:7.5pt}
+  hr{border:none;border-top:1pt dotted #ccc;margin:1pt 0}
+  @page{size:A4 landscape;margin:10mm}
+  </style></head><body>
+  <h1>📅 Staff Schedule — ${escapeHtml(dorm)}</h1>
+  <p style="font-size:8.5pt;color:#555;margin-bottom:5mm">Week of ${escapeHtml(wkLabel)}</p>
+  ${content || '<p style="color:#999">No shifts scheduled for this week.</p>'}
+  </body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ── Dialogs ───────────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+let _toastTimer;
+function showToast(msg, dur=3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') closeModal('shiftModal');
+});
+window.addEventListener('scroll', ()=>{
+  document.getElementById('scrollTopBtn').classList.toggle('show', window.scrollY>300);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const back   = params.get('back');
+  if (back) {
+    const el = document.getElementById('backLink');
+    el.href        = back + '.html';
+    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  document.getElementById('navUser').textContent = DormDB.getCurrentUser();
+
+  workers  = DormDB.getWorkers();
+  schedule = DormDB.getSchedule();
+  cfg      = DormDB.getWorkersCfg();
+
+  DormDB.on(DormDB.KEYS.WORKERS, () => {
+    workers = DormDB.getWorkers();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-weekly') renderWeekly();
+    if (active?.id === 'tab-my')    renderMySchedule();
+  });
+  DormDB.on(DormDB.KEYS.SCHEDULE, () => {
+    schedule = DormDB.getSchedule();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-weekly') renderWeekly();
+    if (active?.id === 'tab-my')    renderMySchedule();
+  });
+  DormDB.on(DormDB.KEYS.WORKERS_CFG, () => {
+    cfg = DormDB.getWorkersCfg();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-settings') renderSettings();
+  });
+
+  renderWeekly();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
