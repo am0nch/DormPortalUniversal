@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dorm Workers — APIU</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.dw-nav{background:#37474f;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.dw-nav a{color:#b0bec5;text-decoration:none;font-size:.85rem;font-weight:600}
+.dw-nav a:hover{color:#fff}
+.nav-title{font-weight:700;font-size:1rem}
+.nav-dorm{font-size:.78rem;opacity:.75}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#37474f;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top.show{display:flex}
+.dw-wrap{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
+.tab-btn.active{background:#37474f;color:#fff}
+.tab-btn:hover:not(.active){background:#f0f4f8}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Stat cards */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.sc{background:#fff;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.sc .sv{font-size:1.6rem;font-weight:800;color:#37474f;line-height:1.1}
+.sc .sl{font-size:.68rem;color:#888;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sc.ra .sv{color:#6a1b9a}.sc.mon .sv{color:#1565c0}.sc.jan .sv{color:#2e7d32}.sc.swp .sv{color:#e65100}
+/* Worker cards */
+.worker-card{background:#fff;border-radius:8px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #ddd;overflow:hidden}
+.worker-card.cat-ra{border-left-color:#6a1b9a}
+.worker-card.cat-monitor{border-left-color:#1565c0}
+.worker-card.cat-janitor{border-left-color:#2e7d32}
+.worker-card.cat-swp{border-left-color:#e65100}
+.worker-card.status-inactive{opacity:.6}
+.wc-hdr{padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
+.wc-hdr:hover{background:#f8f9fa}
+.wc-name{font-size:.88rem;font-weight:700;color:#333}
+.wc-meta{font-size:.74rem;color:#888;margin-top:2px}
+.wc-body{display:none;padding:10px 14px;border-top:1px solid #f0f0f0;font-size:.8rem}
+.wc-body.open{display:block}
+.badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:4px}
+.badge-ra{background:#f3e5f5;color:#6a1b9a}.badge-monitor{background:#e3f2fd;color:#1565c0}
+.badge-janitor{background:#e8f5e9;color:#2e7d32}.badge-swp{background:#fff3e0;color:#e65100}
+.badge-active{background:#e8f5e9;color:#2e7d32}.badge-inactive{background:#f0f0f0;color:#666}
+.badge-leave{background:#fff8e1;color:#f57f17}.badge-terminated{background:#fdecea;color:#c62828}
+/* Floor coverage grid */
+.floor-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.floor-cell{background:#fff;border-radius:8px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.07);text-align:center}
+.floor-cell .floor-num{font-size:1.2rem;font-weight:800;color:#37474f}
+.floor-cell .floor-ra{font-size:.74rem;color:#6a1b9a;font-weight:600;margin-top:3px}
+.floor-cell.uncovered .floor-num{color:#c62828}
+.floor-cell.uncovered .floor-ra{color:#c62828}
+/* Job docs */
+.jd-card{background:#fff;border-radius:8px;margin-bottom:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.jd-title{font-size:.9rem;font-weight:700;color:#333}
+.jd-meta{font-size:.74rem;color:#888;margin-top:3px}
+/* Form */
+.dw-form{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.77rem;font-weight:600;color:#444;margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.84rem}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#37474f}
+.fg-row{display:flex;gap:12px}.fg-row .fg{flex:1}
+.sec-head{font-size:.88rem;font-weight:700;color:#37474f;margin:0 0 12px;padding-bottom:7px;border-bottom:2px solid #eceff1}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
+.btn-primary{background:#37474f;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-purple{background:#6a1b9a;color:#fff}.btn-purple:hover{opacity:.88}
+.btn-blue{background:#1565c0;color:#fff}.btn-blue:hover{opacity:.88}
+.btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}
+.btn-orange{background:#e65100;color:#fff}.btn-orange:hover{opacity:.88}
+.btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
+.btn-ghost{background:#f0f4f8;color:#333;border:1px solid #d0d0d0}.btn-ghost:hover{background:#e8e8e8}
+.btn-sm{padding:5px 10px;font-size:.75rem}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.callout{border-radius:8px;padding:10px 14px;font-size:.79rem;margin-bottom:12px}
+.callout-info{background:#eceff1;color:#37474f;border:1px solid #b0bec5}
+.callout-orange{background:#fff3e0;color:#e65100;border:1px solid #ffcc80}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:560px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:.98rem;font-weight:700;color:#37474f;margin-bottom:14px}
+.toast{position:fixed;bottom:24px;right:20px;background:#37474f;color:#fff;padding:10px 18px;border-radius:8px;font-size:.86rem;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+@media(max-width:540px){.fg-row{flex-direction:column}.floor-grid{grid-template-columns:repeat(2,1fr)}}
+@media print{
+  .dw-nav,.tab-bar,.btn,.btn-row,.scroll-top{display:none!important}
+  .tab-panel{display:block!important}.wc-body{display:block!important}
+  @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+
+<nav class="dw-nav">
+  <div>
+    <a id="backLink" href="../index.html">← Menu</a>
+    <span class="nav-title" style="margin-left:12px">👥 Dorm Workers</span>
+    <span class="nav-dorm" id="navDorm"></span>
+  </div>
+  <div style="font-size:.78rem;opacity:.75" id="navUser"></div>
+</nav>
+
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">⇧</button>
+
+<div class="dw-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active"  data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="ra"       onclick="switchTab('ra')">🎓 RAs</button>
+    <button class="tab-btn" data-tab="monitor"  onclick="switchTab('monitor')">👁️ Monitors</button>
+    <button class="tab-btn" data-tab="janitor"  onclick="switchTab('janitor')">🧹 Janitors</button>
+    <button class="tab-btn" data-tab="swp"      onclick="switchTab('swp')">📋 SWP</button>
+    <button class="tab-btn" data-tab="jobdocs"  onclick="switchTab('jobdocs')">📄 Job Documents</button>
+  </div>
+
+  <!-- ── DASHBOARD ────────────────────────────────────────────────────────── -->
+  <div id="tab-dashboard" class="tab-panel active">
+    <div class="stat-row" id="dwStatRow"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">
+      <div>
+        <p class="sec-head">RA Floor Coverage</p>
+        <div class="floor-grid" id="floorCoverageGrid"></div>
+      </div>
+      <div>
+        <p class="sec-head">Currently On Duty</p>
+        <div id="onDutyList" style="font-size:.82rem;color:#555"></div>
+      </div>
+    </div>
+    <p class="sec-head">All Active Workers</p>
+    <div id="dashWorkerList"></div>
+  </div>
+
+  <!-- ── RAs ───────────────────────────────────────────────────────────────── -->
+  <div id="tab-ra" class="tab-panel">
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-purple" onclick="openWorkerModal('RA')">+ Add RA</button>
+    </div>
+    <div id="raList"></div>
+  </div>
+
+  <!-- ── MONITORS ──────────────────────────────────────────────────────────── -->
+  <div id="tab-monitor" class="tab-panel">
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-blue" onclick="openWorkerModal('Monitor')">+ Add Monitor</button>
+    </div>
+    <div id="monitorList"></div>
+  </div>
+
+  <!-- ── JANITORS ──────────────────────────────────────────────────────────── -->
+  <div id="tab-janitor" class="tab-panel">
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-green" onclick="openWorkerModal('Janitor')">+ Add Janitor</button>
+    </div>
+    <div id="janitorList"></div>
+  </div>
+
+  <!-- ── SWP ───────────────────────────────────────────────────────────────── -->
+  <div id="tab-swp" class="tab-panel">
+    <div class="callout callout-orange">
+      <strong>SARRA2 Note:</strong> SWP work hours, fee credits, and payroll are tracked in SARRA2. This module stores only the assignment record and SARRA2 cross-reference ID.
+    </div>
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-orange" onclick="openWorkerModal('SWP')">+ Add SWP Worker</button>
+    </div>
+    <div id="swpList"></div>
+  </div>
+
+  <!-- ── JOB DOCUMENTS ─────────────────────────────────────────────────────── -->
+  <div id="tab-jobdocs" class="tab-panel">
+    <div class="btn-row" style="margin-bottom:14px">
+      <button class="btn btn-primary" onclick="openJobDocModal()">+ Create Job Document</button>
+    </div>
+    <div id="jobDocList"></div>
+  </div>
+</div>
+
+<!-- ── WORKER MODAL ────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="workerModal">
+  <div class="modal-box">
+    <div class="modal-title" id="workerModalTitle">Add Worker</div>
+
+    <div class="fg">
+      <label>Category</label>
+      <select id="w_category" onchange="onCategoryChange()">
+        <option value="RA">RA (Resident Assistant)</option>
+        <option value="Monitor">Monitor</option>
+        <option value="Janitor">Janitor</option>
+        <option value="SWP">SWP (Student Work Program)</option>
+      </select>
+    </div>
+    <div class="fg-row">
+      <div class="fg" style="flex:2">
+        <label>Full Name</label>
+        <input type="text" id="w_name" placeholder="Name">
+      </div>
+      <div class="fg" id="w_roomGroup">
+        <label>Room</label>
+        <input type="text" id="w_room" placeholder="e.g. 312">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg" id="w_studentIdGroup">
+        <label>Student ID</label>
+        <input type="text" id="w_studentId">
+      </div>
+      <div class="fg" id="w_employeeIdGroup" style="display:none">
+        <label>Employee ID</label>
+        <input type="text" id="w_employeeId">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Floor</label>
+        <select id="w_floor">
+          <option value="">— None —</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+          <option>All</option>
+        </select>
+      </div>
+      <div class="fg"><label>Status</label>
+        <select id="w_status">
+          <option>Active</option><option>On Leave</option>
+          <option>Completed</option><option>Terminated</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Job Title</label>
+      <input type="text" id="w_jobTitle" placeholder="e.g. Floor 3 RA, Head Monitor">
+    </div>
+    <div class="fg">
+      <label>Assigned Area</label>
+      <input type="text" id="w_assignedArea" placeholder="e.g. Floor 3 corridor, Main Lobby">
+    </div>
+    <div class="fg">
+      <label>Job Document</label>
+      <select id="w_jobDocId">
+        <option value="">— None —</option>
+      </select>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Start Date</label><input type="date" id="w_startDate"></div>
+      <div class="fg"><label>End Date</label><input type="date" id="w_endDate"></div>
+    </div>
+    <div class="fg">
+      <label>Contact / Phone</label>
+      <input type="text" id="w_contact" placeholder="Phone or email">
+    </div>
+
+    <!-- SWP-only fields -->
+    <div id="swpFields" style="display:none;border-top:1px solid #eceff1;padding-top:12px;margin-top:4px">
+      <p class="sec-head" style="margin-bottom:10px">SWP / SARRA2 Details</p>
+      <div class="fg">
+        <label>SARRA2 SWP Record ID</label>
+        <input type="text" id="w_swpSarra2Id" placeholder="Cross-reference to SARRA2">
+      </div>
+      <div class="fg">
+        <label>Semester Target</label>
+        <input type="text" id="w_swpSemesterTarget" placeholder="e.g. Complete 120 hrs by Dec 2026">
+      </div>
+      <div class="fg">
+        <label>Supervisor</label>
+        <input type="text" id="w_swpSupervisor">
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="w_notes" rows="2"></textarea>
+    </div>
+
+    <input type="hidden" id="w_editId">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveWorker()">Save Worker</button>
+      <button class="btn btn-ghost" onclick="closeModal('workerModal')">Cancel</button>
+      <button class="btn btn-red btn-sm" id="w_deleteBtn" style="margin-left:auto;display:none" onclick="deleteWorker()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── JOB DOC MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="jobDocModal">
+  <div class="modal-box">
+    <div class="modal-title" id="jdModalTitle">Job Document</div>
+    <div class="fg">
+      <label>Category</label>
+      <select id="jd_category">
+        <option value="RA">RA (Resident Assistant)</option>
+        <option value="Monitor">Monitor</option>
+        <option value="Janitor">Janitor</option>
+        <option value="SWP">SWP</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Document Title</label>
+      <input type="text" id="jd_title" placeholder="e.g. RA Job Description & Agreement">
+    </div>
+    <div class="fg">
+      <label>Responsibilities (one per line)</label>
+      <textarea id="jd_responsibilities" rows="5" placeholder="Conduct nightly bed checks&#10;Respond to student concerns&#10;Report incidents promptly"></textarea>
+    </div>
+    <div class="fg">
+      <label>Requirements</label>
+      <textarea id="jd_requirements" rows="2" placeholder="Academic standing, semester, etc."></textarea>
+    </div>
+    <div class="fg">
+      <label>Compensation / Benefits</label>
+      <textarea id="jd_compensation" rows="2" placeholder="Room discount, stipend, etc."></textarea>
+    </div>
+    <div class="fg">
+      <label>Version</label>
+      <input type="text" id="jd_version" value="1.0" style="max-width:80px">
+    </div>
+    <input type="hidden" id="jd_editId">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveJobDoc()">Save Document</button>
+      <button class="btn btn-ghost" onclick="closeModal('jobDocModal')">Cancel</button>
+      <button class="btn btn-red btn-sm" id="jd_deleteBtn" style="margin-left:auto;display:none" onclick="deleteJobDoc()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-title" id="confirmTitle">Confirm</div>
+    <p style="font-size:.85rem;color:#444;margin-bottom:16px" id="confirmMsg"></p>
+    <div class="btn-row">
+      <button class="btn btn-red" id="confirmYes">Yes, proceed</button>
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+let workers = [];
+let workersCfg = { semesterLabel: '', raFloorAssignments: {}, jobDocs: [] };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function catBadge(cat) {
+  const cls = { RA:'ra', Monitor:'monitor', Janitor:'janitor', SWP:'swp' }[cat] || 'inactive';
+  return `<span class="badge badge-${cls.toLowerCase()}">${escapeHtml(cat)}</span>`;
+}
+function statusBadge(s) {
+  const cls = { Active:'active', 'On Leave':'leave', Completed:'inactive', Terminated:'terminated' }[s] || 'inactive';
+  return `<span class="badge badge-${cls}">${escapeHtml(s)}</span>`;
+}
+function catClass(cat) { return 'cat-' + (cat||'').toLowerCase(); }
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  const renders = { dashboard: renderDashboard, ra: ()=>renderCategory('RA'), monitor: ()=>renderCategory('Monitor'),
+                    janitor: ()=>renderCategory('Janitor'), swp: ()=>renderCategory('SWP'), jobdocs: renderJobDocs };
+  if (renders[name]) renders[name]();
+}
+
+// ── Category change in worker modal ──────────────────────────────────────────
+function onCategoryChange() {
+  const cat = document.getElementById('w_category').value;
+  document.getElementById('swpFields').style.display     = cat === 'SWP' ? '' : 'none';
+  document.getElementById('w_employeeIdGroup').style.display = cat === 'Janitor' ? '' : 'none';
+  document.getElementById('w_studentIdGroup').style.display  = cat === 'Janitor' ? 'none' : '';
+  document.getElementById('w_roomGroup').style.display       = cat === 'Janitor' ? 'none' : '';
+}
+
+// ── Worker data model ─────────────────────────────────────────────────────────
+function emptyWorker(cat) {
+  return {
+    id: Date.now(), category: cat || 'RA',
+    name: '', studentId: '', employeeId: '',
+    room: '', floor: '', jobTitle: '', jobDescriptionId: '', assignedArea: '',
+    startDate: today(), endDate: '', status: 'Active',
+    swpSarra2Id: '', swpSemesterTarget: '', swpSupervisor: '',
+    contact: '', notes: '', createdBy: '', createdAt: new Date().toISOString(),
+  };
+}
+
+// ── Worker modal ──────────────────────────────────────────────────────────────
+function openWorkerModal(cat, id) {
+  const isEdit = id != null;
+  document.getElementById('workerModalTitle').textContent = isEdit ? 'Edit Worker' : `Add ${cat || ''} Worker`;
+  document.getElementById('w_deleteBtn').style.display = isEdit ? '' : 'none';
+  document.getElementById('w_editId').value = id || '';
+
+  let w = isEdit ? workers.find(x => x.id === id) : null;
+  const category = w ? w.category : (cat || 'RA');
+
+  // Populate job doc dropdown
+  const jdSel = document.getElementById('w_jobDocId');
+  const jdOpts = (workersCfg.jobDocs || [])
+    .filter(d => !w || d.category === (w ? w.category : cat))
+    .map(d => `<option value="${d.id}" ${(w && w.jobDescriptionId == d.id)?'selected':''}>${escapeHtml(d.title)}</option>`).join('');
+  jdSel.innerHTML = '<option value="">— None —</option>' + jdOpts;
+
+  document.getElementById('w_category').value        = category;
+  document.getElementById('w_name').value            = w ? w.name           : '';
+  document.getElementById('w_room').value            = w ? w.room           : '';
+  document.getElementById('w_studentId').value       = w ? w.studentId      : '';
+  document.getElementById('w_employeeId').value      = w ? w.employeeId     : '';
+  document.getElementById('w_floor').value           = w ? w.floor          : '';
+  document.getElementById('w_status').value          = w ? w.status         : 'Active';
+  document.getElementById('w_jobTitle').value        = w ? w.jobTitle       : '';
+  document.getElementById('w_assignedArea').value    = w ? w.assignedArea   : '';
+  document.getElementById('w_startDate').value       = w ? w.startDate      : today();
+  document.getElementById('w_endDate').value         = w ? w.endDate        : '';
+  document.getElementById('w_contact').value         = w ? w.contact        : '';
+  document.getElementById('w_swpSarra2Id').value     = w ? w.swpSarra2Id    : '';
+  document.getElementById('w_swpSemesterTarget').value= w ? w.swpSemesterTarget: '';
+  document.getElementById('w_swpSupervisor').value   = w ? w.swpSupervisor  : '';
+  document.getElementById('w_notes').value           = w ? w.notes          : '';
+
+  onCategoryChange();
+  openModal('workerModal');
+}
+function saveWorker() {
+  const name = document.getElementById('w_name').value.trim();
+  if (!name) { showToast('⚠️ Name required'); return; }
+  const editId = document.getElementById('w_editId').value;
+  let w = editId ? workers.find(x => x.id === Number(editId)) : null;
+  if (!w) { w = emptyWorker(); workers.push(w); }
+
+  w.category          = document.getElementById('w_category').value;
+  w.name              = name;
+  w.room              = document.getElementById('w_room').value.trim();
+  w.studentId         = document.getElementById('w_studentId').value.trim();
+  w.employeeId        = document.getElementById('w_employeeId').value.trim();
+  w.floor             = document.getElementById('w_floor').value;
+  w.status            = document.getElementById('w_status').value;
+  w.jobTitle          = document.getElementById('w_jobTitle').value.trim();
+  w.assignedArea      = document.getElementById('w_assignedArea').value.trim();
+  w.jobDescriptionId  = document.getElementById('w_jobDocId').value;
+  w.startDate         = document.getElementById('w_startDate').value;
+  w.endDate           = document.getElementById('w_endDate').value;
+  w.contact           = document.getElementById('w_contact').value.trim();
+  w.swpSarra2Id       = document.getElementById('w_swpSarra2Id').value.trim();
+  w.swpSemesterTarget = document.getElementById('w_swpSemesterTarget').value.trim();
+  w.swpSupervisor     = document.getElementById('w_swpSupervisor').value.trim();
+  w.notes             = document.getElementById('w_notes').value.trim();
+  if (!w.createdBy) w.createdBy = DormDB.getCurrentUser();
+
+  DormDB.saveWorkers(workers);
+  closeModal('workerModal');
+  const active = document.querySelector('.tab-panel.active');
+  if (active) {
+    const tab = active.id.replace('tab-', '');
+    const renders = { dashboard: renderDashboard, ra: ()=>renderCategory('RA'), monitor: ()=>renderCategory('Monitor'),
+                      janitor: ()=>renderCategory('Janitor'), swp: ()=>renderCategory('SWP') };
+    if (renders[tab]) renders[tab]();
+  }
+  showToast('✅ Worker saved');
+}
+function deleteWorker() {
+  const id = Number(document.getElementById('w_editId').value);
+  askConfirm('Remove this worker from the system?', () => {
+    workers = workers.filter(w => w.id !== id);
+    DormDB.saveWorkers(workers);
+    closeModal('workerModal');
+    renderDashboard();
+    showToast('Worker removed');
+  });
+}
+
+// ── Render dashboard ──────────────────────────────────────────────────────────
+function renderDashboard() {
+  const active = workers.filter(w => w.status === 'Active');
+  const bycat = cat => active.filter(w => w.category === cat).length;
+
+  document.getElementById('dwStatRow').innerHTML = `
+    <div class="sc ra"><div class="sv">${bycat('RA')}</div><div class="sl">Active RAs</div></div>
+    <div class="sc mon"><div class="sv">${bycat('Monitor')}</div><div class="sl">Monitors</div></div>
+    <div class="sc jan"><div class="sv">${bycat('Janitor')}</div><div class="sl">Janitors</div></div>
+    <div class="sc swp"><div class="sv">${bycat('SWP')}</div><div class="sl">SWP Workers</div></div>
+    <div class="sc"><div class="sv">${workers.filter(w=>w.status!=='Active').length}</div><div class="sl">Inactive</div></div>`;
+
+  // Floor coverage map
+  const floors = ['1','2','3','4'];
+  const raActive = active.filter(w => w.category === 'RA');
+  document.getElementById('floorCoverageGrid').innerHTML = floors.map(f => {
+    const ras = raActive.filter(w => w.floor === f || w.floor === 'All');
+    const covered = ras.length > 0;
+    return `<div class="floor-cell ${covered?'':'uncovered'}">
+      <div class="floor-num">F${f}</div>
+      <div class="floor-ra">${ras.length ? ras.map(w=>w.name.split(' ')[0]).join(', ') : 'Uncovered'}</div>
+    </div>`;
+  }).join('');
+
+  // On duty check via dormSchedule
+  const schedule = DormDB.getSchedule ? DormDB.getSchedule() : (JSON.parse(localStorage.getItem('dormSchedule')||'[]'));
+  const now = new Date();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const curDay = days[now.getDay()];
+  const curTime = now.toTimeString().slice(0,5);
+  const onDuty = [];
+  schedule.forEach(block => {
+    (block.shifts || []).forEach(s => {
+      if (s.day === curDay && s.startTime <= curTime && s.endTime >= curTime) {
+        onDuty.push({ name: block.workerName, category: block.category, area: s.area });
+      }
+    });
+  });
+  document.getElementById('onDutyList').innerHTML = onDuty.length
+    ? onDuty.map(w => `<div style="margin-bottom:6px">${catBadge(w.category)} <strong>${escapeHtml(w.name)}</strong>${w.area ? ` — ${escapeHtml(w.area)}` : ''}</div>`).join('')
+    : `<p style="color:#aaa;font-size:.8rem;padding:8px 0">No scheduled shifts detected for right now.</p><p style="color:#aaa;font-size:.75rem">Add shifts in Staff Scheduling to see live duty status.</p>`;
+
+  // All active workers list
+  document.getElementById('dashWorkerList').innerHTML = active.length
+    ? active.map(w => workerCardHtml(w, false)).join('')
+    : '<p style="color:#aaa;text-align:center;padding:20px">No active workers registered.</p>';
+}
+
+// ── Render category ───────────────────────────────────────────────────────────
+function renderCategory(cat) {
+  const listId = { RA:'raList', Monitor:'monitorList', Janitor:'janitorList', SWP:'swpList' }[cat];
+  const catWorkers = workers.filter(w => w.category === cat)
+    .sort((a,b) => a.status.localeCompare(b.status) || a.name.localeCompare(b.name));
+  if (!catWorkers.length) {
+    document.getElementById(listId).innerHTML = `<div style="text-align:center;color:#aaa;padding:40px;font-size:.85rem">No ${cat} workers yet.</div>`;
+    return;
+  }
+  document.getElementById(listId).innerHTML = catWorkers.map(w => workerCardHtml(w, true)).join('');
+}
+function workerCardHtml(w, showEdit) {
+  return `<div class="worker-card ${catClass(w.category)} ${w.status!=='Active'?'status-inactive':''}">
+    <div class="wc-hdr" onclick="toggleWC('wc_body_${w.id}')">
+      <div>
+        <div class="wc-name">${escapeHtml(w.name)} ${catBadge(w.category)} ${statusBadge(w.status)}</div>
+        <div class="wc-meta">
+          ${w.floor ? `Floor ${escapeHtml(w.floor)}` : ''}
+          ${w.jobTitle ? ` · ${escapeHtml(w.jobTitle)}` : ''}
+          ${w.assignedArea ? ` · ${escapeHtml(w.assignedArea)}` : ''}
+          ${w.room ? ` · Room ${escapeHtml(w.room)}` : ''}
+        </div>
+      </div>
+      ${showEdit ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openWorkerModal('${escapeHtml(w.category)}',${w.id})">✏️</button>` : ''}
+    </div>
+    <div class="wc-body" id="wc_body_${w.id}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        ${w.studentId ? `<div><strong>Student ID:</strong> ${escapeHtml(w.studentId)}</div>` : ''}
+        ${w.employeeId ? `<div><strong>Employee ID:</strong> ${escapeHtml(w.employeeId)}</div>` : ''}
+        ${w.contact ? `<div><strong>Contact:</strong> ${escapeHtml(w.contact)}</div>` : ''}
+        <div><strong>Start:</strong> ${fmtDate(w.startDate)}</div>
+        ${w.endDate ? `<div><strong>End:</strong> ${fmtDate(w.endDate)}</div>` : ''}
+        ${w.swpSarra2Id ? `<div><strong>SARRA2 ID:</strong> ${escapeHtml(w.swpSarra2Id)}</div>` : ''}
+        ${w.swpSemesterTarget ? `<div style="grid-column:1/-1"><strong>Target:</strong> ${escapeHtml(w.swpSemesterTarget)}</div>` : ''}
+        ${w.swpSupervisor ? `<div><strong>Supervisor:</strong> ${escapeHtml(w.swpSupervisor)}</div>` : ''}
+        ${w.notes ? `<div style="grid-column:1/-1"><strong>Notes:</strong> ${escapeHtml(w.notes)}</div>` : ''}
+      </div>
+      ${!showEdit ? `<div class="btn-row"><button class="btn btn-ghost btn-sm" onclick="openWorkerModal('${escapeHtml(w.category)}',${w.id})">✏️ Edit</button></div>` : ''}
+    </div>
+  </div>`;
+}
+function toggleWC(id) { const el = document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+// ── Job documents ─────────────────────────────────────────────────────────────
+function openJobDocModal(id) {
+  const isEdit = id != null;
+  document.getElementById('jdModalTitle').textContent = isEdit ? 'Edit Job Document' : 'Create Job Document';
+  document.getElementById('jd_deleteBtn').style.display = isEdit ? '' : 'none';
+  document.getElementById('jd_editId').value = id || '';
+
+  let doc = isEdit ? (workersCfg.jobDocs || []).find(d => d.id === id) : null;
+  document.getElementById('jd_category').value         = doc ? doc.category        : 'RA';
+  document.getElementById('jd_title').value            = doc ? doc.title           : '';
+  document.getElementById('jd_responsibilities').value = doc ? (doc.responsibilities||[]).join('\n') : '';
+  document.getElementById('jd_requirements').value     = doc ? doc.requirements    : '';
+  document.getElementById('jd_compensation').value     = doc ? doc.compensation    : '';
+  document.getElementById('jd_version').value          = doc ? doc.version         : '1.0';
+  openModal('jobDocModal');
+}
+function saveJobDoc() {
+  const title = document.getElementById('jd_title').value.trim();
+  if (!title) { showToast('⚠️ Title required'); return; }
+  const editId = document.getElementById('jd_editId').value;
+  const docs   = workersCfg.jobDocs || [];
+  let doc = editId ? docs.find(d => d.id === Number(editId)) : null;
+  if (!doc) {
+    doc = { id: Date.now(), createdBy: DormDB.getCurrentUser(), createdAt: new Date().toISOString() };
+    docs.push(doc);
+  }
+  doc.category        = document.getElementById('jd_category').value;
+  doc.title           = title;
+  doc.responsibilities= document.getElementById('jd_responsibilities').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  doc.requirements    = document.getElementById('jd_requirements').value.trim();
+  doc.compensation    = document.getElementById('jd_compensation').value.trim();
+  doc.version         = document.getElementById('jd_version').value.trim() || '1.0';
+  workersCfg.jobDocs  = docs;
+  DormDB.saveWorkersCfg(workersCfg);
+  closeModal('jobDocModal');
+  renderJobDocs();
+  showToast('✅ Job document saved');
+}
+function deleteJobDoc() {
+  const id = Number(document.getElementById('jd_editId').value);
+  askConfirm('Delete this job document?', () => {
+    workersCfg.jobDocs = (workersCfg.jobDocs || []).filter(d => d.id !== id);
+    DormDB.saveWorkersCfg(workersCfg);
+    closeModal('jobDocModal');
+    renderJobDocs();
+    showToast('Document deleted');
+  });
+}
+function renderJobDocs() {
+  const docs = workersCfg.jobDocs || [];
+  const el = document.getElementById('jobDocList');
+  if (!docs.length) {
+    el.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;font-size:.85rem">No job documents yet. Create one to attach to workers and print agreements.</div>';
+    return;
+  }
+  el.innerHTML = docs.map(doc => `
+    <div class="jd-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="jd-title">${escapeHtml(doc.title)} ${catBadge(doc.category)}</div>
+          <div class="jd-meta">v${escapeHtml(doc.version||'1.0')} · Created by ${escapeHtml(doc.createdBy||'—')}</div>
+        </div>
+        <div class="btn-row" style="margin:0;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="openJobDocModal(${doc.id})">✏️ Edit</button>
+          <button class="btn btn-primary btn-sm" onclick="printAgreement(${doc.id})">🖨️ Print</button>
+        </div>
+      </div>
+      ${doc.responsibilities && doc.responsibilities.length ? `
+        <ul style="margin:8px 0 0 14px;font-size:.8rem;color:#555">
+          ${doc.responsibilities.map(r=>`<li>${escapeHtml(r)}</li>`).join('')}
+        </ul>` : ''}
+      ${doc.requirements ? `<p style="font-size:.79rem;color:#888;margin-top:6px"><strong>Requirements:</strong> ${escapeHtml(doc.requirements)}</p>` : ''}
+      ${doc.compensation ? `<p style="font-size:.79rem;color:#888;margin-top:2px"><strong>Compensation:</strong> ${escapeHtml(doc.compensation)}</p>` : ''}
+    </div>`).join('');
+}
+function printAgreement(docId) {
+  const doc  = (workersCfg.jobDocs || []).find(d => d.id === docId);
+  if (!doc) return;
+  const dorm = DormDB.getDormName();
+  const win  = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(doc.title)}</title>
+  <style>
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:9.5pt;color:#111;padding:0;margin:0}
+  h1{font-size:13pt;margin-bottom:2mm}h2{font-size:11pt;margin:7pt 0 3pt}
+  ul{margin-left:5mm;padding:0}li{margin-bottom:1.5pt}
+  .sig{display:flex;gap:20mm;margin-top:18mm}
+  .sig-line{flex:1;border-top:1pt solid #555;padding-top:4pt;font-size:8.5pt;color:#555}
+  @page{size:A4 portrait;margin:18mm 16mm}
+  </style></head><body>
+  <p style="font-size:8pt;color:#888;margin-bottom:3mm">${escapeHtml(dorm)}</p>
+  <h1>${escapeHtml(doc.title)}</h1>
+  <p style="font-size:8.5pt;color:#888;margin-bottom:6mm">Category: ${escapeHtml(doc.category)} &nbsp;·&nbsp; Version ${escapeHtml(doc.version||'1.0')} &nbsp;·&nbsp; ${new Date().toLocaleDateString()}</p>
+  ${doc.responsibilities && doc.responsibilities.length ? `<h2>Responsibilities</h2><ul>${doc.responsibilities.map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul>` : ''}
+  ${doc.requirements ? `<h2>Requirements</h2><p>${escapeHtml(doc.requirements)}</p>` : ''}
+  ${doc.compensation ? `<h2>Compensation / Benefits</h2><p>${escapeHtml(doc.compensation)}</p>` : ''}
+  <h2>Agreement</h2>
+  <p style="font-size:8.5pt">I have read and understood the responsibilities and requirements listed above, and I agree to fulfill them during my assignment.</p>
+  <div class="sig">
+    <div class="sig-line">Worker Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Name / Date</div>
+    <div class="sig-line">Dean / Supervisor Signature &nbsp;&nbsp;&nbsp; Date</div>
+  </div>
+  </body></html>`);
+  win.document.close();
+  win.print();
+}
+
+// ── Dialogs ───────────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function askConfirm(msg, fn) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmYes').onclick = () => { closeModal('confirmModal'); fn(); };
+  openModal('confirmModal');
+}
+let _toastTimer;
+function showToast(msg, dur=3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['workerModal','jobDocModal','confirmModal'].forEach(closeModal);
+});
+window.addEventListener('scroll', ()=>{
+  document.getElementById('scrollTopBtn').classList.toggle('show', window.scrollY>300);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const back   = params.get('back');
+  if (back) {
+    const el = document.getElementById('backLink');
+    el.href        = back + '.html';
+    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  document.getElementById('navUser').textContent = DormDB.getCurrentUser();
+
+  workers    = DormDB.getWorkers();
+  workersCfg = DormDB.getWorkersCfg();
+
+  // If URL has ?worker=id, open that worker for editing
+  const wId = params.get('worker');
+  if (wId) {
+    const w = workers.find(x => x.id === Number(wId));
+    if (w) { openWorkerModal(w.category, w.id); }
+  }
+
+  DormDB.on(DormDB.KEYS.WORKERS, () => {
+    workers = DormDB.getWorkers();
+    const active = document.querySelector('.tab-panel.active');
+    if (active) {
+      const tab = active.id.replace('tab-', '');
+      const renders = { dashboard: renderDashboard, ra: ()=>renderCategory('RA'),
+                        monitor: ()=>renderCategory('Monitor'), janitor: ()=>renderCategory('Janitor'),
+                        swp: ()=>renderCategory('SWP') };
+      if (renders[tab]) renders[tab]();
+    }
+  });
+  DormDB.on(DormDB.KEYS.WORKERS_CFG, () => {
+    workersCfg = DormDB.getWorkersCfg();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-jobdocs') renderJobDocs();
+  });
+
+  renderDashboard();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

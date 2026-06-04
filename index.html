@@ -242,7 +242,7 @@ const MODULES = [
     title: 'Dorm Workers',
     desc: 'HR register for RAs, Monitors, Janitors, and SWP workers. Job descriptions, agreements, and SARRA2 cross-reference.',
     file: 'modules/dorm-workers.html',
-    ready: false,
+    ready: true,
     getStats(s) {
       const pills = [];
       if (s.activeWorkers > 0) pills.push({ label: s.activeWorkers + ' active workers', cls: 'blue' });
