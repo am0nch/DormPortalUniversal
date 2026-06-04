@@ -313,12 +313,16 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>👤 Student Profiles</td><td>Full student directory with photos, Registrar/MS Forms import</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🏢 Floor Plan</td><td>Visual room grid with occupancy colors and bathroom pairing</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>⚡ Electricity & Hot Water</td><td>Meter readings and per-student utility bill calculation</td><td><span class="badge badge-green">Ready</span></td></tr>
-            <tr><td>📊 Reports</td><td>8-tab hub: archive, room, custom, pivot, holds, storage, clearance, fees</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📊 Reports</td><td>10-tab hub: archive, room, custom, pivot, holds, storage, clearance, fees, attendance, incidents</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔑 Key Inventory</td><td>Key checkout, return, lost key tracking, fines, shift print</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔍 Room Inspection</td><td>Move-in/out checklists, damage charges, clearance pre-fill</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>📦 Inventory</td><td>Asset tracking, Code 39 barcodes, room template comparison</td><td><span class="badge badge-green">Ready</span></td></tr>
-            <tr><td>📅 Staff Scheduling</td><td>Shift rosters and attendance for dorm staff</td><td><span class="badge badge-coming">Coming soon</span></td></tr>
-            <tr><td>🔧 Maintenance</td><td>Plant Service request tracking from open to resolved</td><td><span class="badge badge-coming">Coming soon</span></td></tr>
+            <tr><td>📅 Nightly Attendance</td><td>Nightly roll call, curfew countdown, SARRA2 leave import, session history</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🚨 Incident Reports</td><td>Behavioral incident tracking, SARRA2 CSV export, handbook fine defaults</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🎓 Student Admin</td><td>Off-campus move requests (30-day notice), Dean's assistance log</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>👷 Dorm Workers</td><td>HR register for RAs, Monitors, Janitors, SWP workers; job documents</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📆 Staff Scheduling</td><td>Weekly shift grid, on-duty detection, A4 print sheet</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🔧 Maintenance</td><td>Plant service request tracking, urgency levels, dashboard chart</td><td><span class="badge badge-green">Ready</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -660,7 +664,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <span class="section-badge ready">Ready</span>
     </div>
 
-    <p style="margin-bottom:16px">The Reports module has <strong>8 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
+    <p style="margin-bottom:16px">The Reports module has <strong>10 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
 
     <div class="subsection" id="sub-rpt-archive">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📁 Archive Tab</div>
@@ -727,6 +731,33 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <li>Lost key fines not yet collected</li>
         </ul>
         <p>Click <strong>🖨️ Print Fee Report</strong> to generate an A4 summary for Finance.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-attendance">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📅 Attendance Report Tab</div>
+      <div class="collapse-body">
+        <p>Summarizes nightly attendance data from the Nightly Attendance module:</p>
+        <ul>
+          <li><strong>Stat cards</strong> — total sessions, absent count last night, sessions this semester, average absent rate</li>
+          <li><strong>Per-student absence table</strong> — counts how many times each student was marked Absent. Rows where the count exceeds 3 are highlighted in orange.</li>
+          <li><strong>Session log</strong> — full list of past sessions: date, floor, conducted-by, present/absent/on-leave counts</li>
+        </ul>
+        <p>Click <strong>🖨️ Print Attendance Report</strong> for an A4 summary — useful for semester-end reviews or parent communication.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>This tab reads from the Nightly Attendance module. If no attendance sessions exist yet, the tab will show empty stats.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-incidents">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🚨 Incidents Report Tab</div>
+      <div class="collapse-body">
+        <p>Summarizes incident data from the Incident Reports module:</p>
+        <ul>
+          <li><strong>By-type summary</strong> — count of incidents per type for the semester (Curfew Violation, Noise, Property Damage, etc.)</li>
+          <li><strong>Unresolved incidents table</strong> — all incidents not yet resolved, with date, type, students involved, and severity</li>
+          <li><strong>SARRA2 export backlog</strong> — count of incident records not yet exported to SARRA2, with a direct link to the Incident Reports module to take action</li>
+        </ul>
+        <p>Click <strong>🖨️ Print Incidents Report</strong> for an A4 summary.</p>
       </div>
     </div>
   </section>
@@ -994,6 +1025,535 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- NIGHTLY ATTENDANCE                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-attendance">
+    <div class="section-header">
+      <span class="section-icon">📅</span>
+      <div class="section-meta">
+        <div class="section-title">Nightly Attendance</div>
+        <div class="section-path">modules/attendance.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-att-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Nightly Attendance module is designed for <strong>mobile use by RAs</strong> during the nightly room check. It records each student's status — Present, Absent, On Leave, Away, Exempt, or Not Set — against a live curfew countdown. Sessions are linked to a semester label and can be archived at semester end.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>⏰ APIU Curfew Defaults</h4>
+            <p>Pre-configured from the APIU Residence Hall Handbook:</p>
+            <ul>
+              <li><strong>Weekdays (Sun–Fri):</strong> 22:00</li>
+              <li><strong>Saturday:</strong> 23:00</li>
+              <li><strong>Grace period:</strong> 15 minutes after closing</li>
+              <li><strong>Outside doors lock until:</strong> 05:00</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>📋 Five Tabs</h4>
+            <ul>
+              <li><strong>Dashboard</strong> — last session summary, 7-day trend, countdown</li>
+              <li><strong>Take Attendance</strong> — active session roster</li>
+              <li><strong>Leave Import</strong> — SARRA2 leave snapshot</li>
+              <li><strong>History</strong> — past sessions</li>
+              <li><strong>Settings</strong> — curfew times, archive</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-att-taking">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Taking Attendance</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Go to the <strong>Take Attendance</strong> tab. If no session is open for today, click <strong>+ Open Session</strong>.</li>
+          <li>Select the floor (All / 1 / 2 / 3 / 4), enter the actual check time, and optionally select the RA on duty from the Dorm Workers roster.</li>
+          <li>The roster is pre-built from all current Room Reservations (excluding Away students). Students on the SARRA2 leave import are auto-marked <strong>On Leave</strong>.</li>
+          <li>For each student, tap the appropriate button: <strong>✓ Present · ✗ Absent · 🌙 Leave · 📝 Exempt</strong>. A sticky live tally bar at the top of the screen updates with every tap.</li>
+          <li>For <strong>Exempt</strong> status, an exemption note is required (e.g., "Late return approved by dean").</li>
+          <li>Click <strong>Complete Session</strong> when all students are marked. If any students are Absent, you are prompted: <em>"Create Incident Reports for absent students?"</em></li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span><strong>Mobile tip:</strong> Each row shows Room + Name + 4 status buttons in a single-column layout with no horizontal scrolling. Designed to be used one-handed on a phone while walking the corridor.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-att-statuses">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Status Values</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Status</th><th>When to use</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Present</strong></td><td>Student is confirmed in their room</td><td>Manual</td></tr>
+            <tr><td><strong>Absent</strong></td><td>Not in room — no approved reason</td><td>Manual</td></tr>
+            <tr><td><strong>On Leave</strong></td><td>Student has campus leave approved via SARRA2</td><td>Auto (leave import) or Manual</td></tr>
+            <tr><td><strong>Away</strong></td><td>Student is in the Away Students panel in Room Reservations</td><td>Auto</td></tr>
+            <tr><td><strong>Exempt</strong></td><td>Late return with dean's permission — requires exemption note</td><td>Manual + note</td></tr>
+            <tr><td><strong>Not Set</strong></td><td>Default — not yet marked. Session is incomplete until all are set.</td><td>Default</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-att-leave">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> SARRA2 Leave Import</div>
+      <div class="collapse-body">
+        <p>Students on approved campus leave from SARRA2 can be pre-marked <strong>On Leave</strong> automatically to avoid being counted as Absent.</p>
+        <ol class="steps">
+          <li>In SARRA2, export the current approved campus leave list as a CSV or text file.</li>
+          <li>Go to the <strong>Leave Import</strong> tab in Nightly Attendance.</li>
+          <li>Click <strong>Choose File</strong> and select the file. The system parses it flexibly — it looks for columns containing "id", "name", and "return" keywords regardless of exact column names.</li>
+          <li>Click <strong>Import</strong> to replace the current leave snapshot. Students on the list are auto-marked "On Leave" in the next session.</li>
+        </ol>
+        <div class="warn"><span class="warn-icon">⚠️</span><span><strong>Snapshot, not a ledger:</strong> Each import replaces the previous list entirely. Import a fresh SARRA2 export each week to keep it current. The import date is shown in the Dashboard and Leave Import tabs.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-att-history">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> History &amp; Archive</div>
+      <div class="collapse-body">
+        <p>The <strong>History</strong> tab shows all completed sessions for the current semester. Click any session row to expand and view the full roster with each student's status, plus an absent list for follow-up.</p>
+        <ul>
+          <li>Filter sessions by date range.</li>
+          <li><strong>Print Session Record</strong> opens an A4 portrait window with the full roster, curfew time, RA on duty, and a signature line — for physical records.</li>
+        </ul>
+        <div class="warn"><span class="warn-icon">⚠️</span><span><strong>Storage budget:</strong> Sessions accumulate ~5 KB each. At semester end, go to <strong>Settings → Archive This Semester</strong> to move all current-semester sessions to archive storage. This keeps the active data key lean and prevents localStorage from filling up over the year.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-att-settings">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Settings</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Setting</th><th>Default</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>Weekday curfew (Sun–Fri)</td><td>22:00</td><td>From APIU Handbook</td></tr>
+            <tr><td>Saturday curfew</td><td>23:00</td><td>From APIU Handbook</td></tr>
+            <tr><td>Grace period</td><td>15 minutes</td><td>Check starts 15 min after closing, per handbook</td></tr>
+            <tr><td>Semester label</td><td>1st Semester 2026</td><td>Stamped on all sessions; used for archiving</td></tr>
+            <tr><td>Auto-create incidents for absent</td><td>On</td><td>Prompts to create curfew violation stubs after session</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- INCIDENT REPORTS                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-incidents">
+    <div class="section-header">
+      <span class="section-icon">🚨</span>
+      <div class="section-meta">
+        <div class="section-title">Incident Reports</div>
+        <div class="section-path">modules/incidents.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-inc-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Incident Reports module documents behavioral incidents in the dormitory. Each report records the students involved, the incident type and severity, fines suggested (pre-filled from APIU handbook defaults), citizenship point recommendations for SARRA2, and follow-up tracking.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📋 Five Tabs</h4>
+            <ul>
+              <li><strong>Dashboard</strong> — unresolved count, follow-up overdue alerts</li>
+              <li><strong>New Report</strong> — create an incident record</li>
+              <li><strong>Active</strong> — unresolved incidents</li>
+              <li><strong>History</strong> — all records with filters</li>
+              <li><strong>Settings</strong> — fine defaults, point suggestions</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>🏷️ Incident Types</h4>
+            <ul>
+              <li>Curfew Violation · Noise Complaint</li>
+              <li>Property Damage · Unauthorized Room Change</li>
+              <li>Unauthorized Entry · Harassment</li>
+              <li>Cleanliness · Theft · Other</li>
+            </ul>
+          </div>
+        </div>
+        <div class="note"><span class="note-icon">ℹ️</span><span><strong>Curfew violations from Attendance:</strong> When you complete a nightly attendance session with absent students and confirm the prompt, the system automatically creates pre-filled curfew violation stubs for each absent student — linked back to that attendance session.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inc-create">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Creating an Incident Report</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Go to the <strong>New Report</strong> tab. Fill in the date, time, and incident type.</li>
+          <li>Set severity: <strong>Minor · Moderate · Major · Emergency</strong>.</li>
+          <li>Use the student lookup to search by name or ID. Click <strong>+ Add</strong> for each student involved.</li>
+          <li>Assign a role to each: <strong>Primary</strong> (main offender), <strong>Secondary</strong> (involved), or <strong>Witness</strong>.</li>
+          <li>The <strong>Fine Suggested</strong> and <strong>Citizenship Points</strong> fields are pre-filled from handbook defaults — edit as needed.</li>
+          <li>Fill in Description, Witnesses, and Action Taken. Check <strong>Follow-Up Required</strong> and set a date if the case is ongoing.</li>
+          <li>Click <strong>Save Report</strong>. If citizenship points are recorded, you are prompted to export to SARRA2 immediately.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inc-followup">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Follow-Up &amp; Resolving</div>
+      <div class="collapse-body">
+        <p>The <strong>Active</strong> tab shows all unresolved incidents. The Dashboard highlights overdue follow-ups in orange.</p>
+        <ul>
+          <li>Click any active incident to add follow-up notes or update the follow-up date.</li>
+          <li>When the case is closed, click <strong>✅ Resolve</strong>. The incident moves to History with a resolved timestamp and resolution details.</li>
+          <li>Incidents from Nightly Attendance show the originating session ID — click it to navigate back for context.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inc-sarra2">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> SARRA2 CSV Export</div>
+      <div class="collapse-body">
+        <p>Incident records with citizenship point deductions must be reported to SARRA2. The export flow:</p>
+        <ol class="steps">
+          <li>Go to the <strong>History</strong> tab. Check the boxes next to records to export.</li>
+          <li>Click <strong>Export Selected for SARRA2</strong>. A <code>.csv</code> file downloads instantly (no internet required).</li>
+          <li>CSV columns: <code>StudentID, Name, Room, IncidentDate, Type, Severity, PointsDeducted, FineSuggested, Notes</code></li>
+          <li>Import in SARRA2 following SARRA2's citizenship points import procedure.</li>
+          <li>Back here, click <strong>Mark SARRA2 Sent</strong> on each exported record to clear the backlog counter on the Dashboard.</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span>The Dashboard shows an "X records not yet exported" counter. The Reports → Incidents tab also shows this backlog with a direct link here to take action.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inc-settings">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Fine Defaults (Handbook Policy)</div>
+      <div class="collapse-body">
+        <p>Fine defaults are pre-loaded from the APIU Residence Hall Handbook (2017 edition). Edit them in the <strong>Settings</strong> tab if policy changes:</p>
+        <table class="guide-table">
+          <thead><tr><th>Incident Type</th><th>Default Fine</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>Unauthorized Room Change</td><td>1,000 ฿</td><td>APIU Handbook</td></tr>
+            <tr><td>Improper Check-Out</td><td>500 ฿</td><td>APIU Handbook</td></tr>
+            <tr><td>Curfew Violation</td><td>0 (dean's discretion)</td><td>Handbook: "disciplinary action"</td></tr>
+            <tr><td>Property Damage</td><td>0 (varies)</td><td>Dean fills in per case</td></tr>
+          </tbody>
+        </table>
+        <p>Default <strong>citizenship point suggestions</strong> per severity level (Minor / Moderate / Major / Emergency) can also be configured in the Settings tab.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- STUDENT ADMIN                                                     -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-student-admin">
+    <div class="section-header">
+      <span class="section-icon">🎓</span>
+      <div class="section-meta">
+        <div class="section-title">Student Admin</div>
+        <div class="section-path">modules/student-admin.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-sa-offcampus">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Off-Campus Move Requests</div>
+      <div class="collapse-body">
+        <p>Manages formal applications from students who wish to leave the dormitory before graduating. The APIU handbook requires <strong>one month written notice</strong> — this module enforces that policy with a compliance badge on every request.</p>
+        <ol class="steps">
+          <li>Click <strong>+ New Request</strong>. Search for the student by name or ID.</li>
+          <li>Set: Request Date, Target Move Date, Reason, and New Address.</li>
+          <li>Set the <strong>Notice Given Date</strong>. The system automatically calculates whether 30 days pass before the Target Move Date and shows: <span class="badge badge-green">✓ 30-day notice met</span> or <span class="badge badge-red">✗ Notice too short</span>.</li>
+          <li>If a waiver applies, select the Waiver Category and check Waiver Documented.</li>
+          <li>Record parent approval details if required. Click <strong>Save</strong>.</li>
+        </ol>
+        <table class="guide-table">
+          <thead><tr><th>Waiver Category</th><th>Condition (APIU Handbook)</th></tr></thead>
+          <tbody>
+            <tr><td>Commute &lt;50 km</td><td>Home address is within 50 km of campus</td></tr>
+            <tr><td>6+ Semesters</td><td>Student has completed 6 or more semesters</td></tr>
+            <tr><td>Married</td><td>Student is legally married</td></tr>
+            <tr><td>Health/Disability</td><td>Medical or disability documentation on file</td></tr>
+            <tr><td>Internship</td><td>Approved off-campus internship placement</td></tr>
+            <tr><td>Self-Supporting</td><td>Working 20+ hrs/week and financially independent</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sa-workflow">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Request Status Workflow</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Status</th><th>Meaning</th><th>Next action</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-orange">Pending</span></td><td>Submitted, awaiting review</td><td>Open and set to Under Review</td></tr>
+            <tr><td><span class="badge badge-blue">Under Review</span></td><td>Dean is assessing</td><td>Add review notes; Approve or Reject</td></tr>
+            <tr><td><span class="badge badge-green">Approved</span></td><td>Move is permitted</td><td>Click Start Clearance (see below)</td></tr>
+            <tr><td><span class="badge badge-red">Rejected</span></td><td>Not permitted; reason in review notes</td><td>Notify student</td></tr>
+            <tr><td><span class="badge badge-gray">Completed</span></td><td>Student has moved out and clearance is done</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sa-clearance">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Clearance Integration</div>
+      <div class="collapse-body">
+        <p>Once a request is <span class="badge badge-green">Approved</span>, the <strong>Start Clearance</strong> button appears. Clicking it:</p>
+        <ul>
+          <li>Sets the student's Move Out Reason to <strong>Off Campus → Leaving Dorm</strong> in Room Reservations</li>
+          <li>Sets the Leave Date to match the request's Target Move Date</li>
+          <li>The <strong>📋 Clearance</strong> button appears on the student's Room Reservations row automatically</li>
+        </ul>
+        <p>Complete the clearance process in Room Reservations: meter readings, fee assessment, Archive &amp; Vacate. No double entry needed.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>A toast confirms: "Clearance started — complete in Room Reservations." The request's status updates to reflect that clearance has been initiated.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sa-assistance">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dean's Assistance Log</div>
+      <div class="collapse-body">
+        <p>The <strong>Assistance Log</strong> tab is a private record of ad hoc support provided to students — hospital transport, counseling, emergency response, financial help, and more.</p>
+        <ol class="steps">
+          <li>Click <strong>+ New Entry</strong>. Set date, time, and assistance type.</li>
+          <li>Search for students involved. Multiple students can be added (e.g., a group airport pickup).</li>
+          <li>Fill in Description and Outcome. Record Hours Spent and any out-of-pocket Cost (for reimbursement records).</li>
+          <li>Check <strong>Follow-Up Required</strong> and set a date if needed. Overdue follow-ups are highlighted orange in the list.</li>
+        </ol>
+        <table class="guide-table">
+          <thead><tr><th>Assistance Type</th><th>Examples</th></tr></thead>
+          <tbody>
+            <tr><td>Hospital Transport</td><td>Driving a sick student to hospital</td></tr>
+            <tr><td>Airport Transport</td><td>New student pickup, semester-end drop-off</td></tr>
+            <tr><td>Emergency Response</td><td>Medical emergency, fire, injury on campus</td></tr>
+            <tr><td>Financial Assistance</td><td>Emergency loan, food support coordination</td></tr>
+            <tr><td>Counseling</td><td>Mental health, personal crisis, homesickness</td></tr>
+            <tr><td>Administrative Help</td><td>Paperwork, visa, registration assistance</td></tr>
+            <tr><td>Disciplinary Follow-up</td><td>Post-incident check-in with student</td></tr>
+            <tr><td>Family Liaison</td><td>Parent communication on student's behalf</td></tr>
+          </tbody>
+        </table>
+        <p>The <strong>Reports</strong> tab in Student Admin summarizes assistance hours by dean for the semester and counts by type — useful for end-of-semester performance reviews.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- DORM WORKERS                                                      -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-dorm-workers">
+    <div class="section-header">
+      <span class="section-icon">👷</span>
+      <div class="section-meta">
+        <div class="section-title">Dorm Workers</div>
+        <div class="section-path">modules/dorm-workers.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-dw-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Dorm Workers module is the <strong>HR register for all dorm staff</strong>. It is the single source of truth for the worker roster — Staff Scheduling reads its data to populate shift grids, and Nightly Attendance uses it to populate the RA on Duty selector.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>👥 Six Tabs</h4>
+            <ul>
+              <li><strong>Dashboard</strong> — active count, floor coverage, on-duty now</li>
+              <li><strong>Resident Assistants</strong> — RA roster</li>
+              <li><strong>Monitors</strong> — Monitor roster</li>
+              <li><strong>Janitors</strong> — Employed cleaning staff</li>
+              <li><strong>SWP</strong> — Student Work Program workers</li>
+              <li><strong>Job Documents</strong> — agreements and job descriptions</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>🏷️ Worker Statuses</h4>
+            <ul>
+              <li><span class="badge badge-green">Active</span> — currently employed/assigned</li>
+              <li><span class="badge badge-orange">On Leave</span> — temporarily absent</li>
+              <li><span class="badge badge-gray">Completed</span> — contract/assignment ended</li>
+              <li><span class="badge badge-red">Terminated</span> — dismissed</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-dw-categories">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Worker Categories</div>
+      <div class="collapse-body">
+        <table class="guide-table">
+          <thead><tr><th>Category</th><th>Who</th><th>Key fields</th></tr></thead>
+          <tbody>
+            <tr><td><strong>RA</strong></td><td>Student RAs assigned to floors</td><td>Floor assignment, room number, contact</td></tr>
+            <tr><td><strong>Monitor</strong></td><td>Student or staff monitors</td><td>Assigned area, shift timing label</td></tr>
+            <tr><td><strong>Janitor</strong></td><td>Employed cleaning staff (not students)</td><td>Employee ID, area assignments, employment dates</td></tr>
+            <tr><td><strong>SWP</strong></td><td>Student Work Program workers</td><td>SARRA2 SWP ID, supervisor, semester target</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="note-icon">ℹ️</span><span><strong>SWP workers:</strong> Actual work hours and fee credits are tracked in <strong>SARRA2</strong>. The Dorm Workers module stores only the assignment details and the SARRA2 cross-reference ID. The SWP tab prominently displays this ID for quick SARRA2 lookup.</span></div>
+        <div class="tip"><span class="tip-icon">💡</span><span>Add a new worker via the <strong>+ Add [Category]</strong> button on any category tab. Fill in name, assignment details, start date, and status. The worker immediately appears in Staff Scheduling's shift grid.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-dw-coverage">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dashboard — Floor Coverage</div>
+      <div class="collapse-body">
+        <p>The Dashboard shows a <strong>floor coverage grid</strong> — one card per floor (F1–F4) showing which RAs are currently Active on that floor. A floor without an active assigned RA shows an <span class="badge badge-red">Uncovered</span> indicator.</p>
+        <p>The <strong>On Duty Now</strong> section cross-references the current time against Staff Scheduling shift data to highlight workers currently scheduled. If Staff Scheduling has no shifts yet, this section is empty.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>Click <strong>View in Schedule →</strong> on any worker to jump to their schedule in Staff Scheduling. Staff Scheduling has <strong>Edit Worker →</strong> links back here.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-dw-jobdocs">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Job Documents</div>
+      <div class="collapse-body">
+        <p>Create and maintain official job descriptions and employment agreements for each category — used for onboarding new staff and documenting expectations.</p>
+        <ol class="steps">
+          <li>Go to the <strong>Job Documents</strong> tab. Select a category and click <strong>+ New Document</strong>.</li>
+          <li>Fill in: Title, Responsibilities (each added as a separate bullet point), Requirements, Compensation description, and Version (e.g., "1.0").</li>
+          <li>Click <strong>Save</strong>.</li>
+          <li>To print an A4 agreement with signature lines, open the document and click <strong>🖨️ Print Agreement</strong>. The document includes the worker's assigned area, start date, and the current dorm name.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- STAFF SCHEDULING                                                  -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-scheduling">
+    <div class="section-header">
+      <span class="section-icon">📆</span>
+      <div class="section-meta">
+        <div class="section-title">Staff Scheduling</div>
+        <div class="section-path">modules/staff-scheduling.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-sched-weekly">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Weekly View</div>
+      <div class="collapse-body">
+        <p>The Weekly View is a <strong>Mon–Sun grid</strong> with one row per active worker from the Dorm Workers module. Each cell represents one day; filled cells show colored shift chips.</p>
+        <ul>
+          <li>Click any cell (or an existing shift chip) to open the shift editor modal.</li>
+          <li>Set: Start Time, End Time, Area, and Duties description.</li>
+          <li>Shifts are color-coded by category: <span class="badge badge-blue">RA</span> <span class="badge badge-orange">Monitor</span> <span class="badge badge-green">Janitor</span> <span class="badge badge-gray">SWP</span></li>
+          <li>Navigate weeks with the <strong>← Previous</strong> / <strong>Next →</strong> buttons.</li>
+          <li>Filter by category using the filter chips to show only one category at a time.</li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span>The <strong>Settings</strong> tab has default start/end times per category — set typical hours once and they pre-fill every new shift for that category.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sched-onduty">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> On-Duty Detection</div>
+      <div class="collapse-body">
+        <p>A <strong>Who's On Duty Now?</strong> banner at the top of the Weekly View reads the current system clock and highlights all workers with a shift that covers the current day and time. Quickly identify who to contact for a floor incident without searching the full grid.</p>
+        <p>The same logic powers the <strong>Dorm Workers Dashboard</strong> "On Duty Now" section and the <strong>Nightly Attendance</strong> "RA on Duty" dropdown — all three sources read from the same shift data.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sched-print">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> My Schedule &amp; Print Shift Sheet</div>
+      <div class="collapse-body">
+        <p><strong>My Schedule</strong> is a filtered view showing only the shifts of the currently logged-in user (matched by name against the Dorm Workers roster). Useful for RAs checking their own week.</p>
+        <p><strong>Print Shift Sheet</strong> opens an A4 landscape print window with the full week's schedule, grouped by category. Includes dorm name, week date range, each worker's name, and shift times per day. Post this on the notice board at the start of each week.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- MAINTENANCE                                                       -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-maintenance">
+    <div class="section-header">
+      <span class="section-icon">🔧</span>
+      <div class="section-meta">
+        <div class="section-title">Maintenance</div>
+        <div class="section-path">modules/plant-requests.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-maint-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Maintenance module tracks all plant service and repair requests from creation through resolution. Requests can be entered manually, or pushed automatically from the <strong>Inventory</strong> module (flagged items) and the <strong>Room Inspection</strong> module (Poor/Missing items at move-out).</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📋 Four Tabs</h4>
+            <ul>
+              <li><strong>Dashboard</strong> — urgency chart, hot rooms, resolution trend</li>
+              <li><strong>Requests</strong> — all open requests + quick status actions</li>
+              <li><strong>History</strong> — completed and deferred records</li>
+              <li><strong>Settings</strong> — default assignee name</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>🏷️ Request Categories</h4>
+            <ul>
+              <li>Electrical · Plumbing · Furniture</li>
+              <li>HVAC · Structural · Cleaning · Other</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-maint-create">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Creating a Request</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>Go to the <strong>Requests</strong> tab and click <strong>+ New Request</strong>.</li>
+          <li>Set: Room/Floor, Location description, Category, and Urgency level.</li>
+          <li>Write a clear Description of the problem.</li>
+          <li>Assign to a staff member (defaults to the name in Settings) and set a Target Date.</li>
+          <li>Click <strong>Save</strong>. The request is created with status <span class="badge badge-orange">Open</span>.</li>
+        </ol>
+        <table class="guide-table">
+          <thead><tr><th>Urgency</th><th>When to use</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-gray">Low</span></td><td>Minor cosmetic issue; can wait for the next maintenance cycle</td></tr>
+            <tr><td><span class="badge badge-blue">Normal</span></td><td>Standard repair; no immediate impact on residents</td></tr>
+            <tr><td><span class="badge badge-orange">High</span></td><td>Impacting comfort or safety; schedule within days</td></tr>
+            <tr><td><span class="badge badge-red">Emergency</span></td><td>Immediate safety hazard — water leak, electrical fault, structural damage</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-maint-dashboard">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dashboard &amp; Status Updates</div>
+      <div class="collapse-body">
+        <p>The Dashboard provides an at-a-glance picture of the current situation:</p>
+        <ul>
+          <li><strong>Open Requests by Urgency</strong> — bar chart with counts. The main menu card shows <span class="badge badge-orange">N open</span> and <span class="badge badge-red">N high urgency</span> pills from this data.</li>
+          <li><strong>Hot Rooms</strong> — rooms with 2 or more open requests grouped together, for efficient multi-task visits.</li>
+          <li><strong>Average Days to Resolution</strong> — rolling average over the last 90 days of completed requests.</li>
+        </ul>
+        <p>To advance a request status, use the quick-action buttons on any open row in the Requests tab: <strong>Open → In Progress → Pending Parts → Completed</strong> (or <strong>Deferred</strong> if postponed). No modal required for simple progressions.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-maint-integration">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Integration with Room Inspection &amp; Inventory</div>
+      <div class="collapse-body">
+        <p>Maintenance requests can be created automatically from two other modules:</p>
+        <div style="display:flex;flex-direction:column;gap:6px;margin:10px 0">
+          <div class="flow-row"><span class="from">Room Inspection</span><span class="arrow">→</span><span class="to">Maintenance</span><span class="desc">Poor/Missing items at move-out → stub requests created automatically on save</span></div>
+          <div class="flow-row"><span class="from">Inventory</span><span class="arrow">→</span><span class="to">Maintenance</span><span class="desc">Flagged items → "Push to Maintenance" creates a stub request instantly</span></div>
+        </div>
+        <p>Both flows set status <strong>Open</strong> and link back to the source record. Stubs appear immediately in the Requests tab and are counted in the main menu card stats.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>When a Room Inspection creates a stub, it's linked by inspection ID. When Inventory creates a stub, it's linked by inventory item ID. Click the link icon on any stub request to navigate to the originating record.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- 10 ─ TIPS & REFERENCE                                            -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <section class="guide-section" id="sec-tips">
@@ -1037,6 +1597,13 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <div class="flow-row"><span class="from">Inventory</span><span class="arrow">→</span><span class="to">Maintenance</span><span class="desc">Flagged items → maintenance stubs (Push to Maintenance)</span></div>
           <div class="flow-row"><span class="from">Key Inventory</span><span class="arrow">→</span><span class="to">Reports (Fees)</span><span class="desc">Lost key fines not paid → fee aggregation tab</span></div>
           <div class="flow-row"><span class="from">Storage Rentals</span><span class="arrow">→</span><span class="to">Reports (Fees)</span><span class="desc">Unpaid storage → fee aggregation tab</span></div>
+          <div class="flow-row"><span class="from">Nightly Attendance</span><span class="arrow">→</span><span class="to">Incident Reports</span><span class="desc">Absent students after session → curfew violation stubs created automatically</span></div>
+          <div class="flow-row"><span class="from">Nightly Attendance</span><span class="arrow">→</span><span class="to">Reports (Attendance tab)</span><span class="desc">Session data → per-student absence counts, session log, trend chart</span></div>
+          <div class="flow-row"><span class="from">Incident Reports</span><span class="arrow">→</span><span class="to">Reports (Incidents tab)</span><span class="desc">Incident data → by-type summary, SARRA2 export backlog</span></div>
+          <div class="flow-row"><span class="from">Student Admin</span><span class="arrow">→</span><span class="to">Room Reservations</span><span class="desc">Approved off-campus request → Start Clearance writes move-out reason to Room Reservations</span></div>
+          <div class="flow-row"><span class="from">Dorm Workers</span><span class="arrow">→</span><span class="to">Staff Scheduling</span><span class="desc">Worker roster → shift grid rows (active workers only)</span></div>
+          <div class="flow-row"><span class="from">Staff Scheduling</span><span class="arrow">→</span><span class="to">Dorm Workers</span><span class="desc">Shift data → "On Duty Now" on Dashboard</span></div>
+          <div class="flow-row"><span class="from">Staff Scheduling</span><span class="arrow">→</span><span class="to">Nightly Attendance</span><span class="desc">Current shift data → "RA on Duty" dropdown pre-fill</span></div>
         </div>
       </div>
     </div>
@@ -1210,15 +1777,12 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-roadmap-gaps">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Planned Dorm Manager Features</div>
       <div class="collapse-body">
-        <p>These features are not yet built in Dorm Manager. All are offline, dean-side additions that fit the existing architecture.</p>
+        <p>These features are not yet built. All are offline, dean-side additions that fit the existing architecture.</p>
         <table class="guide-table">
           <thead><tr><th>Priority</th><th>Feature</th><th>Scope</th></tr></thead>
           <tbody>
-            <tr><td><span class="badge badge-red">🔴 High</span></td><td><strong>Incident / Discipline Log</strong></td><td>New module — record complaints, violations, disciplinary actions, and outcomes per student</td></tr>
             <tr><td><span class="badge badge-orange">🟠 Medium</span></td><td><strong>Guest / Visitor Log</strong></td><td>New module — track overnight guests, permission records, 200 Baht fee collection, cohabitation monitoring</td></tr>
-            <tr><td><span class="badge badge-orange">🟠 Medium</span></td><td><strong>Night Check / Room Attendance</strong></td><td>New module — digital nightly check record, absent student flagging, exception tracking</td></tr>
             <tr><td><span class="badge badge-orange">🟠 Medium</span></td><td><strong>General Fine Ledger</strong></td><td>Enhancement to Reports — track all fines issued (not just storage/keys), payment status</td></tr>
-            <tr><td><span class="badge badge-amber">🟡 Low</span></td><td><strong>Key Deposit + Lockout Log</strong></td><td>Enhancement to Key Inventory — track 100 Baht key deposit payment/refund; log lockout events and 10 Baht fees</td></tr>
             <tr><td><span class="badge badge-amber">🟡 Low</span></td><td><strong>Vehicle / Parking Registration</strong></td><td>New module — register motorbikes/bicycles, track parking permits, record violations</td></tr>
             <tr><td><span class="badge badge-amber">🟡 Low</span></td><td><strong>Abandoned Property Tracking</strong></td><td>Enhancement to Inventory — mark items as abandoned, track 12-month hold period, disposal records</td></tr>
           </tbody>
@@ -1240,8 +1804,23 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>Worship &amp; program attendance tracking</td><td>SARRA2</td></tr>
           </tbody>
         </table>
-        <p style="margin-top:12px">These features are <strong>intentionally not duplicated</strong> in Dorm Manager. The Dorm Manager system is focused on offline, dean-side data management — room records, clearance, keys, inspections, utilities, and asset tracking.</p>
-        <div class="tip"><span class="tip-icon">🔗</span><span>A future improvement may connect Dorm Manager and SARRA2 so that relevant data (student IDs, leave status, citizenship standing) flows between the two systems, making the overall Dormitory Management System more robust without replacing either platform.</span></div>
+        <p style="margin-top:12px">These features are <strong>intentionally not duplicated</strong> in Dorm Manager. The system focuses on offline, dean-side operations. Integration with SARRA2 is one-way: Dorm Manager generates CSV exports that SARRA2 operators import manually — no API coupling, no internet required.</p>
+        <div class="two-col" style="margin-top:12px">
+          <div class="info-card">
+            <h4>📥 Dorm Manager → SARRA2</h4>
+            <ul>
+              <li><strong>Incident Reports</strong> — CSV export: StudentID, PointsDeducted, FineSuggested per incident</li>
+              <li><strong>Nightly Attendance</strong> — leave import snapshot (CSV from SARRA2 into Dorm Manager)</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>📤 SARRA2 → Dorm Manager</h4>
+            <ul>
+              <li><strong>Campus Leave List</strong> — export from SARRA2, import into Attendance (Leave Import tab)</li>
+              <li><strong>SWP Assignment</strong> — SARRA2 ID stored in Dorm Workers for cross-reference</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1260,6 +1839,12 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>Electricity and hot water billing</td><td>⚡ Electricity &amp; Hot Water</td></tr>
             <tr><td>Student profiles, emergency contact info</td><td>👤 Student Profiles</td></tr>
             <tr><td>Outstanding fee summary</td><td>📊 Reports → Fee Collection</td></tr>
+            <tr><td>Nightly room checks, curfew enforcement, APIU curfew times (22:00/23:00)</td><td>📅 Nightly Attendance</td></tr>
+            <tr><td>Incident / discipline log, SARRA2 citizenship point export</td><td>🚨 Incident Reports</td></tr>
+            <tr><td>Off-campus move requests, 30-day notice requirement, waiver categories</td><td>🎓 Student Admin</td></tr>
+            <tr><td>RA / Monitor / Janitor / SWP HR register, job agreements</td><td>👷 Dorm Workers</td></tr>
+            <tr><td>Weekly shift scheduling, on-duty detection</td><td>📆 Staff Scheduling</td></tr>
+            <tr><td>Plant service / repair request tracking</td><td>🔧 Maintenance</td></tr>
           </tbody>
         </table>
       </div>
@@ -1403,15 +1988,17 @@ const TOC = [
       { id:'sub-util-hw',      text:'Hot Water Tab' },
       { id:'sub-util-summary', text:'Summary & Export' },
     ]},
-    { id:'sec-reports', text:'📊 Reports (8 tabs)', subs:[
-      { id:'sub-rpt-archive',   text:'📁 Archive' },
-      { id:'sub-rpt-room',      text:'🛏️ Room Report' },
-      { id:'sub-rpt-custom',    text:'📋 Custom Report' },
-      { id:'sub-rpt-pivot',     text:'🔀 Pivot' },
-      { id:'sub-rpt-holds',     text:'🏠 Holds' },
-      { id:'sub-rpt-storage',   text:'📦 Storage' },
-      { id:'sub-rpt-clearance', text:'📋 Clearance' },
-      { id:'sub-rpt-fees',      text:'💰 Fee Collection' },
+    { id:'sec-reports', text:'📊 Reports (10 tabs)', subs:[
+      { id:'sub-rpt-archive',    text:'📁 Archive' },
+      { id:'sub-rpt-room',       text:'🛏️ Room Report' },
+      { id:'sub-rpt-custom',     text:'📋 Custom Report' },
+      { id:'sub-rpt-pivot',      text:'🔀 Pivot' },
+      { id:'sub-rpt-holds',      text:'🏠 Holds' },
+      { id:'sub-rpt-storage',    text:'📦 Storage' },
+      { id:'sub-rpt-clearance',  text:'📋 Clearance' },
+      { id:'sub-rpt-fees',       text:'💰 Fee Collection' },
+      { id:'sub-rpt-attendance', text:'📅 Attendance' },
+      { id:'sub-rpt-incidents',  text:'🚨 Incidents' },
     ]},
     { id:'sec-key-inventory', text:'🔑 Key Inventory', subs:[
       { id:'sub-ki-setup',    text:'Initial Setup' },
@@ -1434,6 +2021,44 @@ const TOC = [
       { id:'sub-inv-labels',      text:'Barcode Labels' },
       { id:'sub-inv-maintenance', text:'Maintenance Flags' },
       { id:'sub-inv-settings',    text:'Settings' },
+    ]},
+    { id:'sec-attendance', text:'📅 Nightly Attendance', subs:[
+      { id:'sub-att-overview',  text:'Overview' },
+      { id:'sub-att-taking',    text:'Taking Attendance' },
+      { id:'sub-att-statuses',  text:'Status Values' },
+      { id:'sub-att-leave',     text:'SARRA2 Leave Import' },
+      { id:'sub-att-history',   text:'History & Archive' },
+      { id:'sub-att-settings',  text:'Settings' },
+    ]},
+    { id:'sec-incidents', text:'🚨 Incident Reports', subs:[
+      { id:'sub-inc-overview',  text:'Overview' },
+      { id:'sub-inc-create',    text:'Creating a Report' },
+      { id:'sub-inc-followup',  text:'Follow-Up & Resolving' },
+      { id:'sub-inc-sarra2',    text:'SARRA2 CSV Export' },
+      { id:'sub-inc-settings',  text:'Fine Defaults' },
+    ]},
+    { id:'sec-student-admin', text:'🎓 Student Admin', subs:[
+      { id:'sub-sa-offcampus',  text:'Off-Campus Requests' },
+      { id:'sub-sa-workflow',   text:'Request Workflow' },
+      { id:'sub-sa-clearance',  text:'Clearance Integration' },
+      { id:'sub-sa-assistance', text:'Assistance Log' },
+    ]},
+    { id:'sec-dorm-workers', text:'👷 Dorm Workers', subs:[
+      { id:'sub-dw-overview',   text:'Overview' },
+      { id:'sub-dw-categories', text:'Worker Categories' },
+      { id:'sub-dw-coverage',   text:'Floor Coverage' },
+      { id:'sub-dw-jobdocs',    text:'Job Documents' },
+    ]},
+    { id:'sec-scheduling', text:'📆 Staff Scheduling', subs:[
+      { id:'sub-sched-weekly',  text:'Weekly View' },
+      { id:'sub-sched-onduty',  text:'On-Duty Detection' },
+      { id:'sub-sched-print',   text:'My Schedule & Print' },
+    ]},
+    { id:'sec-maintenance', text:'🔧 Maintenance', subs:[
+      { id:'sub-maint-overview',     text:'Overview' },
+      { id:'sub-maint-create',       text:'Creating a Request' },
+      { id:'sub-maint-dashboard',    text:'Dashboard & Status' },
+      { id:'sub-maint-integration',  text:'Integration' },
     ]},
   ]},
   { label:'Reference', items:[
