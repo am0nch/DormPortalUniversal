@@ -124,6 +124,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option>
   </select>
   <button class="btn btn-purple" onclick="openGeneratorModal()">🏗️ Generate Dorm Setup</button>
+  <span style="padding:4px 12px;background:#e8f4fd;color:#1565c0;border-radius:6px;font-size:.78rem;font-weight:600">📅 <span id="rrSemLabel">—</span></span>
 </div>
 <div class="filter-area">
   <div id="floorFilterDiv">
@@ -131,6 +132,13 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <select id="floorFilter">
       <option value="all">All floors</option><option value="1,2">1st &amp; 2nd</option>
       <option value="3">3rd</option><option value="4">4th</option>
+    </select>
+    <button class="btn" onclick="applyFloorFilter()">Apply</button>
+  </div>
+  <div id="semesterFilterDiv" style="display:flex;align-items:center;gap:4px">
+    <label>📅 Semester:</label>
+    <select id="semesterFilter">
+      <option value="all">All</option>
     </select>
     <button class="btn" onclick="applyFloorFilter()">Apply</button>
   </div>
@@ -198,6 +206,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
       <th style="width:40px">🧍</th>
       <th style="width:50px">🏠 Hold</th>
       <th style="min-width:95px">📋 Clearance</th>
+      <th style="min-width:110px">📅 Semester</th>
     </tr></thead>
     <tbody id="tableBody"></tbody>
   </table>
@@ -448,7 +457,7 @@ function clearanceDef(){
 }
 function emptyStudent(room){
   return{room,name:'',studentId:'',side:'',requestedRoom:'',requestStatus:'Confirmed',manualStatus:false,
-    ac:/AC/i.test(room),
+    ac:/AC/i.test(room),semester:'',
     summer:false,firstSem:false,graduating:false,moveOutReason:'',offCampusType:'',
     studentType:'regular',keysReturned:false,solo:false,returnDate:'',
     storageRental:false,storageQty:1,
@@ -470,6 +479,7 @@ function ensureStudent(s){
   if(!c.fees)c.fees=clearanceDef().fees;
   if(!s.roomHold)s.roomHold={active:false,paymentMethod:'Not Paid',amountPaid:0};
   if(s.ac===undefined)s.ac=/AC/i.test(s.room);
+  if(s.semester===undefined)s.semester='';
   ['box1Color','box1No','box2Color','box2No','box3Color','box3No'].forEach(k=>{if(s[k]===undefined)s[k]='';});
   return s;
 }
@@ -791,6 +801,8 @@ function getStatusText(student){
 // ═══ FILTER / RENDER ═══
 function applyFilter(){
   filteredData=fullData.filter(s=>matchesFloor(s.room,currentFloor));
+  const semSel=document.getElementById('semesterFilter');
+  if(semSel&&semSel.value!=='all'){filteredData=filteredData.filter(s=>s.semester===semSel.value);}
   renderTable();
   document.getElementById('filteredCount').innerText=filteredData.length;
   document.getElementById('totalCount').innerText=fullData.length;
@@ -1033,6 +1045,14 @@ function renderTable(){
     }else{td13.textContent='—';td13.style.cssText='text-align:center;color:#aaa';}
     row.appendChild(td13);
 
+    // 14: Semester (col 18)
+    const td14s=document.createElement('td');
+    const semSel14=document.createElement('select');
+    semSel14.style.cssText='font-size:.75rem;border:1px solid #ddd;border-radius:4px;padding:2px 4px;width:100%';
+    semSel14.innerHTML='<option value="">—</option>'+_semesterOptions(s.semester);
+    semSel14.onchange=e=>{s.semester=e.target.value;pushState();markUnsaved();};
+    td14s.appendChild(semSel14);row.appendChild(td14s);
+
     frag.appendChild(row);
   });
   tbody.appendChild(frag);
@@ -1106,6 +1126,21 @@ function showToast(msg,type,duration){
   requestAnimationFrame(()=>t.style.opacity='1');
   setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},duration);
 }
+// ═══ SEMESTER HELPERS ═══
+function _semesterOptions(cur){
+  return DormDB.getSemesterCfg().list
+    .map(s=>`<option value="${s.label}"${s.label===cur?' selected':''}>${s.label}</option>`)
+    .join('');
+}
+function populateSemesterFilter(){
+  const sel=document.getElementById('semesterFilter');if(!sel)return;
+  const cfg=DormDB.getSemesterCfg();
+  const set=new Set(cfg.list.map(s=>s.label));
+  fullData.forEach(s=>{if(s.semester)set.add(s.semester);});
+  const cur=sel.value;
+  sel.innerHTML='<option value="all">All</option>'+
+    [...set].map(l=>`<option value="${l}"${l===cur?' selected':''}>${l}</option>`).join('');
+}
 // ═══ COLUMN VISIBILITY ═══
 const _COL_DEFS=[
   {n:1,label:'Room & Occup.',locked:true},
@@ -1125,6 +1160,7 @@ const _COL_DEFS=[
   {n:15,label:'🧍 Solo',locked:false},
   {n:16,label:'🏠 Hold',locked:false},
   {n:17,label:'📋 Clearance',locked:false},
+  {n:18,label:'📅 Semester',locked:false},
 ];
 function applyColVis(){
   const rules=[];
@@ -1145,7 +1181,7 @@ function toggleCol(n,visible){
 }
 function initColPicker(){
   const saved=DormDB.getCols();
-  hiddenCols=saved.length?new Set(saved):new Set([4]);
+  hiddenCols=saved.length?new Set(saved):new Set([4,18]);
   const panel=document.getElementById('colPickerPanel');
   if(!panel)return;
   panel.innerHTML=_COL_DEFS.map(c=>`<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:${c.locked?'default':'pointer'};color:${c.locked?'#aaa':'inherit'};user-select:none"><input type="checkbox" ${c.locked?'disabled':''} ${hiddenCols.has(c.n)?'':'checked'} onchange="toggleCol(${c.n},this.checked)"> ${c.label}</label>`).join('');
@@ -1768,7 +1804,8 @@ function saveToExcel(){
       'Other Fee Desc':f.otherFeeDesc||'','Other Fee Amt':f.otherFee?f.otherFeeAmt:0,
       'Room Hold Active':(s.roomHold&&s.roomHold.active)?1:0,
       'Room Hold Payment':(s.roomHold&&s.roomHold.paymentMethod)||'Not Paid',
-      'Room Hold Amount':(s.roomHold&&s.roomHold.amountPaid)||0};
+      'Room Hold Amount':(s.roomHold&&s.roomHold.amountPaid)||0,
+      Semester:s.semester||''};
   });
   const ws1=XLSX.utils.json_to_sheet(rows);
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws1,'DormData');
@@ -1791,6 +1828,7 @@ function loadFromInput(){
       fullData=rows.filter(r=>str(r.Room)||str(r.Name)).map(r=>{
         const s=emptyStudent(str(r.Room));s.ac=r['AC Room']!==undefined&&r['AC Room']!==''?pb(r['AC Room']):/AC/i.test(str(r.Room));s.name=str(r.Name);s.studentId=str(r['Student ID'])||'';s.requestedRoom=str(r['Requested Room']);s.requestStatus=str(r.Status)||'Confirmed';s.manualStatus=pb(r['Manual Status']);s.summer=pb(r.Summer);s.firstSem=pb(r['1st Semester']);s.graduating=pb(r['Move Out'])||!!str(r['Move Out Reason']);s.moveOutReason=str(r['Move Out Reason']);s.offCampusType=str(r['Off Campus Type']);s.studentType=str(r['Student Type'])||'regular';s.keysReturned=pb(r['Keys Returned']);s.solo=pb(r.Solo);s.returnDate=str(r['Return Date']);s.storageRental=pb(r['Storage Rental']);s.storageQty=parseInt(r['Storage Qty'])||1;s.paymentMethod=str(r['Payment Method'])||'Not Paid';s.totalAmount=parseInt(r['Total Amount'])||0;s.box1Color=str(r['Box 1 Color']||'');s.box1No=str(r['Box 1 No']||'');s.box2Color=str(r['Box 2 Color']||'');s.box2No=str(r['Box 2 No']||'');s.box3Color=str(r['Box 3 Color']||'');s.box3No=str(r['Box 3 No']||'');
         s.transferIn={fromDorm:str(r['Transfer From Dorm']),fromRoom:str(r['Transfer From Room']),transferDate:str(r['Transfer Date']),notes:str(r['Transfer Notes']||'')};
+        s.semester=str(r['Semester'])||'';
         s.roomHold={active:pb(r['Room Hold Active']),paymentMethod:str(r['Room Hold Payment'])||'Not Paid',amountPaid:parseFloat(r['Room Hold Amount'])||0};
         s.clearance={formCompleted:pb(r['Clearance Done']),leaveDate:str(r['Leave Date']),elecIn:parseInt(r['Elec IN'])||0,elecOut:parseInt(r['Elec OUT'])||0,hotIn:parseInt(r['Hot IN'])||0,hotOut:parseInt(r['Hot OUT'])||0,studentId:str(r['Student ID']),mobile:str(r.Mobile),email:str(r.Email),toDorm:str(r['To Dorm']),toRoom:str(r['To Room']),formNo:str(r['Form No']),remarks:str(r['Clearance Remarks']||''),fees:{movingFee:!!(parseFloat(r['Moving Fee'])),movingFeeAmt:parseFloat(r['Moving Fee'])||0,cleaningFee:!!(parseFloat(r['Cleaning Fee'])),cleaningFeeAmt:parseFloat(r['Cleaning Fee'])||0,keyFee:!!(parseFloat(r['Key Fee'])),keyFeeAmt:parseFloat(r['Key Fee'])||0,drawerFee:!!(parseFloat(r['Drawer Fee'])),drawerFeeAmt:parseFloat(r['Drawer Fee'])||0,chairFee:!!(parseFloat(r['Chair Fee'])),chairFeeAmt:parseFloat(r['Chair Fee'])||0,stoolFee:!!(parseFloat(r['Stool Fee'])),stoolFeeAmt:parseFloat(r['Stool Fee'])||0,otherFee:!!(parseFloat(r['Other Fee Amt'])),otherFeeAmt:parseFloat(r['Other Fee Amt'])||0,otherFeeDesc:str(r['Other Fee Desc'])}};
         return s;
@@ -1835,6 +1873,9 @@ function _runInit(){
   else{fullData=JSON.parse(JSON.stringify(masterList));}
   pushState();applyFilter();markSaved();renderQueue();updateQueueBadge();updateAwayBadge();
   initColPicker();initTableDelegation();
+  const _rfSem=()=>{const el=document.getElementById('rrSemLabel');if(el)el.textContent=DormDB.getCurrentSemester();};
+  _rfSem();populateSemesterFilter();
+  DormDB.on(DormDB.KEYS.SEMESTER_CFG,()=>{_rfSem();populateSemesterFilter();applyFilter();});
   _initDone=true;
 }
 _runInit();

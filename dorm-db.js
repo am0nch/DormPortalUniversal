@@ -51,6 +51,8 @@ const DormDB = (() => {
     BEDDING_STOCK: 'dormBeddingStock',
     BEDDING_COUNT: 'dormBeddingCount',
     BEDDING_CFG:   'dormBeddingCfg',
+    // Shared semester registry
+    SEMESTER_CFG:  'dormSemesterCfg',
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
@@ -232,6 +234,20 @@ const DormDB = (() => {
       });
     },
     saveBeddingCfg:   (d) => _w(K.BEDDING_CFG, d),
+    getSemesterCfg() {
+      return _r(K.SEMESTER_CFG, {
+        current: '1st Semester 2026',
+        list: [
+          { label: '1st Semester 2026', type: 'Academic', startDate: '2026-08-01', endDate: '2026-12-31' },
+          { label: '2nd Semester 2026', type: 'Academic', startDate: '2027-01-01', endDate: '2027-05-31' },
+          { label: 'Summer 2026',       type: 'Summer',   startDate: '2027-05-01', endDate: '2027-07-31' },
+        ]
+      });
+    },
+    saveSemesterCfg:  (d) => _w(K.SEMESTER_CFG, d),
+    getCurrentSemester() {
+      return _r(K.SEMESTER_CFG, { current: '1st Semester 2026' }).current || '1st Semester 2026';
+    },
     getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
     saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
     getUtilities:    ()  => _r(K.UTILITIES, []),

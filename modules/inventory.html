@@ -335,7 +335,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <input type="hidden" id="bdd_sale_id">
     <div class="fg-row">
       <div class="fg"><label>Date *</label><input type="date" id="bdd_sale_date"></div>
-      <div class="fg"><label>Semester *</label><input type="text" id="bdd_sale_semester" placeholder="e.g. 1st Semester 2026"></div>
+      <div class="fg"><label>Semester *</label><select id="bdd_sale_semester"><option value="">— select semester —</option></select></div>
     </div>
     <div class="fg-row">
       <div class="fg">
@@ -378,7 +378,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
       <div class="fg"><label>Type</label><select id="bdd_stock_type"><option>Starting</option><option>Addition</option></select></div>
       <div class="fg"><label>Date *</label><input type="date" id="bdd_stock_date"></div>
     </div>
-    <div class="fg"><label>Semester *</label><input type="text" id="bdd_stock_semester" placeholder="e.g. 1st Semester 2026"></div>
+    <div class="fg"><label>Semester *</label><select id="bdd_stock_semester"><option value="">— select semester —</option></select></div>
     <div style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
       <div style="font-size:.78rem;font-weight:700;color:#1e3a5f;margin-bottom:10px">Quantities</div>
       <div id="bddStockQtySection"></div>
@@ -399,7 +399,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <input type="hidden" id="bdd_count_id">
     <div class="fg-row">
       <div class="fg"><label>Count Date *</label><input type="date" id="bdd_count_date"></div>
-      <div class="fg"><label>Semester *</label><input type="text" id="bdd_count_semester" placeholder="e.g. 1st Semester 2026"></div>
+      <div class="fg"><label>Semester *</label><select id="bdd_count_semester"><option value="">— select semester —</option></select></div>
     </div>
     <div style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
       <div style="display:grid;grid-template-columns:1fr 100px 100px;gap:8px;font-size:.75rem;font-weight:700;color:#1e3a5f;padding-bottom:6px;border-bottom:1px solid #ddd;margin-bottom:8px">
@@ -423,7 +423,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <div class="modal-content" style="max-width:460px">
     <span class="close-btn" onclick="closeModal('bddSettingsModal')">&times;</span>
     <h2>⚙️ Bedding Prices &amp; Settings</h2>
-    <div class="fg"><label>Current Semester (default for new records)</label><input type="text" id="bdd_cfg_semester" placeholder="e.g. 1st Semester 2026"></div>
+    <div class="fg"><label>Current Semester (default for new records)</label><select id="bdd_cfg_semester"><option value="">— select semester —</option></select></div>
     <div style="margin:10px 0;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e2e8f0">
       <div style="font-size:.78rem;font-weight:700;color:#1e3a5f;margin-bottom:10px">Item Prices (฿)</div>
       <div id="bddPriceRows"></div>
@@ -1194,7 +1194,9 @@ let _bddSemFilter = '';
 
 function populateBddSemFilter() {
   const cfg  = DormDB.getBeddingCfg();
-  const set  = new Set([cfg.currentSemester]);
+  // Seed from shared registry so all defined semesters appear even before data exists
+  const set  = new Set(DormDB.getSemesterCfg().list.map(s => s.label));
+  set.add(cfg.currentSemester);
   DormDB.getBedding().forEach(t => t.semester && set.add(t.semester));
   DormDB.getBeddingStock().forEach(s => s.semester && set.add(s.semester));
   DormDB.getBeddingCount().forEach(c => c.semester && set.add(c.semester));
@@ -1204,6 +1206,19 @@ function populateBddSemFilter() {
   sel.innerHTML = sems.map(s => `<option value="${escapeHtml(s)}"${s===prev?' selected':''}>${escapeHtml(s)}</option>`).join('');
   if (!sel.value && sems.length) sel.value = sems[sems.length - 1];
   _bddSemFilter = sel.value;
+}
+
+function populateBddSemSelects() {
+  const list = DormDB.getSemesterCfg().list;
+  const opts = '<option value="">— select semester —</option>' +
+    list.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
+  ['bdd_sale_semester','bdd_stock_semester','bdd_count_semester','bdd_cfg_semester'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = opts;
+    if (cur) el.value = cur;
+  });
 }
 
 function renderBeddingTab() {
@@ -1368,6 +1383,7 @@ function _bddItemInputs(containerId, qty) {
 function openSaleModal(prefill) {
   const cfg  = DormDB.getBeddingCfg();
   const today = new Date().toISOString().slice(0,10);
+  populateBddSemSelects();
   _bddItemInputs('bddItemInputs', 'bdd_qty');
   const rooms = [...new Set(DormDB.getRooms().map(s=>s.room).filter(Boolean))].sort();
   document.getElementById('bddRoomSuggestions').innerHTML = rooms.map(r=>`<option value="${r}">`).join('');
@@ -1473,6 +1489,7 @@ function saveBddSale() {
 function openStockModal(type, prefill) {
   const cfg  = DormDB.getBeddingCfg();
   const today = new Date().toISOString().slice(0,10);
+  populateBddSemSelects();
   _bddItemInputs('bddStockQtySection', 'bdd_stock_qty');
   if (prefill) {
     document.getElementById('bdd_stock_id').value       = prefill.id;
@@ -1521,6 +1538,7 @@ function saveBddStock() {
 }
 
 function openCountModal(prefill) {
+  populateBddSemSelects();
   const cfg  = DormDB.getBeddingCfg();
   const items = cfg.items.filter(i => i.enabled);
   const today = new Date().toISOString().slice(0,10);
@@ -1600,7 +1618,8 @@ function deleteBddRecord(type, id) {
 
 function openBeddingSettings() {
   const cfg = DormDB.getBeddingCfg();
-  document.getElementById('bdd_cfg_semester').value = cfg.currentSemester;
+  populateBddSemSelects();
+  document.getElementById('bdd_cfg_semester').value = cfg.currentSemester || DormDB.getCurrentSemester();
   document.getElementById('bddPriceRows').innerHTML = cfg.items.map(it => `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <label style="font-size:.8rem;font-weight:600;min-width:175px">${escapeHtml(it.name)}</label>
@@ -1725,6 +1744,7 @@ function init() {
   DormDB.on(DormDB.KEYS.BEDDING_STOCK, () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
   DormDB.on(DormDB.KEYS.BEDDING_COUNT, () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
   DormDB.on(DormDB.KEYS.BEDDING_CFG,   () => { if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
+  DormDB.on(DormDB.KEYS.SEMESTER_CFG,  () => { populateBddSemSelects(); if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {

@@ -258,6 +258,12 @@ tr:hover td{background:#f4f8fc}
             <div class="ff"><label>Passport No.</label><input id="fPassportNo"></div>
             <div class="ff"></div>
           </div>
+          <div class="fg fg-2" style="margin-top:8px">
+            <div class="ff"><label>Enrollment Semester</label>
+              <select id="fEnrollmentSemester"><option value="">— not set —</option></select>
+            </div>
+            <div class="ff"></div>
+          </div>
         </div>
 
         <!-- PERSONAL -->
@@ -447,6 +453,8 @@ async function init() {
   renderList();
   DormDB.on('dormProfiles',      () => { profiles = DormDB.getProfiles(); renderList(); });
   DormDB.on('dormKeysAssigned',  () => { profiles = DormDB.getProfiles(); renderList(); });
+  populateSemesterSelect();
+  DormDB.on(DormDB.KEYS.SEMESTER_CFG, populateSemesterSelect);
 }
 
 // ── Render list ────────────────────────────────────────────────────────────
@@ -488,7 +496,7 @@ function renderList() {
     const completeCls = pct >= 90 ? 'badge-green' : pct >= 50 ? 'badge-yellow' : 'badge-red';
     const sourceLbl = { registrar: 'Registrar', msforms: 'MS Forms', manual: 'Manual' }[p.source] || p.source || 'Manual';
     return `<tr>
-      <td><strong>${esc(name)}</strong>${p.keyReceived ? ' <span title="Key received" style="font-size:.85em">🔑</span>' : ''}</td>
+      <td><strong>${esc(name)}</strong>${p.keyReceived ? ' <span title="Key received" style="font-size:.85em">🔑</span>' : ''}${p.enrollmentSemester ? ` <span style="display:inline-block;font-size:.65rem;background:#e8f4fd;color:#1565c0;border-radius:8px;padding:1px 6px;font-weight:700;margin-top:2px">📅 ${esc(p.enrollmentSemester)}</span>` : ''}</td>
       <td>${esc(p.studentId || '—')}</td>
       <td>${esc(room)}</td>
       <td>${esc(p.department || '—')}</td>
@@ -546,6 +554,16 @@ function calcCompleteness(p) {
 function doSearch() {
   searchTerm = document.getElementById('searchInput').value.trim();
   renderList();
+}
+
+// ── Semester select ────────────────────────────────────────────────────────
+function populateSemesterSelect() {
+  const list = DormDB.getSemesterCfg().list;
+  const sel  = document.getElementById('fEnrollmentSemester');
+  if (!sel) return;
+  const cur  = sel.value;
+  sel.innerHTML = '<option value="">— not set —</option>' +
+    list.map(s => `<option value="${s.label}"${s.label===cur?' selected':''}>${s.label}</option>`).join('');
 }
 
 // ── Edit modal ─────────────────────────────────────────────────────────────
@@ -608,6 +626,8 @@ async function openEditModal(id) {
   set('fReceivedBy',   p?.receivedBy);
   document.getElementById('fKeyReceived').checked = p?.keyReceived || false;
   set('fRemarks',      p?.remarks);
+  populateSemesterSelect();
+  document.getElementById('fEnrollmentSemester').value = p?.enrollmentSemester || '';
 
   document.getElementById('photoPreview').style.display = 'none';
   document.getElementById('photoPlaceholder').style.display = 'flex';
@@ -703,6 +723,7 @@ async function saveProfile(e) {
     receivedBy:     g('fReceivedBy'),
     keyReceived:    document.getElementById('fKeyReceived').checked,
     remarks:        g('fRemarks'),
+    enrollmentSemester: document.getElementById('fEnrollmentSemester').value,
     source:         existing?.source ?? 'manual',
     createdAt:      existing?.createdAt ?? now,
     updatedAt:      now,
@@ -950,6 +971,7 @@ function emptyProfile() {
     bloodType:'',drugAllergy:'',medHistory:'',medication:'',preferredHospital:'',
     emergencyName:'',emergencyPhone:'',emergencyRelation:'',emergencyAddress:'',
     keysDepositAmount:0,keysDepositDate:'',receivedBy:'',keyReceived:false,remarks:'',
+    enrollmentSemester:'',
   };
 }
 

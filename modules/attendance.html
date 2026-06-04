@@ -202,7 +202,7 @@ body{background:#f0f4f8;min-height:100vh}
       <h3>📋 Session Defaults</h3>
       <div class="fg">
         <label>Semester Label</label>
-        <input type="text" id="cfg_semester" placeholder="e.g. 1st Semester 2026">
+        <select id="cfg_semester"><option value="">— select semester —</option></select>
       </div>
       <div class="fg" style="display:flex;align-items:center;gap:10px">
         <input type="checkbox" id="cfg_prompt" style="width:auto">
@@ -219,7 +219,7 @@ body{background:#f0f4f8;min-height:100vh}
       <p style="font-size:.79rem;color:#666;margin-bottom:12px">Archive all sessions for a completed semester to free storage space. Archived data is preserved separately and included in the full JSON backup.</p>
       <div class="fg">
         <label>Archive sessions with semester label:</label>
-        <input type="text" id="archiveSemLabel" placeholder="e.g. 1st Semester 2026" style="max-width:300px">
+        <select id="archiveSemLabel" style="max-width:300px"><option value="">— select semester —</option></select>
       </div>
       <div class="btn-row"><button class="btn btn-orange" onclick="archiveCurrentSemester()">🗄️ Archive This Semester</button></div>
     </div>
@@ -988,20 +988,34 @@ function _renderHistPage() {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
+function populateAttSemSelects() {
+  const list = DormDB.getSemesterCfg().list;
+  const opts = '<option value="">— select semester —</option>' +
+    list.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
+  ['cfg_semester','archiveSemLabel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const cur = el.value;
+    el.innerHTML = opts;
+    if (cur) el.value = cur;
+  });
+}
 function loadSettings() {
   document.getElementById('cfg_weekday').value  = curfewCfg.weekdayCurfew  || '22:00';
   document.getElementById('cfg_weekend').value  = curfewCfg.weekendCurfew  || '23:00';
   document.getElementById('cfg_grace').value    = curfewCfg.graceMinutes   || 15;
-  document.getElementById('cfg_semester').value = curfewCfg.semesterLabel  || '';
   document.getElementById('cfg_prompt').checked = curfewCfg.promptIncidentAfterSession !== false;
   document.getElementById('cfg_cdown').checked  = curfewCfg.showCountdownBanner !== false;
-  document.getElementById('archiveSemLabel').value = curfewCfg.semesterLabel || '';
+  populateAttSemSelects();
+  const sem = curfewCfg.semesterLabel || DormDB.getCurrentSemester();
+  document.getElementById('cfg_semester').value   = sem;
+  document.getElementById('archiveSemLabel').value = sem;
 }
 function saveSettings() {
   curfewCfg.weekdayCurfew             = document.getElementById('cfg_weekday').value || '22:00';
   curfewCfg.weekendCurfew             = document.getElementById('cfg_weekend').value || '23:00';
   curfewCfg.graceMinutes              = parseInt(document.getElementById('cfg_grace').value)||15;
-  curfewCfg.semesterLabel             = document.getElementById('cfg_semester').value.trim();
+  curfewCfg.semesterLabel             = document.getElementById('cfg_semester').value || DormDB.getCurrentSemester();
   curfewCfg.promptIncidentAfterSession= document.getElementById('cfg_prompt').checked;
   curfewCfg.showCountdownBanner       = document.getElementById('cfg_cdown').checked;
   DormDB.saveCurfewCfg(curfewCfg);
@@ -1187,6 +1201,9 @@ function init() {
   // Add event listener for NS date/floor preview update
   document.getElementById('ns_date').addEventListener('change', updateSessionPreview);
   document.getElementById('ns_floor').addEventListener('change', updateSessionPreview);
+
+  populateAttSemSelects();
+  DormDB.on(DormDB.KEYS.SEMESTER_CFG, populateAttSemSelects);
 
   renderDashboard();
   startCountdown();
