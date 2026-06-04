@@ -68,11 +68,11 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/inventory.html` | 1,750 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab |
 | `modules/attendance.html` | 1,198 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
 | `modules/incidents.html` | 959 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking |
-| `modules/student-admin.html` | 993 | Off-campus move requests + Dean's assistance log |
+| `modules/student-admin.html` | 1,002 | Off-campus move requests + Dean's assistance log |
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
 | `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
-| `modules/userguide.html` | 1,642 | Dean's User Guide — all modules + About/Version History/Roadmap/Legal |
+| `modules/userguide.html` | 2,267 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal |
 | `modules/handbook.html` | 1,865 | APIU Residence Hall Handbook — 50+ policies, fines table |
 
 ---
@@ -81,6 +81,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 | File | Status | Rule |
 |------|--------|------|
+| `SARRA2_INTEGRATION.md` | External integration guide | Edit when CSV formats or integration seams change. |
 | `Dorm Manager.code-workspace` | VS Code workspace config | Do not edit. Auto-managed by VS Code. Git-ignored. |
 | `userguide.md` | User documentation | Edit only when asked to update docs. |
 | `*.xlsx` (data exports) | User data files | Never edit programmatically. Git-ignored. |
@@ -479,7 +480,7 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 
 - [ ] 4 changes from previous Python script that failed to apply (changes 13, 14, 15, 22) — original diffs unknown
 - [x] Build 2 remaining modules: Staff Scheduling ✅, Maintenance ✅ (all 6 new modules complete)
-- [ ] Update Dean's User Guide (userguide.html) to cover the 6 new modules added in sessions 27–34
+- [x] Update Dean's User Guide (userguide.html) to cover the 6 new modules added in sessions 27–34 ✅
 - [ ] Password gate re-enable (code removed, ready to re-add to `index.html` when ready)
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
 

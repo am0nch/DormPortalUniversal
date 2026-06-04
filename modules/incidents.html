@@ -587,7 +587,7 @@ function exportSarra2CSV(ids) {
         inc.id, inc.date, inc.type, inc.severity,
         s.studentId||'', s.name||'', s.room||'', s.role||'',
         s.citizenshipPointsSuggested||0, s.fineSuggested||0,
-        (inc.description||'').replace(/,/g,';')
+        (inc.description||'').replace(/[\r\n]+/g,' ').replace(/,/g,';')
       ]);
     }
   }
