@@ -622,8 +622,14 @@ function confirmCreateIncidents() {
 
   const absent   = session.records.filter(r => r.status === 'Absent');
   const existing = DormDB.getIncidents();
+  if (existing.some(i => i.attendanceSessionId === session.id)) {
+    showToast('⚠️ Incident reports already created for this session');
+    closeModal('incidentModal');
+    return;
+  }
+  const base = Date.now();
   const newIncs  = absent.map((r, i) => ({
-    id:          Date.now() + i,
+    id:          base + i,
     date:        session.date,
     time:        session.curfewTime,
     semesterLabel: session.semesterLabel,

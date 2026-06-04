@@ -566,11 +566,20 @@ function initiateOffCampusClearance(reqId) {
   const req = offCampusReqs.find(r => r.id === reqId);
   if (!req) return;
   const rooms = DormDB.getRooms();
-  const si = rooms.findIndex(s =>
+  let si = rooms.findIndex(s =>
     (s.studentId && s.studentId === req.studentId) ||
-    (s.clearance && s.clearance.studentId === req.studentId) ||
-    s.name === req.studentName
+    (s.clearance && s.clearance.studentId === req.studentId)
   );
+  if (si < 0) {
+    if (!req.studentId) {
+      const matches = rooms.reduce((acc, s, idx) => s.name === req.studentName ? [...acc, idx] : acc, []);
+      if (matches.length > 1) {
+        showToast('❌ Multiple students named "' + req.studentName + '" — add a Student ID to this request first');
+        return;
+      }
+      si = matches.length === 1 ? matches[0] : -1;
+    }
+  }
   if (si < 0) { showToast('❌ Student not found in Room Reservations'); return; }
   rooms[si].moveOutReason       = 'Off Campus';
   rooms[si].offCampusType       = 'Leaving Dorm';
