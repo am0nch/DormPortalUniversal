@@ -1022,6 +1022,69 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         </ul>
       </div>
     </div>
+
+    <div class="subsection" id="sub-inv-bedding">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Bedding Inventory Tab</div>
+      <div class="collapse-body">
+        <p>The <strong>🛏️ Bedding</strong> tab is a consumable sales ledger — it tracks bedding items sold to students, stock received, and physical count snapshots per semester. This replaces the manual "Students Bedding Report" Excel spreadsheet.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>🛍️ Items Tracked</h4>
+            <ul>
+              <li>Pillow — 165 ฿</li>
+              <li>Set (Pillow Case + Cover) — 235 ฿</li>
+              <li>Pillow Case (individual) — 65 ฿</li>
+              <li>Mattress Protector — 350 ฿</li>
+              <li>Blanket — 160 ฿</li>
+            </ul>
+            <p style="margin-top:6px;font-size:.8rem;color:#555">Prices are editable in <strong>⚙️ Prices</strong> (toolbar). All prices are saved per sale record — changing the price later does not affect historical totals.</p>
+          </div>
+          <div class="info-card">
+            <h4>📊 Summary Table Rows</h4>
+            <ul>
+              <li><strong>Starting Inventory</strong> — sum of all "Starting" stock events this semester</li>
+              <li><strong>+ Ordered / Added</strong> — sum of "Addition" stock events</li>
+              <li><strong>− Sold</strong> — total units sold to students</li>
+              <li><strong>= Calculated Stock</strong> — Starting + Added − Sold</li>
+              <li><strong>Physical Count (actual)</strong> — latest count snapshot</li>
+              <li><strong>Missing Stock</strong> — Calculated − Actual (red if &gt; 0)</li>
+              <li><strong>Revenue (฿)</strong> — total collected this semester</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin:14px 0 6px;font-size:.85rem">Recording a Sale</h4>
+        <ol class="steps">
+          <li>Click <strong>➕ Record Sale</strong> in the toolbar.</li>
+          <li>Enter the room number — the student name auto-fills from Room Reservations data. For rooms with two occupants, select the correct student from the dropdown.</li>
+          <li>Enter the quantity for each item purchased. The total updates automatically.</li>
+          <li>Select the payment method (Cash / QR / Account) and mark as Paid or Unpaid.</li>
+          <li>Click <strong>Save Sale</strong>. The sale appears in the Sales Ledger and the summary table updates immediately.</li>
+        </ol>
+
+        <h4 style="margin:14px 0 6px;font-size:.85rem">Recording Stock</h4>
+        <ol class="steps">
+          <li>Click <strong>📦 Stock Event</strong> in the toolbar.</li>
+          <li>Choose <strong>Starting</strong> (beginning of semester stock on hand) or <strong>Addition</strong> (new stock received during the semester).</li>
+          <li>Enter quantities for each item and click <strong>Save</strong>.</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span>Record a "Starting" stock event at the beginning of each semester before any sales. This is the baseline the summary uses to calculate missing stock.</span></div>
+
+        <h4 style="margin:14px 0 6px;font-size:.85rem">Physical Count</h4>
+        <ol class="steps">
+          <li>Click <strong>🔢 Physical Count</strong> in the toolbar.</li>
+          <li>The <strong>Expected</strong> column is pre-filled from the calculated stock. Enter the <strong>Actual</strong> count you physically counted.</li>
+          <li>The Missing row in the summary will update to show any discrepancy.</li>
+        </ol>
+
+        <h4 style="margin:14px 0 6px;font-size:.85rem">Semester Filter &amp; Print</h4>
+        <p>Use the <strong>Semester</strong> dropdown in the toolbar to switch between semesters. The summary table, sales ledger, stock events, and physical counts all filter to the selected semester.</p>
+        <p>Click <strong>🖨️ Print Report</strong> to generate an A4 portrait print sheet containing the summary table, the full sales ledger, and the latest physical count — ready for the dean's records.</p>
+        <p>The same report is also available under <strong>Reports → 🛏️ Bedding</strong>.</p>
+
+        <div class="note"><span class="note-icon">ℹ️</span><span>The main menu <strong>Inventory</strong> card shows a blue pill with the number of bedding sales this semester, and a red pill if any missing stock is detected from the latest physical count.</span></div>
+      </div>
+    </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
@@ -1733,7 +1796,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td><strong>📊 Reports</strong></td><td>May 2026</td><td>8-tab hub: archive, room report, custom report, pivot, holds, storage, clearance forms, fee collection — print/PDF only</td></tr>
             <tr><td><strong>🔑 Key Inventory</strong></td><td>May 2026</td><td>Key checkout/return/lost flow, overdue auto-detection, fine recording, shift print sheet, borrower ledger, agreement tab</td></tr>
             <tr><td><strong>🔍 Room Inspection</strong></td><td>May 2026</td><td>Move-in/out checklists (Side A/B/Shared/Bathroom), damage charge calculation, Edit Charges modal, A4 inspection sheet and A5 cost card, clearance pre-fill</td></tr>
-            <tr><td><strong>📦 Inventory</strong></td><td>May 2026</td><td>Asset tracking with Code 39 barcode labels, room template comparison, condition assessment, maintenance flag push, 6-tab layout</td></tr>
+            <tr><td><strong>📦 Inventory</strong></td><td>May–Jun 2026</td><td>Asset tracking with Code 39 barcode labels, room template comparison, condition assessment, maintenance flag push, 6-tab layout; Bedding Inventory tab added Jun 2026 (sales ledger, stock events, physical counts, semester summary)</td></tr>
             <tr><td><strong>📖 Dean's User Guide</strong></td><td>May 2026</td><td>Interactive HTML guide, sticky TOC, collapsible sections, live search, print-friendly</td></tr>
             <tr><td><strong>📋 Residence Hall Handbook</strong></td><td>May 2026</td><td>Interactive APIU policy reference — 50+ policies, fines quick-reference table, dark green theme</td></tr>
           </tbody>
@@ -2038,6 +2101,7 @@ const TOC = [
       { id:'sub-inv-labels',      text:'Barcode Labels' },
       { id:'sub-inv-maintenance', text:'Maintenance Flags' },
       { id:'sub-inv-settings',    text:'Settings' },
+      { id:'sub-inv-bedding',     text:'Bedding Inventory Tab' },
     ]},
     { id:'sec-attendance', text:'📅 Nightly Attendance', subs:[
       { id:'sub-att-overview',  text:'Overview' },
