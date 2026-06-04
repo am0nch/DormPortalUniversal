@@ -265,7 +265,7 @@ const MODULES = [
     title: 'Maintenance',
     desc: 'Log plant and repair service requests — track status from open to resolved.',
     file: 'modules/plant-requests.html',
-    ready: false,
+    ready: true,
     getStats(s) {
       const pills = [];
       if (s.openMaintenance > 0) pills.push({ label: s.openMaintenance + ' open', cls: 'orange' });

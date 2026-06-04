@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Maintenance — APIU</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.pr-nav{background:#4e342e;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.pr-nav a{color:#d7ccc8;text-decoration:none;font-size:.85rem;font-weight:600}
+.pr-nav a:hover{color:#fff}
+.nav-title{font-weight:700;font-size:1rem}
+.nav-dorm{font-size:.78rem;opacity:.75}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#4e342e;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top.show{display:flex}
+.pr-wrap{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
+.tab-btn.active{background:#4e342e;color:#fff}
+.tab-btn:hover:not(.active){background:#f0f4f8}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Stat cards */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.sc{background:#fff;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.sc .sv{font-size:1.6rem;font-weight:800;color:#4e342e;line-height:1.1}
+.sc .sl{font-size:.68rem;color:#888;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sc.orange .sv{color:#e65100}.sc.red .sv{color:#c62828}.sc.green .sv{color:#2e7d32}.sc.gray .sv{color:#aaa}
+/* Request cards */
+.req-card{background:#fff;border-radius:8px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #ddd;overflow:hidden}
+.req-card.urg-low{border-left-color:#66bb6a}
+.req-card.urg-normal{border-left-color:#42a5f5}
+.req-card.urg-high{border-left-color:#ffa726}
+.req-card.urg-emergency{border-left-color:#c62828}
+.req-card.status-completed{opacity:.65}
+.req-hdr{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.req-hdr:hover{background:#fdf6f4}
+.req-body{display:none;padding:10px 14px;border-top:1px solid #f0f0f0;font-size:.8rem}
+.req-body.open{display:block}
+.req-title{font-size:.88rem;font-weight:700;color:#333}
+.req-meta{font-size:.74rem;color:#888;margin-top:2px}
+.badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:4px}
+.badge-low{background:#e8f5e9;color:#2e7d32}.badge-normal{background:#e3f2fd;color:#1565c0}
+.badge-high{background:#fff3e0;color:#e65100}.badge-emergency{background:#fdecea;color:#c62828}
+.badge-open{background:#fdecea;color:#c62828}.badge-inprog{background:#fff8e1;color:#e65100}
+.badge-pending{background:#f3e5f5;color:#6a1b9a}.badge-completed{background:#e8f5e9;color:#2e7d32}
+.badge-deferred{background:#f0f0f0;color:#666}.badge-gray{background:#f0f0f0;color:#666}
+/* Form */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.77rem;font-weight:600;color:#444;margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.84rem}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#4e342e}
+.fg-row{display:flex;gap:12px}.fg-row .fg{flex:1}
+/* Urgency bar */
+.urg-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.urg-chip{padding:5px 12px;border-radius:14px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid transparent;background:#f0f0f0;color:#666}
+.urg-chip.selected-low{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
+.urg-chip.selected-normal{background:#e3f2fd;color:#1565c0;border-color:#90caf9}
+.urg-chip.selected-high{background:#fff3e0;color:#e65100;border-color:#ffcc80}
+.urg-chip.selected-emergency{background:#fdecea;color:#c62828;border-color:#ef9a9a}
+/* Days to resolution bar chart */
+.bar-wrap{margin-bottom:14px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:.77rem}
+.bar-track{flex:1;background:#f0f0f0;border-radius:4px;height:14px;overflow:hidden}
+.bar-fill{height:100%;background:#4e342e;border-radius:4px;transition:width .4s}
+.bar-fill.bar-ok{background:#2e7d32}.bar-fill.bar-warn{background:#e65100}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
+.btn-primary{background:#4e342e;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}
+.btn-orange{background:#e65100;color:#fff}.btn-orange:hover{opacity:.88}
+.btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
+.btn-ghost{background:#f0f4f8;color:#333;border:1px solid #d0d0d0}.btn-ghost:hover{background:#e8e8e8}
+.btn-sm{padding:5px 10px;font-size:.75rem}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.callout{border-radius:8px;padding:10px 14px;font-size:.79rem;margin-bottom:12px}
+.callout-info{background:#efebe9;color:#4e342e;border:1px solid #bcaaa4}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:540px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:.98rem;font-weight:700;color:#4e342e;margin-bottom:14px}
+.toast{position:fixed;bottom:24px;right:20px;background:#4e342e;color:#fff;padding:10px 18px;border-radius:8px;font-size:.86rem;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+@media(max-width:540px){.fg-row{flex-direction:column}}
+@media print{
+  .pr-nav,.tab-bar,.btn,.btn-row,.scroll-top,.urg-bar{display:none!important}
+  .tab-panel{display:block!important}.req-body{display:block!important}
+  @page{size:A4;margin:12mm}
+}
+</style>
+</head>
+<body>
+
+<nav class="pr-nav">
+  <div>
+    <a id="backLink" href="../index.html">← Menu</a>
+    <span class="nav-title" style="margin-left:12px">🔧 Maintenance</span>
+    <span class="nav-dorm" id="navDorm"></span>
+  </div>
+  <div style="font-size:.78rem;opacity:.75" id="navUser"></div>
+</nav>
+
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">⇧</button>
+
+<div class="pr-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="requests" onclick="switchTab('requests')">🔧 Requests</button>
+    <button class="tab-btn" data-tab="history" onclick="switchTab('history')">📜 History</button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
+  </div>
+
+  <!-- ── DASHBOARD ────────────────────────────────────────────────────────── -->
+  <div id="tab-dashboard" class="tab-panel active">
+    <div class="stat-row" id="prStatRow"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px" id="dashGrids"></div>
+    <div style="margin-bottom:4px">
+      <p style="font-size:.88rem;font-weight:700;color:#4e342e;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #efebe9">
+        Open Requests by Urgency
+      </p>
+      <div id="urgencyChart"></div>
+    </div>
+  </div>
+
+  <!-- ── REQUESTS ──────────────────────────────────────────────────────────── -->
+  <div id="tab-requests" class="tab-panel">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <button class="btn btn-primary" onclick="openReqModal()">+ New Request</button>
+      <select id="statusFilter" onchange="renderRequests()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem;font-weight:600">
+        <option value="">Open Requests</option>
+        <option value="all">All Statuses</option>
+        <option value="Open">Open</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Pending Parts">Pending Parts</option>
+        <option value="Completed">Completed</option>
+        <option value="Deferred">Deferred</option>
+      </select>
+      <select id="urgencyFilter" onchange="renderRequests()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem;font-weight:600">
+        <option value="">All Urgencies</option>
+        <option value="Emergency">Emergency</option>
+        <option value="High">High</option>
+        <option value="Normal">Normal</option>
+        <option value="Low">Low</option>
+      </select>
+      <select id="floorFilter" onchange="renderRequests()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem;font-weight:600">
+        <option value="">All Floors</option>
+        <option>1</option><option>2</option><option>3</option><option>4</option><option>Common</option>
+      </select>
+    </div>
+    <div id="reqList"></div>
+  </div>
+
+  <!-- ── HISTORY ───────────────────────────────────────────────────────────── -->
+  <div id="tab-history" class="tab-panel">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <input type="date" id="histFrom" onchange="renderHistory()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem">
+      <span style="color:#888;font-size:.82rem">to</span>
+      <input type="date" id="histTo" onchange="renderHistory()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem">
+      <button class="btn btn-ghost btn-sm" onclick="clearHistFilter()">Clear</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- ── SETTINGS ─────────────────────────────────────────────────────────── -->
+  <div id="tab-settings" class="tab-panel">
+    <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <p style="font-size:.88rem;font-weight:700;color:#4e342e;margin-bottom:12px;padding-bottom:7px;border-bottom:2px solid #efebe9">General Settings</p>
+      <div class="fg">
+        <label>Default Assignee (Plant Service contact)</label>
+        <input type="text" id="cfg_assignee" placeholder="e.g. Plant Services Office">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REQUEST MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="reqModal">
+  <div class="modal-box">
+    <div class="modal-title" id="reqModalTitle">New Maintenance Request</div>
+
+    <div class="fg-row">
+      <div class="fg">
+        <label>Floor / Location</label>
+        <select id="r_floor">
+          <option value="">— Select —</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option><option>Common</option><option>Exterior</option><option>Office</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Room / Area</label>
+        <input type="text" id="r_room" placeholder="e.g. 312, Main Lobby, Bathrooms F2">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Specific Location</label>
+      <input type="text" id="r_location" placeholder="e.g. Ceiling light fixture near window">
+    </div>
+    <div class="fg">
+      <label>Category</label>
+      <select id="r_category">
+        <option value="">— Select —</option>
+        <option>Electrical</option><option>Plumbing</option><option>Furniture</option>
+        <option>HVAC</option><option>Structural</option><option>Cleaning</option><option>Other</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Description</label>
+      <textarea id="r_description" rows="3" placeholder="Describe the problem clearly..."></textarea>
+    </div>
+    <div class="fg">
+      <label>Urgency</label>
+      <div class="urg-bar" id="urgencyPicker">
+        <span class="urg-chip" data-urg="Low" onclick="setUrgency('Low')">Low</span>
+        <span class="urg-chip" data-urg="Normal" onclick="setUrgency('Normal')">Normal</span>
+        <span class="urg-chip" data-urg="High" onclick="setUrgency('High')">High ⚠️</span>
+        <span class="urg-chip" data-urg="Emergency" onclick="setUrgency('Emergency')">Emergency 🚨</span>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Status</label>
+        <select id="r_status">
+          <option>Open</option><option>In Progress</option>
+          <option>Pending Parts</option><option>Completed</option><option>Deferred</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Assigned To</label>
+        <input type="text" id="r_assignedTo">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Target Date</label><input type="date" id="r_targetDate"></div>
+      <div class="fg"><label>Completed Date</label><input type="date" id="r_completedDate"></div>
+    </div>
+    <div class="fg">
+      <label>Resolution Notes</label>
+      <textarea id="r_resolutionNotes" rows="2"></textarea>
+    </div>
+    <input type="hidden" id="r_editId">
+    <input type="hidden" id="r_urgency" value="Normal">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveRequest()">Save Request</button>
+      <button class="btn btn-ghost" onclick="closeModal('reqModal')">Cancel</button>
+      <button class="btn btn-red btn-sm" id="r_deleteBtn" style="margin-left:auto;display:none" onclick="deleteRequest()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-title">Confirm</div>
+    <p style="font-size:.85rem;color:#444;margin-bottom:16px" id="confirmMsg"></p>
+    <div class="btn-row">
+      <button class="btn btn-red" id="confirmYes">Yes, proceed</button>
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+let requests = [];
+let cfg = { defaultAssignee: '' };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function daysBetween(d1, d2) {
+  if (!d1||!d2) return null;
+  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+}
+function urgClass(u) { return 'urg-' + (u||'normal').toLowerCase(); }
+function urgBadge(u) {
+  const cls = { Low:'low', Normal:'normal', High:'high', Emergency:'emergency' }[u] || 'normal';
+  return `<span class="badge badge-${cls}">${escapeHtml(u||'Normal')}</span>`;
+}
+function statusBadge(s) {
+  const cls = { Open:'open', 'In Progress':'inprog', 'Pending Parts':'pending',
+                Completed:'completed', Deferred:'deferred' }[s] || 'gray';
+  return `<span class="badge badge-${cls}">${escapeHtml(s)}</span>`;
+}
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'requests')  renderRequests();
+  if (name === 'history')   renderHistory();
+  if (name === 'settings')  loadSettings();
+}
+
+// ── Urgency picker ────────────────────────────────────────────────────────────
+function setUrgency(u) {
+  document.getElementById('r_urgency').value = u;
+  document.querySelectorAll('#urgencyPicker .urg-chip').forEach(c => {
+    c.className = 'urg-chip' + (c.dataset.urg === u ? ` selected-${u.toLowerCase()}` : '');
+  });
+}
+
+// ── Data model ────────────────────────────────────────────────────────────────
+function emptyRequest() {
+  return {
+    id: Date.now(), room: '', floor: '', location: '',
+    category: '', description: '', urgency: 'Normal',
+    status: 'Open', assignedTo: '',
+    targetDate: '', completedDate: '',
+    inventoryItemId: '', inspectionId: '',
+    reportedBy: '', createdAt: new Date().toISOString(),
+    resolutionNotes: '',
+  };
+}
+
+// ── Request modal ─────────────────────────────────────────────────────────────
+function openReqModal(id, prefill) {
+  const isEdit = id != null;
+  document.getElementById('reqModalTitle').textContent = isEdit ? 'Edit Request' : 'New Maintenance Request';
+  document.getElementById('r_deleteBtn').style.display = isEdit ? '' : 'none';
+  document.getElementById('r_editId').value = id || '';
+
+  let req = isEdit ? requests.find(r => r.id === id) : null;
+  if (isEdit && !req) return;
+
+  document.getElementById('r_floor').value          = req ? req.floor           : (prefill && prefill.floor ? prefill.floor : '');
+  document.getElementById('r_room').value           = req ? req.room            : (prefill && prefill.room  ? prefill.room  : '');
+  document.getElementById('r_location').value       = req ? req.location        : '';
+  document.getElementById('r_category').value       = req ? req.category        : '';
+  document.getElementById('r_description').value    = req ? req.description     : (prefill && prefill.description ? prefill.description : '');
+  document.getElementById('r_status').value         = req ? req.status          : 'Open';
+  document.getElementById('r_assignedTo').value     = req ? req.assignedTo      : cfg.defaultAssignee||'';
+  document.getElementById('r_targetDate').value     = req ? req.targetDate      : '';
+  document.getElementById('r_completedDate').value  = req ? req.completedDate   : '';
+  document.getElementById('r_resolutionNotes').value= req ? req.resolutionNotes : '';
+  setUrgency(req ? req.urgency : 'Normal');
+  openModal('reqModal');
+}
+function saveRequest() {
+  const desc = document.getElementById('r_description').value.trim();
+  if (!desc) { showToast('⚠️ Description required'); return; }
+  const editId = document.getElementById('r_editId').value;
+  let req = editId ? requests.find(r => r.id === Number(editId)) : null;
+  if (!req) { req = emptyRequest(); requests.push(req); }
+
+  req.floor           = document.getElementById('r_floor').value;
+  req.room            = document.getElementById('r_room').value.trim();
+  req.location        = document.getElementById('r_location').value.trim();
+  req.category        = document.getElementById('r_category').value;
+  req.description     = desc;
+  req.urgency         = document.getElementById('r_urgency').value || 'Normal';
+  req.status          = document.getElementById('r_status').value;
+  req.assignedTo      = document.getElementById('r_assignedTo').value.trim();
+  req.targetDate      = document.getElementById('r_targetDate').value;
+  req.completedDate   = document.getElementById('r_completedDate').value;
+  req.resolutionNotes = document.getElementById('r_resolutionNotes').value.trim();
+  if (!req.reportedBy) req.reportedBy = DormDB.getCurrentUser();
+  if (req.status === 'Completed' && !req.completedDate) req.completedDate = today();
+
+  DormDB.saveMaintenance(requests);
+  closeModal('reqModal');
+  const active = document.querySelector('.tab-panel.active');
+  if (active?.id === 'tab-dashboard') renderDashboard();
+  if (active?.id === 'tab-requests')  renderRequests();
+  if (active?.id === 'tab-history')   renderHistory();
+  showToast('✅ Request saved');
+}
+function deleteRequest() {
+  const id = Number(document.getElementById('r_editId').value);
+  askConfirm('Delete this maintenance request?', () => {
+    requests = requests.filter(r => r.id !== id);
+    DormDB.saveMaintenance(requests);
+    closeModal('reqModal');
+    renderDashboard();
+    showToast('Deleted');
+  });
+}
+function quickStatus(id, newStatus) {
+  const req = requests.find(r => r.id === id);
+  if (!req) return;
+  req.status = newStatus;
+  if (newStatus === 'Completed' && !req.completedDate) req.completedDate = today();
+  DormDB.saveMaintenance(requests);
+  renderRequests();
+  showToast(`Status → ${newStatus}`);
+}
+
+// ── Render dashboard ──────────────────────────────────────────────────────────
+function renderDashboard() {
+  const open    = requests.filter(r => r.status === 'Open');
+  const inprog  = requests.filter(r => r.status === 'In Progress');
+  const pending = requests.filter(r => r.status === 'Pending Parts');
+  const done    = requests.filter(r => r.status === 'Completed');
+  const hi      = requests.filter(r => (r.urgency === 'High' || r.urgency === 'Emergency') && r.status !== 'Completed' && r.status !== 'Deferred');
+
+  document.getElementById('prStatRow').innerHTML = `
+    <div class="sc red"><div class="sv">${open.length + inprog.length + pending.length}</div><div class="sl">Open</div></div>
+    <div class="sc orange"><div class="sv">${hi.length}</div><div class="sl">High/Emergency</div></div>
+    <div class="sc"><div class="sv">${inprog.length}</div><div class="sl">In Progress</div></div>
+    <div class="sc gray"><div class="sv">${pending.length}</div><div class="sl">Pending Parts</div></div>
+    <div class="sc green"><div class="sv">${done.length}</div><div class="sl">Completed</div></div>`;
+
+  // Rooms with multiple open requests
+  const openReqs = requests.filter(r => r.status !== 'Completed' && r.status !== 'Deferred');
+  const byRoom = {};
+  openReqs.forEach(r => { const k = r.room||r.floor||'Unknown'; byRoom[k] = (byRoom[k]||0)+1; });
+  const hotRooms = Object.entries(byRoom).filter(([,c]) => c > 1).sort((a,b) => b[1]-a[1]);
+
+  // Avg days to resolution
+  const resolved = done.filter(r => r.createdAt && r.completedDate);
+  const avgDays = resolved.length
+    ? (resolved.reduce((s,r) => s + (daysBetween(r.createdAt.slice(0,10), r.completedDate)||0), 0) / resolved.length).toFixed(1)
+    : '—';
+
+  document.getElementById('dashGrids').innerHTML = `
+    <div>
+      <p style="font-size:.82rem;font-weight:700;color:#4e342e;margin-bottom:8px">Rooms / Areas with Multiple Issues</p>
+      ${hotRooms.length
+        ? hotRooms.slice(0,8).map(([room,cnt]) =>
+            `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:.8rem">
+              <span>${escapeHtml(room)}</span><strong style="color:#c62828">${cnt} open</strong>
+            </div>`).join('')
+        : '<p style="color:#aaa;font-size:.8rem">No rooms with multiple open requests.</p>'}
+    </div>
+    <div>
+      <p style="font-size:.82rem;font-weight:700;color:#4e342e;margin-bottom:8px">Resolution Stats</p>
+      <div style="font-size:.8rem;padding:4px 0;border-bottom:1px solid #f0f0f0"><span>Avg days to resolve</span> <strong>${avgDays}${avgDays!=='—'?' days':''}</strong></div>
+      <div style="font-size:.8rem;padding:4px 0;border-bottom:1px solid #f0f0f0"><span>Total resolved</span> <strong>${done.length}</strong></div>
+      <div style="font-size:.8rem;padding:4px 0"><span>Total all time</span> <strong>${requests.length}</strong></div>
+    </div>`;
+
+  // Open by urgency bar chart
+  const urgCounts = { Emergency: 0, High: 0, Normal: 0, Low: 0 };
+  openReqs.forEach(r => { if (r.urgency in urgCounts) urgCounts[r.urgency]++; });
+  const max = Math.max(...Object.values(urgCounts), 1);
+  document.getElementById('urgencyChart').innerHTML = Object.entries(urgCounts)
+    .map(([u,c]) => {
+      const pct = Math.round(c / max * 100);
+      const col = { Emergency:'#c62828', High:'#e65100', Normal:'#1565c0', Low:'#2e7d32' }[u];
+      return `<div class="bar-row">
+        <span style="min-width:70px;font-size:.75rem">${escapeHtml(u)}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span style="min-width:20px;text-align:right;font-size:.75rem">${c}</span>
+      </div>`;
+    }).join('');
+}
+
+// ── Render requests ───────────────────────────────────────────────────────────
+function renderRequests() {
+  const statusF  = document.getElementById('statusFilter').value;
+  const urgencyF = document.getElementById('urgencyFilter').value;
+  const floorF   = document.getElementById('floorFilter').value;
+
+  let list = requests.slice().sort((a,b) => {
+    const uo = {Emergency:0,High:1,Normal:2,Low:3};
+    return (uo[a.urgency]||2) - (uo[b.urgency]||2) || b.createdAt.localeCompare(a.createdAt);
+  });
+
+  if (statusF === '' || statusF === 'open-only') {
+    list = list.filter(r => r.status !== 'Completed' && r.status !== 'Deferred');
+  } else if (statusF !== 'all') {
+    list = list.filter(r => r.status === statusF);
+  }
+  if (urgencyF) list = list.filter(r => r.urgency === urgencyF);
+  if (floorF)   list = list.filter(r => r.floor === floorF);
+
+  const el = document.getElementById('reqList');
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;font-size:.85rem">No requests match the current filters.</div>';
+    return;
+  }
+  el.innerHTML = list.map(req => reqCardHtml(req)).join('');
+}
+function reqCardHtml(req) {
+  const isOpen = req.status !== 'Completed' && req.status !== 'Deferred';
+  return `<div class="req-card ${urgClass(req.urgency)} ${req.status==='Completed'?'status-completed':''}">
+    <div class="req-hdr" onclick="toggleReqBody('rb_${req.id}')">
+      <div>
+        <div class="req-title">
+          ${escapeHtml(req.category||'Other')}: ${escapeHtml(req.room||req.floor||'Location TBD')}
+          ${urgBadge(req.urgency)} ${statusBadge(req.status)}
+          ${req.inspectionId ? '<span class="badge badge-gray" title="From Room Inspection">📋 Inspection</span>' : ''}
+          ${req.inventoryItemId ? '<span class="badge badge-gray" title="From Inventory">📦 Inventory</span>' : ''}
+        </div>
+        <div class="req-meta">
+          ${escapeHtml(req.description.slice(0,80))}${req.description.length>80?'…':''}
+          · ${req.assignedTo ? `→ ${escapeHtml(req.assignedTo)}` : 'Unassigned'}
+        </div>
+      </div>
+      <span style="color:#bbb;font-size:.8rem">▾</span>
+    </div>
+    <div class="req-body" id="rb_${req.id}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        ${req.location ? `<div style="grid-column:1/-1"><strong>Location:</strong> ${escapeHtml(req.location)}</div>` : ''}
+        <div><strong>Reported:</strong> ${fmtDate(req.createdAt?.slice(0,10))}</div>
+        ${req.targetDate ? `<div><strong>Target:</strong> ${fmtDate(req.targetDate)}</div>` : ''}
+        ${req.completedDate ? `<div><strong>Completed:</strong> ${fmtDate(req.completedDate)}</div>` : ''}
+        ${req.resolutionNotes ? `<div style="grid-column:1/-1"><strong>Notes:</strong> ${escapeHtml(req.resolutionNotes)}</div>` : ''}
+        <div><strong>By:</strong> ${escapeHtml(req.reportedBy||'—')}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" onclick="openReqModal(${req.id})">✏️ Edit</button>
+        ${isOpen && req.status !== 'In Progress' ? `<button class="btn btn-primary btn-sm" onclick="quickStatus(${req.id},'In Progress')">→ In Progress</button>` : ''}
+        ${isOpen ? `<button class="btn btn-green btn-sm" onclick="quickStatus(${req.id},'Completed')">✅ Complete</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+function toggleReqBody(id) { const el = document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+// ── Render history ────────────────────────────────────────────────────────────
+function renderHistory() {
+  const from = document.getElementById('histFrom').value;
+  const to   = document.getElementById('histTo').value;
+  let list = requests.filter(r => r.status === 'Completed' || r.status === 'Deferred')
+    .sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+  if (from) list = list.filter(r => (r.completedDate||r.createdAt.slice(0,10)) >= from);
+  if (to)   list = list.filter(r => (r.completedDate||r.createdAt.slice(0,10)) <= to);
+
+  const el = document.getElementById('histList');
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;color:#aaa;padding:40px;font-size:.85rem">No completed or deferred requests found.</div>';
+    return;
+  }
+  el.innerHTML = list.map(req => reqCardHtml(req)).join('');
+}
+function clearHistFilter() {
+  document.getElementById('histFrom').value = '';
+  document.getElementById('histTo').value   = '';
+  renderHistory();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function loadSettings() {
+  document.getElementById('cfg_assignee').value = cfg.defaultAssignee || '';
+}
+function saveSettings() {
+  cfg.defaultAssignee = document.getElementById('cfg_assignee').value.trim();
+  DormDB.saveMaintenanceCfg(cfg);
+  showToast('✅ Settings saved');
+}
+
+// ── Dialogs ───────────────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function askConfirm(msg, fn) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmYes').onclick = () => { closeModal('confirmModal'); fn(); };
+  openModal('confirmModal');
+}
+let _toastTimer;
+function showToast(msg, dur=3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['reqModal','confirmModal'].forEach(closeModal);
+});
+window.addEventListener('scroll', ()=>{
+  document.getElementById('scrollTopBtn').classList.toggle('show', window.scrollY>300);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const back   = params.get('back');
+  if (back) {
+    const el = document.getElementById('backLink');
+    el.href        = back + '.html';
+    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+  document.getElementById('navUser').textContent = DormDB.getCurrentUser();
+
+  requests = DormDB.getMaintenance();
+  cfg      = DormDB.getMaintenanceCfg();
+
+  DormDB.on(DormDB.KEYS.MAINTENANCE, () => {
+    requests = DormDB.getMaintenance();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-dashboard') renderDashboard();
+    if (active?.id === 'tab-requests')  renderRequests();
+    if (active?.id === 'tab-history')   renderHistory();
+  });
+
+  renderDashboard();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
