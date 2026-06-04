@@ -213,7 +213,7 @@ const MODULES = [
     title: 'Incident Reports',
     desc: 'Document behavioral incidents, track follow-ups, and export citizenship point deductions for SARRA2.',
     file: 'modules/incidents.html',
-    ready: false,
+    ready: true,
     getStats(s) {
       const pills = [];
       if (s.unresolvedIncidents > 0) pills.push({ label: s.unresolvedIncidents + ' unresolved', cls: 'red' });
