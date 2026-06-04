@@ -1720,9 +1720,9 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     </div>
 
     <div class="subsection" id="sub-ver-v4">
-      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4 — Multi-Module System (May 2026)</div>
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.0 — Multi-Module System (May 2026)</div>
       <div class="collapse-body">
-        <p>v4 is the current production release. It rebuilt the system from a single HTML file into a multi-module architecture with a shared data layer (<code>dorm-db.js</code>), an <code>index.html</code> main menu, and individual module files in the <code>modules/</code> folder.</p>
+        <p>v4.0 rebuilt the system from a single HTML file into a multi-module architecture with a shared data layer (<code>dorm-db.js</code>), an <code>index.html</code> main menu, and individual module files in the <code>modules/</code> folder.</p>
         <table class="guide-table">
           <thead><tr><th>Module</th><th>Released</th><th>Key Capabilities</th></tr></thead>
           <tbody>
@@ -1734,14 +1734,30 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td><strong>🔑 Key Inventory</strong></td><td>May 2026</td><td>Key checkout/return/lost flow, overdue auto-detection, fine recording, shift print sheet, borrower ledger, agreement tab</td></tr>
             <tr><td><strong>🔍 Room Inspection</strong></td><td>May 2026</td><td>Move-in/out checklists (Side A/B/Shared/Bathroom), damage charge calculation, Edit Charges modal, A4 inspection sheet and A5 cost card, clearance pre-fill</td></tr>
             <tr><td><strong>📦 Inventory</strong></td><td>May 2026</td><td>Asset tracking with Code 39 barcode labels, room template comparison, condition assessment, maintenance flag push, 6-tab layout</td></tr>
-            <tr><td><strong>📖 Dean's User Guide</strong></td><td>May 2026</td><td>This guide — interactive HTML, sticky TOC, collapsible sections, live search, print-friendly</td></tr>
+            <tr><td><strong>📖 Dean's User Guide</strong></td><td>May 2026</td><td>Interactive HTML guide, sticky TOC, collapsible sections, live search, print-friendly</td></tr>
+            <tr><td><strong>📋 Residence Hall Handbook</strong></td><td>May 2026</td><td>Interactive APIU policy reference — 50+ policies, fines quick-reference table, dark green theme</td></tr>
           </tbody>
         </table>
-        <p style="margin-top:14px"><strong>Coming in future releases:</strong></p>
-        <ul>
-          <li><strong>📅 Staff Scheduling</strong> — worker shifts, duty rosters, and attendance</li>
-          <li><strong>🔧 Maintenance</strong> — plant and repair service request tracking from open to resolved</li>
-        </ul>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ver-v41">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.1 — Behavioral &amp; Staff Modules (June 2026)</div>
+      <div class="collapse-body">
+        <p>v4.1 added 6 new modules covering the behavioral and human management layer — nightly attendance, incident tracking, student move administration, staff HR, shift scheduling, and maintenance. The existing Reports module gained 2 new tabs. SARRA2 integration seams were established for CSV-based data exchange.</p>
+        <table class="guide-table">
+          <thead><tr><th>Module</th><th>Released</th><th>Key Capabilities</th></tr></thead>
+          <tbody>
+            <tr><td><strong>📅 Nightly Attendance</strong></td><td>Jun 2026</td><td>Mobile-first roll call, APIU handbook curfew defaults (22:00/23:00), live countdown banner, SARRA2 leave import, 6 status values, semester archive, A4 session print</td></tr>
+            <tr><td><strong>🚨 Incident Reports</strong></td><td>Jun 2026</td><td>9 incident types, 4 severities, handbook fine defaults (1,000 ฿ / 500 ฿), SARRA2 CSV export for citizenship points, follow-up tracking, A4 incident print</td></tr>
+            <tr><td><strong>🎓 Student Admin</strong></td><td>Jun 2026</td><td>Off-campus move requests with 30-day notice compliance badge, 6 waiver categories, "Start Clearance" Room Reservations integration; Dean's Assistance Log with multi-student support and follow-up alerts</td></tr>
+            <tr><td><strong>👷 Dorm Workers</strong></td><td>Jun 2026</td><td>HR register for RAs/Monitors/Janitors/SWP; floor coverage grid; SARRA2 SWP cross-reference; job document creator with A4 agreement print</td></tr>
+            <tr><td><strong>📆 Staff Scheduling</strong></td><td>Jun 2026</td><td>Mon–Sun shift grid with category color-coding, on-duty detection from real clock time, My Schedule view, A4 landscape print sheet</td></tr>
+            <tr><td><strong>🔧 Maintenance</strong></td><td>Jun 2026</td><td>Plant/repair request tracking (Open → In Progress → Completed), urgency levels, dashboard bar chart, hot-rooms list, integration with Room Inspection and Inventory</td></tr>
+            <tr><td><strong>📊 Reports (+ 2 tabs)</strong></td><td>Jun 2026</td><td>Attendance tab (session log, per-student absence counts, ≥3 alert); Incidents tab (by-type summary, SARRA2 backlog count) — now 10 tabs total</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="note-icon">ℹ️</span><span><strong>Bug fixes in v4.1:</strong> CSV newline injection in SARRA2 export (incidents.html); duplicate incident records on double-tap (attendance.html); wrong-student clearance on shared names (student-admin.html); direct localStorage access for incident config (dorm-db.js BF-016).</span></div>
       </div>
     </div>
 
@@ -1754,7 +1770,8 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <tbody>
             <tr><td><strong>v1–v2</strong></td><td>Single HTML file</td><td>Basic room table, Excel export via SheetJS, manual save only</td></tr>
             <tr><td><strong>v3</strong></td><td>Single HTML file (~1,600 lines)</td><td>Room reservations, storage rental, clearance forms, incoming queue, room history archive, room holds, transfer in — all in one file with localStorage persistence and Excel export/import</td></tr>
-            <tr><td><strong>v4</strong></td><td>Multi-module system (11,000+ lines)</td><td>All v3 features extracted into <code>room-reservations.html</code> plus 8 new modules, shared data API, IndexedDB photo subsystem, GitHub Pages hosting</td></tr>
+            <tr><td><strong>v4.0</strong></td><td>Multi-module system (~13,000 lines)</td><td>All v3 features extracted into <code>room-reservations.html</code> plus 9 new modules, shared data API, IndexedDB photo subsystem, GitHub Pages hosting</td></tr>
+            <tr><td><strong>v4.1</strong></td><td>Multi-module system (~20,000 lines)</td><td>v4.0 + 6 behavioral/staff modules + Reports expanded to 10 tabs + SARRA2 CSV integration seams</td></tr>
           </tbody>
         </table>
         <div class="note"><span class="note-icon">ℹ️</span><span>Excel (<code>.xlsx</code>) backups from v3 can be loaded into v4's Room Reservations module via <strong>📂 Load File</strong> — the import logic is backward compatible.</span></div>
@@ -2074,8 +2091,9 @@ const TOC = [
       { id:'sub-about-updates',   text:'Requesting Future Updates' },
     ]},
     { id:'sec-version', text:'📋 Version History', subs:[
-      { id:'sub-ver-v4',    text:'v4 — Multi-Module System' },
-      { id:'sub-ver-v3',    text:'Earlier Versions' },
+      { id:'sub-ver-v4',  text:'v4.0 — Multi-Module System' },
+      { id:'sub-ver-v41', text:'v4.1 — Behavioral & Staff Modules' },
+      { id:'sub-ver-v3',  text:'Earlier Versions' },
     ]},
     { id:'sec-roadmap', text:'🗺️ Development Roadmap', subs:[
       { id:'sub-roadmap-gaps',    text:'Planned Features' },
