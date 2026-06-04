@@ -56,17 +56,17 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 | File | Lines | Notes |
 |------|-------|-------|
-| `index.html` | 431 | Main menu, 16 module cards (all ready), section headers, live stats |
-| `dorm-db.js` | 383 | Central data API; 10 new keys for behavioral modules; getMaintenanceCfg added |
+| `index.html` | 433 | Main menu, 16 module cards (all ready), section headers, live stats |
+| `dorm-db.js` | 409 | Central data API; 14 new keys incl. 4 bedding keys; getMenuStats bedding fields |
 | `modules/room-reservations.html` | 1,868 | Active room reservations (SheetJS bundled inline) |
 | `modules/student-profiles.html` | 1,164 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline) |
 | `modules/floor-plan.html` | 497 | Visual room grid + bathroom pairing config |
 | `modules/utilities.html` | 674 | Electricity & hot water billing (SheetJS bundled inline) |
-| `modules/reports.html` | 1,245 | 10-tab report hub (+ Attendance tab + Incidents tab) |
+| `modules/reports.html` | 1,420 | 11-tab report hub (+ Attendance + Incidents + Bedding tabs) |
 | `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
-| `modules/inventory.html` | 1,081 | Asset inventory — Code 39 barcodes, room template, maintenance flags |
-| `modules/attendance.html` | 1,192 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
+| `modules/inventory.html` | 1,750 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab |
+| `modules/attendance.html` | 1,198 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
 | `modules/incidents.html` | 959 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking |
 | `modules/student-admin.html` | 993 | Off-campus move requests + Dean's assistance log |
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
@@ -484,6 +484,18 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
 
 ---
+
+## Completed improvements (2026-06-04, session 35 — Bedding Inventory tab)
+
+- [x] **`dorm-db.js`** — Added 4 new keys (BEDDING, BEDDING_STOCK, BEDDING_COUNT, BEDDING_CFG) with 8 getter/setter pairs; `getBeddingCfg()` defaults: 5 items (Pillow 165฿, Set 235฿, Pillow Case 65฿, Mattress Protector 350฿, Blanket 160฿); 2 new `getMenuStats()` fields: `beddingSoldThisSem` + `beddingMissing`. (383 → 409 lines)
+- [x] **`modules/inventory.html`** — Added 7th tab (🛏️ Bedding): semester filter toolbar; Summary section (matches Excel layout: Starting/Added/Sold/Calculated/Physical/Missing/Revenue rows); Sales Ledger; Stock Events; Physical Counts. 4 modals (sale, stock, count, settings). Student lookup from dormData. Print A4 portrait report. All reads/writes via DormDB (BF-016 compliant). (1,081 → 1,750 lines)
+- [x] **`modules/reports.html`** — Added 11th tab (🛏️ Bedding): semester selector, read-only summary table, payment breakdown stat cards, collapsible transaction list, 🖨️ Print Report button. `renderBeddingReport()` + `printBeddingReport()`. DormDB.on subscriptions for all 4 bedding keys. (1,245 → 1,420 lines)
+- [x] **`index.html`** — Inventory card `getStats()` updated to show `beddingSoldThisSem` (blue pill) + `beddingMissing` (red pill). (431 → 433 lines)
+
+## Completed improvements (2026-06-04, post-expansion bugfixes)
+
+- [x] **3 high-severity bugs fixed (code-review findings):** (1) `incidents.html:590` — CSV export now strips `\r\n` from description before comma-escaping, preventing multi-row injection in SARRA2 CSV; (2) `attendance.html:618` — `confirmCreateIncidents()` adds dedup guard (`attendanceSessionId` check) and extracts `base = Date.now()` before `.map()` to prevent duplicate records on double-tap and same-millisecond ID collision; (3) `student-admin.html:569` — `initiateOffCampusClearance()` separates ID match from name fallback, adds multi-match guard ("multiple students named X — add Student ID first") to prevent wrong-student clearance on shared names. (attendance.html: 1,192 → 1,198; student-admin.html: 993 → 1,002)
+- [x] **BF-016 violation fixed (incidents.html):** `incCfg` was reading/writing `dormIncidentsConfig` via direct `localStorage` calls. Added `INCIDENTS_CFG` key to `dorm-db.js` K constants with `getIncidentsCfg()` / `saveIncidentsCfg()` and routed all access through DormDB. (dorm-db.js: 377 → 383 lines)
 
 ## Completed improvements (2026-06-04, sessions 27–34)
 

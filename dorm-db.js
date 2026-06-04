@@ -46,6 +46,11 @@ const DormDB = (() => {
     ASSISTANCE:     'dormAssistance',
     WORKERS:        'dormWorkers',
     WORKERS_CFG:    'dormWorkersConfig',
+    // Bedding inventory
+    BEDDING:       'dormBedding',
+    BEDDING_STOCK: 'dormBeddingStock',
+    BEDDING_COUNT: 'dormBeddingCount',
+    BEDDING_CFG:   'dormBeddingCfg',
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
@@ -208,6 +213,25 @@ const DormDB = (() => {
     saveWorkers:      (d) => _w(K.WORKERS, d),
     getWorkersCfg()       { return _r(K.WORKERS_CFG, { semesterLabel: '', raFloorAssignments: {}, jobDocs: [] }); },
     saveWorkersCfg:   (d) => _w(K.WORKERS_CFG, d),
+    getBedding:       () => _r(K.BEDDING, []),
+    saveBedding:      (d) => _w(K.BEDDING, d),
+    getBeddingStock:  () => _r(K.BEDDING_STOCK, []),
+    saveBeddingStock: (d) => _w(K.BEDDING_STOCK, d),
+    getBeddingCount:  () => _r(K.BEDDING_COUNT, []),
+    saveBeddingCount: (d) => _w(K.BEDDING_COUNT, d),
+    getBeddingCfg() {
+      return _r(K.BEDDING_CFG, {
+        currentSemester: '1st Semester 2026',
+        items: [
+          { id: 'pillow',     name: 'Pillow',            price: 165, enabled: true },
+          { id: 'set',        name: 'Set (Case+Cover)',   price: 235, enabled: true },
+          { id: 'pillowcase', name: 'Pillow Case',        price: 65,  enabled: true },
+          { id: 'mattress',   name: 'Mattress Protector', price: 350, enabled: true },
+          { id: 'blanket',    name: 'Blanket',            price: 160, enabled: true },
+        ]
+      });
+    },
+    saveBeddingCfg:   (d) => _w(K.BEDDING_CFG, d),
     getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
     saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
     getUtilities:    ()  => _r(K.UTILITIES, []),
@@ -256,6 +280,8 @@ const DormDB = (() => {
         unresolvedIncidents: incidents.filter(i => !i.resolved).length,
         pendingOffCampus:   offcampus.filter(r => r.status === 'Pending').length,
         activeWorkers:      workers.filter(w => w.status === 'Active').length,
+        beddingSoldThisSem: (() => { const c = _r(K.BEDDING_CFG, { currentSemester: '' }); return _r(K.BEDDING, []).filter(t => t.semester === c.currentSemester).length; })(),
+        beddingMissing:     (() => { const c = _r(K.BEDDING_CFG, { currentSemester: '' }); const cts = _r(K.BEDDING_COUNT, []).filter(x => x.semester === c.currentSemester).sort((a,b) => b.countDate.localeCompare(a.countDate)); return cts.length ? cts[0].items.reduce((a,i) => a + Math.max(0,(i.expected||0)-(i.actual||0)), 0) : 0; })(),
       };
     },
 
