@@ -68,6 +68,8 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
   <button class="tab-btn" data-tab="storage" onclick="switchTab('storage')">📦 Storage</button>
   <button class="tab-btn" data-tab="clearance" onclick="switchTab('clearance')">📋 Clearance</button>
   <button class="tab-btn" data-tab="fees" onclick="switchTab('fees')">💰 Fee Collection</button>
+  <button class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')">📅 Attendance</button>
+  <button class="tab-btn" data-tab="incidents" onclick="switchTab('incidents')">🚨 Incidents</button>
 </div>
 
 <!-- ── ARCHIVE TAB ── -->
@@ -279,6 +281,24 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
   <div style="overflow-x:auto"><div id="feesBody"></div></div>
 </div>
 
+<!-- ── ATTENDANCE REPORT TAB ── -->
+<div id="tab-attendance" class="tab-panel">
+  <div class="tab-toolbar">
+    <span style="font-size:.82rem;font-weight:700;color:#1e3a5f">Nightly Attendance Reports</span>
+    <button class="btn btn-orange" onclick="printAttendanceReport()">🖨️ Print</button>
+  </div>
+  <div id="attReportBody"></div>
+</div>
+
+<!-- ── INCIDENTS REPORT TAB ── -->
+<div id="tab-incidents" class="tab-panel">
+  <div class="tab-toolbar">
+    <span style="font-size:.82rem;font-weight:700;color:#1e3a5f">Incident Reports Summary</span>
+    <button class="btn btn-orange" onclick="printIncidentsReport()">🖨️ Print</button>
+  </div>
+  <div id="incReportBody"></div>
+</div>
+
 </div><!-- /container -->
 
 <script>
@@ -303,6 +323,8 @@ function switchTab(name) {
   if (name === 'storage')   renderStorage();
   if (name === 'clearance') { renderClearance(); populateClearanceRooms(); }
   if (name === 'fees') renderFees();
+  if (name === 'attendance') renderAttendanceReport();
+  if (name === 'incidents')  renderIncidentsReport();
 }
 
 // ── ARCHIVE ────────────────────────────────────────────────────────────────
@@ -1038,12 +1060,182 @@ function printFeesReport() {
   win.document.close();
 }
 
+// ── ATTENDANCE REPORT ─────────────────────────────────────────────────────
+function renderAttendanceReport() {
+  const sessions   = DormDB.getAttendance ? DormDB.getAttendance() : [];
+  const completed  = sessions.filter(s => s.status === 'Completed').sort((a,b) => b.date.localeCompare(a.date));
+  const el = document.getElementById('attReportBody');
+
+  if (!completed.length) {
+    el.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px">No completed attendance sessions yet.</p>';
+    return;
+  }
+
+  // Per-student absence count
+  const absCounts = {};
+  completed.forEach(s => {
+    (s.records || []).filter(r => r.status === 'Absent').forEach(r => {
+      const k = r.studentName || r.studentId || 'Unknown';
+      absCounts[k] = (absCounts[k] || 0) + 1;
+    });
+  });
+  const absList = Object.entries(absCounts).sort((a,b) => b[1] - a[1]);
+
+  // Floor absent rates across last 30 sessions
+  const last30 = completed.slice(0, 30);
+  const floorAbsent = {};
+  last30.forEach(s => {
+    (s.records || []).filter(r => r.status === 'Absent').forEach(r => {
+      const f = getFloor(r.room || '');
+      floorAbsent[f] = (floorAbsent[f] || 0) + 1;
+    });
+  });
+
+  const statCards = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px">
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)"><div style="font-size:1.6rem;font-weight:800;color:#1e3a5f">${completed.length}</div><div style="font-size:.68rem;color:#888;font-weight:600;text-transform:uppercase">Sessions</div></div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)"><div style="font-size:1.6rem;font-weight:800;color:#e65100">${absList.length}</div><div style="font-size:.68rem;color:#888;font-weight:600;text-transform:uppercase">Students with Absences</div></div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)"><div style="font-size:1.6rem;font-weight:800;color:#c62828">${absList.filter(([,c])=>c>=3).length}</div><div style="font-size:.68rem;color:#888;font-weight:600;text-transform:uppercase">≥3 Absences</div></div>
+    </div>`;
+
+  const sessionTable = `
+    <h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin:16px 0 8px;border-bottom:2px solid #d9e6f5;padding-bottom:6px">Session Log</h3>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:#1e3a5f;color:#fff">
+        <th style="padding:6px 10px;text-align:left">Date</th>
+        <th style="padding:6px 10px;text-align:left">Semester</th>
+        <th style="padding:6px 10px;text-align:left">Floor</th>
+        <th style="padding:6px 10px;text-align:center">Present</th>
+        <th style="padding:6px 10px;text-align:center">Absent</th>
+        <th style="padding:6px 10px;text-align:center">On Leave</th>
+        <th style="padding:6px 10px;text-align:center">Total</th>
+        <th style="padding:6px 10px;text-align:left">Conducted By</th>
+      </tr></thead><tbody>
+      ${completed.map((s,i) => {
+        const sm = s.summary || {};
+        const absRate = sm.total ? Math.round(sm.absent / sm.total * 100) : 0;
+        return `<tr style="background:${i%2?'#f8f9fa':'#fff'}">
+          <td style="padding:5px 10px">${escapeHtml(s.date)}</td>
+          <td style="padding:5px 10px">${escapeHtml(s.semesterLabel||'—')}</td>
+          <td style="padding:5px 10px">${escapeHtml(s.floor||'All')}</td>
+          <td style="padding:5px 10px;text-align:center;color:#2e7d32;font-weight:700">${sm.present||0}</td>
+          <td style="padding:5px 10px;text-align:center;color:${sm.absent?'#c62828':'#2e7d32'};font-weight:700">${sm.absent||0}</td>
+          <td style="padding:5px 10px;text-align:center">${sm.onLeave||0}</td>
+          <td style="padding:5px 10px;text-align:center">${sm.total||0}</td>
+          <td style="padding:5px 10px">${escapeHtml(s.conductedBy||'—')}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+
+  const absTable = absList.length ? `
+    <h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin:16px 0 8px;border-bottom:2px solid #d9e6f5;padding-bottom:6px">Absence Count per Student</h3>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:#1e3a5f;color:#fff"><th style="padding:6px 10px;text-align:left">Student</th><th style="padding:6px 10px;text-align:center">Absences</th><th style="padding:6px 10px">Alert</th></tr></thead>
+      <tbody>${absList.map(([name,cnt],i) => `<tr style="background:${cnt>=3?'#fff8e1':i%2?'#f8f9fa':'#fff'}">
+        <td style="padding:5px 10px">${escapeHtml(name)}</td>
+        <td style="padding:5px 10px;text-align:center;font-weight:700;color:${cnt>=3?'#c62828':'#333'}">${cnt}</td>
+        <td style="padding:5px 10px">${cnt>=3?'⚠️ Follow up':''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : '';
+
+  el.innerHTML = statCards + absTable + sessionTable;
+}
+function printAttendanceReport() {
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Attendance Report — ${escapeHtml(DormDB.getDormName())}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:9pt;padding:0;margin:0}
+  h1{font-size:12pt;margin-bottom:2mm}h3{font-size:10pt;color:#1e3a5f;margin:8pt 0 3pt;border-bottom:1pt solid #1e3a5f}
+  table{width:100%;border-collapse:collapse;margin-bottom:8pt}th,td{border:1pt solid #ccc;padding:3pt 6pt;font-size:8pt}
+  th{background:#1e3a5f;color:#fff;text-align:left}
+  @page{size:A4;margin:12mm}</style></head><body>
+  <h1>📅 Attendance Report — ${escapeHtml(DormDB.getDormName())}</h1>
+  <p style="font-size:8pt;color:#888;margin-bottom:5mm">Printed: ${new Date().toLocaleString()}</p>
+  ${document.getElementById('attReportBody').innerHTML}
+  </body></html>`);
+  win.document.close(); win.print();
+}
+
+// ── INCIDENTS REPORT ──────────────────────────────────────────────────────
+function renderIncidentsReport() {
+  const incidents = DormDB.getIncidents ? DormDB.getIncidents() : [];
+  const el = document.getElementById('incReportBody');
+
+  if (!incidents.length) {
+    el.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px">No incident records yet.</p>';
+    return;
+  }
+
+  const unresolved  = incidents.filter(i => !i.resolved);
+  const notExported = incidents.filter(i => !i.sarra2Exported);
+
+  // By type
+  const byType = {};
+  incidents.forEach(i => { byType[i.type||'Other'] = (byType[i.type||'Other']||0)+1; });
+
+  const statCards = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px">
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)"><div style="font-size:1.6rem;font-weight:800;color:#1e3a5f">${incidents.length}</div><div style="font-size:.68rem;color:#888;font-weight:600;text-transform:uppercase">Total Incidents</div></div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)"><div style="font-size:1.6rem;font-weight:800;color:#c62828">${unresolved.length}</div><div style="font-size:.68rem;color:#888;font-weight:600;text-transform:uppercase">Unresolved</div></div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)"><div style="font-size:1.6rem;font-weight:800;color:#1565c0">${notExported.length}</div><div style="font-size:.68rem;color:#888;font-weight:600;text-transform:uppercase">Not in SARRA2</div></div>
+    </div>`;
+
+  const typeTable = `
+    <h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin:0 0 8px;border-bottom:2px solid #d9e6f5;padding-bottom:6px">Incidents by Type</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-bottom:16px">
+    ${Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([t,c]) => {
+      const pct = Math.round(c / incidents.length * 100);
+      return `<div style="background:#fff;border-radius:6px;padding:8px 12px;box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center;font-size:.8rem">
+        <span>${escapeHtml(t)}</span>
+        <strong style="color:#7b1fa2">${c}</strong>
+      </div>`;
+    }).join('')}
+    </div>`;
+
+  const unresolvedTable = unresolved.length ? `
+    <h3 style="font-size:.85rem;font-weight:700;color:#c62828;margin:0 0 8px;border-bottom:2px solid #fdecea;padding-bottom:6px">Unresolved Incidents</h3>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:#c62828;color:#fff"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Type</th><th style="padding:6px 10px;text-align:left">Severity</th><th style="padding:6px 10px;text-align:left">Students</th><th style="padding:6px 10px">SARRA2</th></tr></thead>
+      <tbody>${unresolved.slice().sort((a,b)=>b.date.localeCompare(a.date)).map((inc,i)=>`<tr style="background:${i%2?'#fff8f8':'#fff'}">
+        <td style="padding:5px 10px">${escapeHtml(inc.date)}</td>
+        <td style="padding:5px 10px">${escapeHtml(inc.type||'—')}</td>
+        <td style="padding:5px 10px">${escapeHtml(inc.severity||'—')}</td>
+        <td style="padding:5px 10px">${(inc.studentsInvolved||[]).map(s=>escapeHtml(s.name)).join(', ')||'—'}</td>
+        <td style="padding:5px 10px;text-align:center">${inc.sarra2Exported?'✅':'<span style="color:#c62828">⏳ Pending</span>'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>` : '';
+
+  const sarra2Notice = notExported.length ? `
+    <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;padding:10px 14px;margin-top:14px;font-size:.8rem;color:#1565c0">
+      <strong>${notExported.length} incident${notExported.length!==1?'s':''}</strong> not yet exported to SARRA2.
+      <a href="incidents.html" style="color:#1565c0;font-weight:700;margin-left:8px">→ Go to Incident Reports to export</a>
+    </div>` : `<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:10px 14px;margin-top:14px;font-size:.8rem;color:#2e7d32">✅ All incidents have been exported to SARRA2.</div>`;
+
+  el.innerHTML = statCards + typeTable + unresolvedTable + sarra2Notice;
+}
+function printIncidentsReport() {
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Incidents Report — ${escapeHtml(DormDB.getDormName())}</title>
+  <style>body{font-family:'Segoe UI',Arial,sans-serif;font-size:9pt;padding:0;margin:0}
+  h1{font-size:12pt;margin-bottom:2mm}h3{font-size:10pt;color:#7b1fa2;margin:8pt 0 3pt;border-bottom:1pt solid #7b1fa2}
+  table{width:100%;border-collapse:collapse;margin-bottom:8pt}th,td{border:1pt solid #ccc;padding:3pt 6pt;font-size:8pt}
+  th{background:#7b1fa2;color:#fff;text-align:left}
+  @page{size:A4;margin:12mm}</style></head><body>
+  <h1>🚨 Incidents Report — ${escapeHtml(DormDB.getDormName())}</h1>
+  <p style="font-size:8pt;color:#888;margin-bottom:5mm">Printed: ${new Date().toLocaleString()}</p>
+  ${document.getElementById('incReportBody').innerHTML}
+  </body></html>`);
+  win.document.close(); win.print();
+}
+
 // ── Live reload on data changes ────────────────────────────────────────────
 const _isActive = id => document.getElementById(id).classList.contains('active');
 DormDB.on('dormData',    () => { renderArchive(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-holds')) renderHolds(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-room')) renderRoomReport(); if(_isActive('tab-clearance')){ renderClearance(); populateClearanceRooms(); } if(_isActive('tab-fees')) renderFees(); });
 DormDB.on('dormHistory', () => { renderArchive(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); });
 DormDB.on('dormAway',    () => { if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-fees')) renderFees(); });
-DormDB.on('dormKeysInv', () => { if(_isActive('tab-fees')) renderFees(); });
+DormDB.on('dormKeysInv',    () => { if(_isActive('tab-fees'))       renderFees(); });
+DormDB.on('dormAttendance', () => { if(_isActive('tab-attendance')) renderAttendanceReport(); });
+DormDB.on('dormIncidents',  () => { if(_isActive('tab-incidents'))  renderIncidentsReport(); });
 
 // Initial render
 renderArchive();
