@@ -72,7 +72,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
 | `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
-| `modules/userguide.html` | 1,642 | Dean's User Guide — all modules + About/Version History/Roadmap/Legal |
+| `modules/userguide.html` | 2,267 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal |
 | `modules/handbook.html` | 1,865 | APIU Residence Hall Handbook — 50+ policies, fines table |
 
 ---
@@ -479,7 +479,7 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 
 - [ ] 4 changes from previous Python script that failed to apply (changes 13, 14, 15, 22) — original diffs unknown
 - [x] Build 2 remaining modules: Staff Scheduling ✅, Maintenance ✅ (all 6 new modules complete)
-- [ ] Update Dean's User Guide (userguide.html) to cover the 6 new modules added in sessions 27–34
+- [x] Update Dean's User Guide (userguide.html) to cover the 6 new modules added in sessions 27–34 ✅
 - [ ] Password gate re-enable (code removed, ready to re-add to `index.html` when ready)
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
 
