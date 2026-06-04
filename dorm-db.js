@@ -32,8 +32,20 @@ const DormDB = (() => {
     INSPECTIONS: 'dormInspections',
     INVENTORY:    'dormInventory',
     INV_TEMPLATE: 'dormInvTemplate',
-    SCHEDULE:    'dormSchedule',
-    MAINTENANCE: 'dormMaintenance',
+    SCHEDULE:       'dormSchedule',
+    MAINTENANCE:    'dormMaintenance',
+    MAINTENANCE_CFG:'dormMaintenanceConfig',
+    // Behavioral / admin modules
+    LEAVES_IMPORT:  'dormLeavesImport',
+    ATTENDANCE:     'dormAttendance',
+    ATT_ARCHIVE:    'dormAttendanceArchive',
+    CURFEW_CFG:     'dormCurfewConfig',
+    INCIDENTS:      'dormIncidents',
+    INCIDENTS_CFG:  'dormIncidentsConfig',
+    OFFCAMPUS_REQ:  'dormOffCampusReq',
+    ASSISTANCE:     'dormAssistance',
+    WORKERS:        'dormWorkers',
+    WORKERS_CFG:    'dormWorkersConfig',
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
@@ -172,8 +184,30 @@ const DormDB = (() => {
     saveInvTemplate: (d) => _w(K.INV_TEMPLATE, d),
     getSchedule:     ()  => _r(K.SCHEDULE, []),
     saveSchedule:    (d) => _w(K.SCHEDULE, d),
-    getMaintenance:  ()  => _r(K.MAINTENANCE, []),
-    saveMaintenance: (d) => _w(K.MAINTENANCE, d),
+    getMaintenance:    ()  => _r(K.MAINTENANCE, []),
+    saveMaintenance:   (d) => _w(K.MAINTENANCE, d),
+    getMaintenanceCfg()    { return _r(K.MAINTENANCE_CFG, { defaultAssignee: '' }); },
+    saveMaintenanceCfg:(d) => _w(K.MAINTENANCE_CFG, d),
+    getLeavesImport:  ()  => _r(K.LEAVES_IMPORT, {}),
+    saveLeavesImport: (d) => _w(K.LEAVES_IMPORT, d),
+    getAttendance:    ()  => _r(K.ATTENDANCE, []),
+    saveAttendance:   (d) => _w(K.ATTENDANCE, d),
+    getAttArchive:    ()  => _r(K.ATT_ARCHIVE, []),
+    saveAttArchive:   (d) => _w(K.ATT_ARCHIVE, d),
+    getCurfewCfg()        { return _r(K.CURFEW_CFG, { enabled: true, weekdayCurfew: '22:00', weekendCurfew: '23:00', graceMinutes: 15, promptIncidentAfterSession: true, semesterLabel: '1st Semester 2026', showCountdownBanner: true }); },
+    saveCurfewCfg:    (d) => _w(K.CURFEW_CFG, d),
+    getIncidents:     ()  => _r(K.INCIDENTS, []),
+    saveIncidents:    (d) => _w(K.INCIDENTS, d),
+    getIncidentsCfg()     { return _r(K.INCIDENTS_CFG, { fineDefaults: { 'Unauthorized Room Change': 1000, 'Curfew Violation': 0, 'Property Damage': 0 }, pointDefaults: { minor: 0, moderate: 1, major: 3, emergency: 5 }, semesterLabel: '' }); },
+    saveIncidentsCfg: (d) => _w(K.INCIDENTS_CFG, d),
+    getOffCampusReq:  ()  => _r(K.OFFCAMPUS_REQ, []),
+    saveOffCampusReq: (d) => _w(K.OFFCAMPUS_REQ, d),
+    getAssistance:    ()  => _r(K.ASSISTANCE, []),
+    saveAssistance:   (d) => _w(K.ASSISTANCE, d),
+    getWorkers:       ()  => _r(K.WORKERS, []),
+    saveWorkers:      (d) => _w(K.WORKERS, d),
+    getWorkersCfg()       { return _r(K.WORKERS_CFG, { semesterLabel: '', raFloorAssignments: {}, jobDocs: [] }); },
+    saveWorkersCfg:   (d) => _w(K.WORKERS_CFG, d),
     getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
     saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
     getUtilities:    ()  => _r(K.UTILITIES, []),
@@ -190,7 +224,12 @@ const DormDB = (() => {
       const maint    = _r(K.MAINTENANCE, []);
       const inspect  = _r(K.INSPECTIONS, []);
       const invent   = _r(K.INVENTORY, []);
-      const profiles = _r(K.PROFILES, []);
+      const profiles   = _r(K.PROFILES, []);
+      const attendance = _r(K.ATTENDANCE, []);
+      const incidents  = _r(K.INCIDENTS, []);
+      const offcampus  = _r(K.OFFCAMPUS_REQ, []);
+      const leavesImp  = _r(K.LEAVES_IMPORT, {});
+      const workers    = _r(K.WORKERS, []);
       const REQ = ['firstName','surname','studentId','cellPhone','email','birthDate',
                    'nationality','homeAddress','fatherName','motherName',
                    'emergencyName','emergencyPhone','bloodType'];
@@ -212,7 +251,23 @@ const DormDB = (() => {
         profilesComplete:   profiles.filter(p => pctOf(p) >= 90).length,
         depositsCollected:  assigned.filter(k => k.depositPaid).length,
         depositsPending:    assigned.filter(k => !k.depositPaid && k.status === 'With Student').length,
+        studentsOnLeave:    (leavesImp.students || []).length,
+        lastNightAbsent:    (() => { const done = attendance.filter(s => s.status === 'Completed').sort((a,b) => b.date.localeCompare(a.date)); return done.length ? ((done[0].summary && done[0].summary.absent) || 0) : 0; })(),
+        unresolvedIncidents: incidents.filter(i => !i.resolved).length,
+        pendingOffCampus:   offcampus.filter(r => r.status === 'Pending').length,
+        activeWorkers:      workers.filter(w => w.status === 'Active').length,
       };
+    },
+
+    // Archive attendance sessions for a completed semester
+    archiveAttendance(semesterLabel) {
+      const all      = _r(K.ATTENDANCE, []);
+      const toArc    = all.filter(s => s.semesterLabel === semesterLabel);
+      const remaining = all.filter(s => s.semesterLabel !== semesterLabel);
+      const existing = _r(K.ATT_ARCHIVE, []);
+      _w(K.ATT_ARCHIVE, [...existing, ...toArc]);
+      _w(K.ATTENDANCE, remaining);
+      return toArc.length;
     },
 
     // Reactive subscriptions — returns unsubscribe fn

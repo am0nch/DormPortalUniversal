@@ -21,7 +21,12 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 - **Dean's User Guide** (`modules/userguide.html`) — interactive HTML guide covering all 8 ready modules; sticky sidebar TOC, collapsible sections, live search, print-friendly
 - **Residence Hall Handbook** (`modules/handbook.html`) — interactive APIU policy reference; 50+ policies, fines quick-reference table, system development roadmap; dark green theme, same sidebar/search pattern as userguide.html
 
-**Coming soon:** Staff Scheduling, Maintenance
+- **Nightly Attendance** (`modules/attendance.html`) — nightly roll call, curfew countdown, SARRA2 leave import, mobile-first roster, session history, archive by semester
+- **Incident Reports** (`modules/incidents.html`) — behavioral incident tracking, SARRA2 CSV export, fine defaults (handbook policy), follow-up management
+- **Student Admin** (`modules/student-admin.html`) — off-campus move requests with 30-day notice tracking, waiver categories, Dean's assistance log
+- **Dorm Workers** (`modules/dorm-workers.html`) — HR register for RAs, Monitors, Janitors, SWP workers; job documents; live floor coverage map
+- **Staff Scheduling** (`modules/staff-scheduling.html`) — weekly shift grid, category filters, on-duty detection, "My Schedule" view, A4 landscape print
+- **Maintenance** (`modules/plant-requests.html`) — plant/repair request tracking, urgency levels, dashboard with bar chart, history
 
 ---
 
@@ -47,22 +52,28 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 ---
 
-## File stats (as of 2026-06-02, session 25)
+## File stats (as of 2026-06-04, session 27–34)
 
-| File | Lines | Size | Notes |
-|------|-------|------|-------|
-| `index.html` | 335 | ~16 KB | Main menu, 12 module cards (10 ready), live stats, dorm selector |
-| `dorm-db.js` | 317 | ~13 KB | Central data API + IndexedDB photo subsystem + full settings setters |
-| `modules/room-reservations.html` | 1,868 | ~1.0 MB | Active room reservations module (SheetJS bundled inline) |
-| `modules/student-profiles.html` | 1,164 | ~1.0 MB | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline) |
-| `modules/floor-plan.html` | 497 | ~24 KB | Visual room grid + bathroom pairing config |
-| `modules/utilities.html` | 674 | ~1.0 MB | Electricity & hot water billing (SheetJS bundled inline) |
-| `modules/reports.html` | 1,053 | ~82 KB | 8-tab report hub (archive, room, custom, pivot, holds, storage, clearance, fee collection) |
-| `modules/room-inspection.html` | 1,146 | ~58 KB | Move-in/out checklists, key issuance section (🔑), charge calc, cost sheet |
-| `modules/key-inventory.html` | 1,570 | ~68 KB | Assigned key tracking + borrow log (MS Forms import), overdue alerts, fine recording |
-| `modules/inventory.html` | 1,081 | ~55 KB | Asset inventory — Code 39 barcodes, room template, maintenance flags |
-| `modules/userguide.html` | 1,642 | ~75 KB | Dean's User Guide — all 9 ready modules + About/Version History/Roadmap/Legal sections |
-| `modules/handbook.html` | 1,865 | ~88 KB | APIU Residence Hall Handbook — 50+ policies, fines table; roadmap cross-links to User Guide |
+| File | Lines | Notes |
+|------|-------|-------|
+| `index.html` | 431 | Main menu, 16 module cards (all ready), section headers, live stats |
+| `dorm-db.js` | 383 | Central data API; 10 new keys for behavioral modules; getMaintenanceCfg added |
+| `modules/room-reservations.html` | 1,868 | Active room reservations (SheetJS bundled inline) |
+| `modules/student-profiles.html` | 1,164 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline) |
+| `modules/floor-plan.html` | 497 | Visual room grid + bathroom pairing config |
+| `modules/utilities.html` | 674 | Electricity & hot water billing (SheetJS bundled inline) |
+| `modules/reports.html` | 1,245 | 10-tab report hub (+ Attendance tab + Incidents tab) |
+| `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
+| `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
+| `modules/inventory.html` | 1,081 | Asset inventory — Code 39 barcodes, room template, maintenance flags |
+| `modules/attendance.html` | 1,192 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
+| `modules/incidents.html` | 959 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking |
+| `modules/student-admin.html` | 993 | Off-campus move requests + Dean's assistance log |
+| `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
+| `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
+| `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
+| `modules/userguide.html` | 1,642 | Dean's User Guide — all modules + About/Version History/Roadmap/Legal |
+| `modules/handbook.html` | 1,865 | APIU Residence Hall Handbook — 50+ policies, fines table |
 
 ---
 
@@ -467,11 +478,23 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 ## Pending items
 
 - [ ] 4 changes from previous Python script that failed to apply (changes 13, 14, 15, 22) — original diffs unknown
-- [ ] Build 2 remaining modules: Staff Scheduling, Maintenance (Room Inspection ✅, Key Inventory ✅, Inventory ✅)
+- [x] Build 2 remaining modules: Staff Scheduling ✅, Maintenance ✅ (all 6 new modules complete)
+- [ ] Update Dean's User Guide (userguide.html) to cover the 6 new modules added in sessions 27–34
 - [ ] Password gate re-enable (code removed, ready to re-add to `index.html` when ready)
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
 
 ---
+
+## Completed improvements (2026-06-04, sessions 27–34)
+
+- [x] **Phase 1 — dorm-db.js + index.html foundation:** Added 10 new KEYS (LEAVES_IMPORT, ATTENDANCE, ATT_ARCHIVE, CURFEW_CFG, INCIDENTS, INCIDENTS_CFG, OFFCAMPUS_REQ, ASSISTANCE, WORKERS, WORKERS_CFG) + 22 getter/setter pairs; 5 new getMenuStats() fields; archiveAttendance() helper; MAINTENANCE_CFG key + getter/setter. index.html: menu-section CSS headers; MODULES array expanded to 16 cards with section grouping (Operations, Student Affairs, Staff & Facilities, Reference); 4 new DormDB.on() subscriptions. (335 → 431 lines)
+- [x] **Phase 2 — Nightly Attendance** (`attendance.html`, 1,192 lines): 5-tab mobile-first module; APIU handbook curfew defaults (22:00/23:00, 15-min grace); live countdown banner (3 states); SARRA2 leave import (snapshot pattern, flexible CSV parser); generateRoster() from dormData + dormAway + leavesImport; 6 status values (Present/Absent/On Leave/Away/Exempt/Not Set); sticky tally bar; post-session "create incident reports for absent students" flow; archiveCurrentSemester() via DormDB.archiveAttendance(); A4 print session record.
+- [x] **Phase 3 — Incident Reports** (`incidents.html`, 959 lines): 5-tab purple (#7b1fa2) module; 9 incident types, 4 severities; studentsInvolved[] with role/fine/CP fields; SARRA2 CSV export via Blob+object URL (no SheetJS); handbook fine defaults pre-seeded (Unauthorized Room Change = 1,000 ฿); follow-up overdue detection; bulk SARRA2 export with checkbox selection; A4 print; BF-016 fix: INCIDENTS_CFG routed through DormDB instead of direct localStorage.
+- [x] **Phase 4 — Student Admin** (`student-admin.html`, 993 lines): 3-tab blue (#1565c0) module; Off-Campus Requests with 30-day notice compliance badge (handbook policy), waiver categories (6), parent approval, approve/reject workflow, "Start Clearance" button writing directly to dormData; Dean's Assistance Log with multi-student support, 9 types, hours/cost tracking, overdue follow-up detection; Reports tab with notice compliance rate + A4 print.
+- [x] **Phase 5 — Dorm Workers** (`dorm-workers.html`, 743 lines): 6-tab slate (#37474f) HR module; RA/Monitor/Janitor/SWP categories; Dashboard with floor coverage grid (F1–F4 RA names) + live on-duty via dormSchedule; SWP SARRA2 cross-reference fields (swpSarra2Id, swpSemesterTarget, swpSupervisor); Job Documents tab: create/edit per-category with responsibilities list, A4 agreement print with signature lines; ?worker=id deep-link.
+- [x] **Phase 6 — Staff Scheduling** (`staff-scheduling.html`, 624 lines): 3-tab teal (#004d40) module; weekly Mon–Sun grid (configurable start day); shift chips color-coded by category; on-duty banner from real clock time; category filter chips; shift modal with per-category default start/end times from workersCfg; My Schedule tab filtered by current user; A4 landscape print sheet.
+- [x] **Phase 7 — Maintenance** (`plant-requests.html`, 607 lines): 4-tab brown (#4e342e) module; urgency picker (Low/Normal/High/Emergency); Dashboard with hot-rooms list, avg days-to-resolution, urgency bar chart; quick-action status buttons; History tab with date range filter; status strings Title Case matching getMenuStats(); MAINTENANCE_CFG key for default assignee.
+- [x] **Phase 8 — Reports additions** (`reports.html`, 1,053 → 1,245 lines): Attendance tab (session log, per-student absence counts with ≥3 alert, stat cards, A4 print); Incidents tab (by-type summary, unresolved table, SARRA2 backlog count with link, A4 print); DormDB.on() subscriptions for both new keys.
 
 ## Completed improvements (2026-06-02, session 26)
 

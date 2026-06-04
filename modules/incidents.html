@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Incident Reports — APIU</title>
+<script src="../dorm-db.js"></script>
+<style>
+*{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
+body{background:#f0f4f8;min-height:100vh}
+.inc-nav{background:#7b1fa2;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.inc-nav a{color:#e1bee7;text-decoration:none;font-size:.85rem;font-weight:600}
+.inc-nav a:hover{color:#fff}
+.nav-title{font-weight:700;font-size:1rem}
+.nav-dorm{font-size:.78rem;opacity:.75}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#7b1fa2;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top.show{display:flex}
+.inc-wrap{max-width:960px;margin:0 auto;padding:20px 16px 40px}
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
+.tab-btn.active{background:#7b1fa2;color:#fff}
+.tab-btn:hover:not(.active){background:#f0f4f8}
+.tab-panel{display:none}.tab-panel.active{display:block}
+/* Stat cards */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:18px}
+.sc{background:#fff;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.sc .sv{font-size:1.6rem;font-weight:800;color:#7b1fa2;line-height:1.1}
+.sc .sl{font-size:.68rem;color:#888;margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sc.unresolved .sv{color:#c62828}.sc.sarra2 .sv{color:#1565c0}.sc.followup .sv{color:#e65100}
+/* Incident list */
+.inc-card{background:#fff;border-radius:8px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #ddd;overflow:hidden}
+.inc-card.sev-minor{border-left-color:#66bb6a}.inc-card.sev-moderate{border-left-color:#ffa726}
+.inc-card.sev-major{border-left-color:#ef5350}.inc-card.sev-emergency{border-left-color:#7b1fa2}
+.inc-card.resolved{opacity:.65}
+.inc-hdr{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.inc-hdr:hover{background:#faf8fc}
+.inc-body{display:none;padding:12px 14px;border-top:1px solid #f0f0f0;font-size:.8rem}
+.inc-body.open{display:block}
+.inc-title{font-size:.9rem;font-weight:700;color:#333}
+.inc-meta{font-size:.74rem;color:#888;margin-top:3px}
+.badge{display:inline-block;font-size:.68rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:4px}
+.badge-minor{background:#e8f5e9;color:#2e7d32}.badge-moderate{background:#fff3e0;color:#e65100}
+.badge-major{background:#fdecea;color:#c62828}.badge-emergency{background:#f3e5f5;color:#7b1fa2}
+.badge-resolved{background:#e8f5e9;color:#2e7d32}.badge-open{background:#fdecea;color:#c62828}
+.badge-exported{background:#e3f2fd;color:#1565c0}.badge-pending{background:#fff8e1;color:#f57f17}
+.badge-blue{background:#e3f2fd;color:#1565c0}.badge-gray{background:#f0f0f0;color:#666}
+/* Form */
+.inc-form{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.77rem;font-weight:600;color:#444;margin-bottom:3px}
+.fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.84rem}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#7b1fa2}
+.fg-row{display:flex;gap:12px}.fg-row .fg{flex:1}
+/* Students involved */
+.student-entry{background:#f8f5fc;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #e1bee7;position:relative}
+.student-entry .remove-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:.85rem;color:#c62828}
+/* Settings */
+.sf{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px}
+.sf h3{font-size:.88rem;color:#7b1fa2;font-weight:700;margin-bottom:12px;border-bottom:1px solid #f3e5f5;padding-bottom:7px}
+/* Buttons */
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
+.btn-primary{background:#7b1fa2;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-orange{background:#e65100;color:#fff}.btn-orange:hover{opacity:.88}
+.btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
+.btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}
+.btn-blue{background:#1565c0;color:#fff}.btn-blue:hover{opacity:.88}
+.btn-ghost{background:#f0f4f8;color:#333;border:1px solid #d0d0d0}.btn-ghost:hover{background:#e8e8e8}
+.btn-sm{padding:5px 10px;font-size:.75rem}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.callout{border-radius:8px;padding:10px 14px;font-size:.79rem;margin-bottom:12px}
+.callout-info{background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8}
+.callout-warn{background:#fff8e1;color:#e65100;border:1px solid #ffd54f}
+.callout-success{background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7}
+.sec-head{font-size:.88rem;font-weight:700;color:#7b1fa2;margin:0 0 12px;padding-bottom:7px;border-bottom:2px solid #f3e5f5}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:560px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:.98rem;font-weight:700;color:#7b1fa2;margin-bottom:14px}
+.toast{position:fixed;bottom:24px;right:20px;background:#7b1fa2;color:#fff;padding:10px 18px;border-radius:8px;font-size:.86rem;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+/* History table */
+.hist-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.hist-table th{background:#f3e5f5;color:#7b1fa2;padding:6px 10px;text-align:left;font-size:.71rem;white-space:nowrap}
+.hist-table td{padding:6px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+.hist-table tr:hover td{background:#faf8fc}
+@media print{.inc-nav,.tab-bar,.scroll-top{display:none!important}body{background:#fff}.inc-wrap{padding:0;max-width:100%}}
+@page{size:A4 portrait;margin:12mm}
+</style>
+</head>
+<body>
+
+<nav class="inc-nav">
+  <a id="backLink" href="../index.html">← Menu</a>
+  <span class="nav-title">🚨 Incident Reports</span>
+  <span class="nav-dorm" id="navDorm"></span>
+</nav>
+
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">⇧</button>
+
+<div class="inc-wrap">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('new')">➕ New Report</button>
+    <button class="tab-btn" onclick="switchTab('active')">🔴 Active</button>
+    <button class="tab-btn" onclick="switchTab('history')">📅 History</button>
+    <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="tab-panel active" id="tab-dashboard">
+    <div id="dashStats"></div>
+    <div id="dashFollowup"></div>
+    <div id="dashByType"></div>
+    <div id="dashSarra2"></div>
+  </div>
+
+  <!-- New Report -->
+  <div class="tab-panel" id="tab-new">
+    <div class="inc-form" id="incidentForm">
+      <div class="sec-head">🚨 New Incident Report</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Date *</label>
+          <input type="date" id="f_date">
+        </div>
+        <div class="fg">
+          <label>Time</label>
+          <input type="time" id="f_time">
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>Incident Type *</label>
+          <select id="f_type" onchange="onTypeChange()">
+            <option value="">— Select type —</option>
+            <option>Curfew Violation</option>
+            <option>Noise Complaint</option>
+            <option>Property Damage</option>
+            <option>Unauthorized Room Change</option>
+            <option>Unauthorized Entry</option>
+            <option>Harassment</option>
+            <option>Cleanliness</option>
+            <option>Theft</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Severity</label>
+          <select id="f_severity">
+            <option>Minor</option>
+            <option>Moderate</option>
+            <option>Major</option>
+            <option>Emergency</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label>Semester Label</label>
+        <input type="text" id="f_semester" placeholder="e.g. 1st Semester 2026">
+      </div>
+
+      <div style="margin-bottom:12px">
+        <div style="font-size:.77rem;font-weight:600;color:#444;margin-bottom:6px">Students Involved *</div>
+        <div id="studentsContainer"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addStudentEntry()">+ Add Student</button>
+      </div>
+
+      <div class="fg">
+        <label>Description *</label>
+        <textarea id="f_desc" rows="3" placeholder="What happened? Where? When exactly?"></textarea>
+      </div>
+      <div class="fg">
+        <label>Witnesses</label>
+        <textarea id="f_witnesses" rows="2" placeholder="Names of witnesses (if any)"></textarea>
+      </div>
+      <div class="fg">
+        <label>Action Taken</label>
+        <textarea id="f_action" rows="2" placeholder="Immediate action taken by staff"></textarea>
+      </div>
+      <div class="fg" style="display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="f_followup" style="width:auto" onchange="toggleFollowupDate()">
+        <label for="f_followup" style="margin:0;font-size:.82rem">Follow-up required</label>
+      </div>
+      <div class="fg" id="f_followupDateWrap" style="display:none">
+        <label>Follow-up Date</label>
+        <input type="date" id="f_followupDate" style="max-width:200px">
+        <input type="text" id="f_followupNotes" placeholder="Follow-up notes / instructions" style="margin-top:5px">
+      </div>
+      <input type="hidden" id="f_editId">
+      <input type="hidden" id="f_attSessId">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveIncident()">💾 Save Report</button>
+        <button class="btn btn-ghost" onclick="resetForm()">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active (Unresolved) -->
+  <div class="tab-panel" id="tab-active">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <span class="sec-head" style="margin:0">🔴 Unresolved Incidents</span>
+      <div style="display:flex;gap:6px">
+        <select id="activeFloor" onchange="renderActive()" style="font-size:.78rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+          <option value="">All floors</option>
+          <option value="1">1st &amp; 2nd</option>
+          <option value="3">3rd</option>
+          <option value="4">4th</option>
+        </select>
+        <select id="activeType" onchange="renderActive()" style="font-size:.78rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+          <option value="">All types</option>
+          <option>Curfew Violation</option><option>Noise Complaint</option><option>Property Damage</option>
+          <option>Unauthorized Room Change</option><option>Unauthorized Entry</option>
+          <option>Harassment</option><option>Cleanliness</option><option>Theft</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div id="activeBody"></div>
+  </div>
+
+  <!-- History -->
+  <div class="tab-panel" id="tab-history">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <input type="date" id="histFrom" onchange="renderHistory()" style="font-size:.8rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+      <span style="font-size:.78rem;color:#888">to</span>
+      <input type="date" id="histTo" onchange="renderHistory()" style="font-size:.8rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+      <select id="histType" onchange="renderHistory()" style="font-size:.8rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+        <option value="">All types</option>
+        <option>Curfew Violation</option><option>Noise Complaint</option><option>Property Damage</option>
+        <option>Unauthorized Room Change</option><option>Unauthorized Entry</option>
+        <option>Harassment</option><option>Cleanliness</option><option>Theft</option><option>Other</option>
+      </select>
+      <select id="histResolved" onchange="renderHistory()" style="font-size:.8rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+        <option value="">All statuses</option>
+        <option value="unresolved">Unresolved only</option>
+        <option value="resolved">Resolved only</option>
+      </select>
+      <select id="histSarra2" onchange="renderHistory()" style="font-size:.8rem;padding:5px 8px;border:1px solid #ddd;border-radius:5px">
+        <option value="">All SARRA2 status</option>
+        <option value="pending">Not exported</option>
+        <option value="exported">Exported</option>
+      </select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+      <span id="histCount" style="font-size:.78rem;color:#888"></span>
+      <button class="btn btn-blue btn-sm" onclick="exportSelectedSarra2()">📤 Export Selected for SARRA2</button>
+    </div>
+    <div id="histBody"></div>
+    <div id="histPager" style="display:flex;gap:6px;margin-top:12px;justify-content:center;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- Settings -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="sf">
+      <h3>💰 Default Fine Amounts (Baht)</h3>
+      <div class="callout callout-info" style="margin-bottom:14px">
+        Pre-set from the APIU Residence Hall Handbook. Edit as policies change.
+      </div>
+      <div id="fineDefaults"></div>
+    </div>
+    <div class="sf">
+      <h3>📊 Default Citizenship Points per Severity</h3>
+      <div class="fg-row">
+        <div class="fg"><label>Minor</label><input type="number" id="pts_minor" min="0" value="0" style="width:100px"></div>
+        <div class="fg"><label>Moderate</label><input type="number" id="pts_moderate" min="0" value="1" style="width:100px"></div>
+        <div class="fg"><label>Major</label><input type="number" id="pts_major" min="0" value="3" style="width:100px"></div>
+        <div class="fg"><label>Emergency</label><input type="number" id="pts_emergency" min="0" value="5" style="width:100px"></div>
+      </div>
+    </div>
+    <div class="sf">
+      <h3>📋 Semester</h3>
+      <div class="fg"><label>Semester Label</label><input type="text" id="cfg_semester" placeholder="e.g. 1st Semester 2026"></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button></div>
+  </div>
+</div>
+
+<!-- Incident Detail / Edit Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box" style="max-width:600px">
+    <div class="modal-title" id="detailTitle">Incident Detail</div>
+    <div id="detailBody"></div>
+    <div class="btn-row" id="detailActions"></div>
+  </div>
+</div>
+
+<!-- Resolve Modal -->
+<div class="modal-overlay" id="resolveModal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-title">✅ Resolve Incident</div>
+    <div class="fg">
+      <label>Resolution Notes</label>
+      <textarea id="resolve_notes" rows="3" placeholder="How was this incident resolved?"></textarea>
+    </div>
+    <input type="hidden" id="resolve_id">
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="confirmResolve()">✅ Mark Resolved</button>
+      <button class="btn btn-ghost" onclick="closeModal('resolveModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-title" id="confirmTitle">Confirm</div>
+    <p id="confirmMsg" style="font-size:.86rem;color:#444;margin-bottom:14px"></p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="confirmYes">Yes</button>
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let incidents  = [];
+let incCfg     = {};
+let histPage   = 0;
+let histSelected = new Set();
+const HIST_PG  = 20;
+
+const INCIDENT_TYPES = ['Curfew Violation','Noise Complaint','Property Damage',
+  'Unauthorized Room Change','Unauthorized Entry','Harassment','Cleanliness','Theft','Other'];
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function getFloor(room) { const m = String(room).match(/^(\d)/); return m?m[1]:'?'; }
+function today()  { return new Date().toISOString().slice(0,10); }
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+function fmtTs(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function sevClass(sev) {
+  return ({Minor:'minor',Moderate:'moderate',Major:'major',Emergency:'emergency'})[sev]||'minor';
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name) {
+  const tabs = ['dashboard','new','active','history','settings'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name)?.classList.add('active');
+  if (name==='dashboard') renderDashboard();
+  if (name==='active')    renderActive();
+  if (name==='history')   renderHistory();
+  if (name==='settings')  loadSettings();
+  if (name==='new')       initNewForm();
+}
+
+// ── Form helpers ──────────────────────────────────────────────────────────────
+function initNewForm() {
+  const editId = document.getElementById('f_editId').value;
+  if (!editId) {
+    document.getElementById('f_date').value = today();
+    document.getElementById('f_time').value = new Date().toTimeString().slice(0,5);
+    document.getElementById('f_semester').value = incCfg.semesterLabel||'';
+    if (!document.getElementById('studentsContainer').children.length) addStudentEntry();
+  }
+}
+
+function addStudentEntry(prefill) {
+  const rooms  = DormDB.getRooms();
+  const opts   = rooms.filter(s=>s.name&&s.name.trim())
+    .map(s=>`<option value="${escapeHtml(s.studentId||s.name)}" data-room="${escapeHtml(s.room)}">${escapeHtml(s.name)} — ${escapeHtml(s.room)}</option>`)
+    .join('');
+  const idx = document.getElementById('studentsContainer').children.length;
+  const div = document.createElement('div');
+  div.className = 'student-entry';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <button type="button" class="remove-btn" onclick="this.parentElement.remove()" title="Remove">✕</button>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Student</label>
+        <select class="se-student" onchange="onStudentSelect(this)">
+          <option value="">— Select student —</option>
+          ${opts}
+          <option value="__manual">Type manually…</option>
+        </select>
+        <input type="text" class="se-name" placeholder="Student name" style="margin-top:5px;display:none">
+      </div>
+      <div class="fg" style="max-width:100px">
+        <label>Room</label>
+        <input type="text" class="se-room" placeholder="Room" style="max-width:100px">
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg">
+        <label>Role</label>
+        <select class="se-role">
+          <option>Primary</option><option>Secondary</option><option>Witness</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Fine Suggested (฿)</label>
+        <input type="number" class="se-fine" min="0" value="0" style="max-width:120px">
+      </div>
+      <div class="fg">
+        <label>CP Deduction (SARRA2)</label>
+        <input type="number" class="se-pts" min="0" value="0" style="max-width:120px">
+      </div>
+    </div>`;
+  if (prefill) {
+    if (prefill.name) { div.querySelector('.se-name').value = prefill.name; div.querySelector('.se-name').style.display='block'; }
+    if (prefill.room) div.querySelector('.se-room').value = prefill.room;
+    if (prefill.role) div.querySelector('.se-role').value = prefill.role||'Primary';
+    if (prefill.fineSuggested) div.querySelector('.se-fine').value = prefill.fineSuggested||0;
+    if (prefill.citizenshipPointsSuggested) div.querySelector('.se-pts').value = prefill.citizenshipPointsSuggested||0;
+  }
+  document.getElementById('studentsContainer').appendChild(div);
+}
+
+function onStudentSelect(sel) {
+  const entry  = sel.closest('.student-entry');
+  const nameIn = entry.querySelector('.se-name');
+  const roomIn = entry.querySelector('.se-room');
+  if (sel.value === '__manual') {
+    nameIn.style.display = 'block';
+    nameIn.value = '';
+    roomIn.value = '';
+  } else if (sel.value) {
+    nameIn.style.display = 'none';
+    const opt = sel.selectedOptions[0];
+    roomIn.value = opt?.dataset.room || '';
+  } else {
+    nameIn.style.display = 'none';
+    roomIn.value = '';
+  }
+}
+
+function onTypeChange() {
+  const type = document.getElementById('f_type').value;
+  // Pre-fill fine from defaults
+  const fines  = incCfg.fineDefaults || {};
+  const defFine = fines[type] || 0;
+  document.querySelectorAll('.se-fine').forEach(inp => { if (!inp.value || inp.value==='0') inp.value = defFine; });
+  // Pre-fill CP from severity defaults
+  const sev  = document.getElementById('f_severity').value;
+  const pts  = (incCfg.pointDefaults||{})[sev.toLowerCase()] || 0;
+  document.querySelectorAll('.se-pts').forEach(inp => { if (!inp.value || inp.value==='0') inp.value = pts; });
+}
+
+function toggleFollowupDate() {
+  document.getElementById('f_followupDateWrap').style.display =
+    document.getElementById('f_followup').checked ? 'block' : 'none';
+}
+
+function readStudents() {
+  const entries = document.querySelectorAll('.student-entry');
+  return Array.from(entries).map(e => {
+    const sel  = e.querySelector('.se-student');
+    const nameIn = e.querySelector('.se-name');
+    let name = '';
+    let studentId = '';
+    if (sel && sel.value && sel.value !== '__manual') {
+      const rooms = DormDB.getRooms();
+      const match = rooms.find(r => (r.studentId||r.name) === sel.value);
+      if (match) { name = match.name; studentId = match.studentId||''; }
+      else name = sel.selectedOptions[0]?.text.split(' — ')[0]||'';
+    } else {
+      name = nameIn?.value.trim()||'';
+    }
+    return {
+      studentId, name,
+      room: e.querySelector('.se-room')?.value.trim()||'',
+      role: e.querySelector('.se-role')?.value||'Primary',
+      fineSuggested: Number(e.querySelector('.se-fine')?.value)||0,
+      citizenshipPointsSuggested: Number(e.querySelector('.se-pts')?.value)||0,
+    };
+  }).filter(s => s.name);
+}
+
+function resetForm() {
+  document.getElementById('f_editId').value = '';
+  document.getElementById('f_attSessId').value = '';
+  document.getElementById('f_date').value = today();
+  document.getElementById('f_time').value = new Date().toTimeString().slice(0,5);
+  document.getElementById('f_type').value = '';
+  document.getElementById('f_severity').value = 'Minor';
+  document.getElementById('f_semester').value = incCfg.semesterLabel||'';
+  document.getElementById('f_desc').value = '';
+  document.getElementById('f_witnesses').value = '';
+  document.getElementById('f_action').value = '';
+  document.getElementById('f_followup').checked = false;
+  document.getElementById('f_followupDate').value = '';
+  document.getElementById('f_followupNotes').value = '';
+  document.getElementById('f_followupDateWrap').style.display = 'none';
+  document.getElementById('studentsContainer').innerHTML = '';
+  addStudentEntry();
+}
+
+// ── Save incident ─────────────────────────────────────────────────────────────
+function saveIncident() {
+  const date  = document.getElementById('f_date').value;
+  const type  = document.getElementById('f_type').value;
+  const desc  = document.getElementById('f_desc').value.trim();
+  const studs = readStudents();
+  if (!date) { showToast('⚠️ Enter a date'); return; }
+  if (!type) { showToast('⚠️ Select an incident type'); return; }
+  if (!studs.length) { showToast('⚠️ Add at least one student'); return; }
+  if (!desc)  { showToast('⚠️ Add a description'); return; }
+
+  const editId = Number(document.getElementById('f_editId').value) || 0;
+  const existing = editId ? incidents.find(i => i.id === editId) : null;
+
+  const record = {
+    id:           editId || Date.now(),
+    date,
+    time:         document.getElementById('f_time').value,
+    semesterLabel: document.getElementById('f_semester').value.trim(),
+    type,
+    severity:     document.getElementById('f_severity').value,
+    studentsInvolved: studs,
+    description:  desc,
+    witnesses:    document.getElementById('f_witnesses').value.trim(),
+    actionTaken:  document.getElementById('f_action').value.trim(),
+    followUpRequired: document.getElementById('f_followup').checked,
+    followUpDate: document.getElementById('f_followupDate').value,
+    followUpNotes:document.getElementById('f_followupNotes').value.trim(),
+    resolved:     existing?.resolved || false,
+    resolvedAt:   existing?.resolvedAt || '',
+    resolvedBy:   existing?.resolvedBy || '',
+    attendanceSessionId: document.getElementById('f_attSessId').value || (existing?.attendanceSessionId||''),
+    roomInspectionId: existing?.roomInspectionId || '',
+    sarra2Exported:   existing?.sarra2Exported || false,
+    sarra2ExportedAt: existing?.sarra2ExportedAt || '',
+    reportedBy:   DormDB.getCurrentUser(),
+    createdAt:    existing?.createdAt || new Date().toISOString(),
+  };
+
+  if (editId) incidents = incidents.map(i => i.id===editId ? record : i);
+  else        incidents.push(record);
+
+  DormDB.saveIncidents(incidents);
+  resetForm();
+  showToast('✅ Incident report saved');
+
+  // Prompt SARRA2 export if any points suggested
+  const hasPoints = studs.some(s => s.citizenshipPointsSuggested > 0);
+  if (hasPoints) {
+    setTimeout(() => {
+      if (confirm('Some students have citizenship points deductions suggested. Export to SARRA2 CSV now?')) {
+        exportSarra2CSV([record.id]);
+      }
+    }, 600);
+  }
+}
+
+// ── Resolve ───────────────────────────────────────────────────────────────────
+function openResolveModal(id) {
+  document.getElementById('resolve_id').value  = id;
+  document.getElementById('resolve_notes').value = '';
+  openModal('resolveModal');
+}
+function confirmResolve() {
+  const id    = Number(document.getElementById('resolve_id').value);
+  const notes = document.getElementById('resolve_notes').value.trim();
+  const inc   = incidents.find(i => i.id === id);
+  if (!inc) return;
+  inc.resolved   = true;
+  inc.resolvedAt = new Date().toISOString();
+  inc.resolvedBy = DormDB.getCurrentUser();
+  if (notes) inc.followUpNotes = (inc.followUpNotes ? inc.followUpNotes+' | ' : '') + 'Resolution: '+notes;
+  DormDB.saveIncidents(incidents);
+  closeModal('resolveModal');
+  renderActive();
+  renderDashboard();
+  showToast('✅ Incident marked as resolved');
+}
+
+// ── SARRA2 export ─────────────────────────────────────────────────────────────
+function exportSarra2CSV(ids) {
+  const toExport = incidents.filter(i => ids.includes(i.id));
+  const rows = [['IncidentID','Date','Type','Severity','StudentID','Name','Room','Role','PointsDeducted','FineSuggested','Notes']];
+  for (const inc of toExport) {
+    for (const s of (inc.studentsInvolved||[])) {
+      rows.push([
+        inc.id, inc.date, inc.type, inc.severity,
+        s.studentId||'', s.name||'', s.room||'', s.role||'',
+        s.citizenshipPointsSuggested||0, s.fineSuggested||0,
+        (inc.description||'').replace(/,/g,';')
+      ]);
+    }
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'incidents_sarra2_'+today()+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  // Mark as exported
+  const now = new Date().toISOString();
+  ids.forEach(id => {
+    const inc = incidents.find(i => i.id === id);
+    if (inc) { inc.sarra2Exported = true; inc.sarra2ExportedAt = now; }
+  });
+  DormDB.saveIncidents(incidents);
+  showToast('📤 Exported ' + toExport.length + ' incident' + (toExport.length>1?'s':'') + ' to CSV');
+}
+function markSarra2Sent(id) {
+  const inc = incidents.find(i => i.id === id);
+  if (!inc) return;
+  inc.sarra2Exported = true;
+  inc.sarra2ExportedAt = new Date().toISOString();
+  DormDB.saveIncidents(incidents);
+  renderActive();
+  showToast('✅ Marked as sent to SARRA2');
+}
+function exportSelectedSarra2() {
+  if (!histSelected.size) { showToast('⚠️ Check the rows you want to export first'); return; }
+  exportSarra2CSV([...histSelected]);
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+function deleteIncident(id) {
+  askConfirm('Delete this incident report? This cannot be undone.', () => {
+    incidents = incidents.filter(i => i.id !== id);
+    DormDB.saveIncidents(incidents);
+    closeModal('detailModal');
+    renderActive();
+    renderDashboard();
+    showToast('🗑️ Incident deleted');
+  });
+}
+
+// ── Edit ──────────────────────────────────────────────────────────────────────
+function editIncident(id) {
+  const inc = incidents.find(i => i.id === id);
+  if (!inc) return;
+  closeModal('detailModal');
+  switchTab('new');
+  document.getElementById('f_editId').value    = inc.id;
+  document.getElementById('f_attSessId').value  = inc.attendanceSessionId||'';
+  document.getElementById('f_date').value       = inc.date||today();
+  document.getElementById('f_time').value       = inc.time||'';
+  document.getElementById('f_type').value       = inc.type||'';
+  document.getElementById('f_severity').value   = inc.severity||'Minor';
+  document.getElementById('f_semester').value   = inc.semesterLabel||'';
+  document.getElementById('f_desc').value       = inc.description||'';
+  document.getElementById('f_witnesses').value  = inc.witnesses||'';
+  document.getElementById('f_action').value     = inc.actionTaken||'';
+  document.getElementById('f_followup').checked = inc.followUpRequired||false;
+  document.getElementById('f_followupDate').value = inc.followUpDate||'';
+  document.getElementById('f_followupNotes').value = inc.followUpNotes||'';
+  toggleFollowupDate();
+  document.getElementById('studentsContainer').innerHTML = '';
+  (inc.studentsInvolved||[]).forEach(s => addStudentEntry(s));
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+function incCardHtml(inc, showCheckbox) {
+  const sev   = sevClass(inc.severity);
+  const studs = (inc.studentsInvolved||[]).map(s =>
+    `<span class="badge badge-gray">${escapeHtml(s.name)} (${escapeHtml(s.room||'?')})</span>`).join(' ');
+  const followupOverdue = inc.followUpRequired && !inc.followUpDate ? false
+    : inc.followUpRequired && inc.followUpDate && !inc.resolved && inc.followUpDate < today();
+  return `<div class="inc-card sev-${sev} ${inc.resolved?'resolved':''}" data-id="${inc.id}">
+    <div class="inc-hdr" onclick="this.nextElementSibling.classList.toggle('open')">
+      <div style="flex:1">
+        <div class="inc-title">
+          ${showCheckbox ? `<input type="checkbox" onclick="event.stopPropagation();toggleHistSel(${inc.id},this.checked)" style="margin-right:6px;width:auto">` : ''}
+          ${escapeHtml(inc.type)}
+          <span class="badge badge-${sev}">${inc.severity}</span>
+          ${inc.resolved
+            ? '<span class="badge badge-resolved">Resolved</span>'
+            : '<span class="badge badge-open">Open</span>'}
+          ${inc.sarra2Exported
+            ? '<span class="badge badge-exported">SARRA2 ✓</span>'
+            : '<span class="badge badge-pending">SARRA2 Pending</span>'}
+          ${followupOverdue ? '<span class="badge badge-major">⚠️ Follow-up Overdue</span>' : ''}
+        </div>
+        <div class="inc-meta">${fmtDate(inc.date)} ${inc.time||''} &nbsp;·&nbsp; ${studs}</div>
+      </div>
+    </div>
+    <div class="inc-body">
+      <div style="color:#444;margin-bottom:8px">${escapeHtml(inc.description)}</div>
+      ${inc.witnesses ? `<div style="font-size:.76rem;color:#888">Witnesses: ${escapeHtml(inc.witnesses)}</div>` : ''}
+      ${inc.actionTaken ? `<div style="font-size:.76rem;color:#888">Action taken: ${escapeHtml(inc.actionTaken)}</div>` : ''}
+      ${inc.followUpRequired ? `<div style="font-size:.76rem;color:#e65100">⏰ Follow-up: ${inc.followUpDate||'No date set'} — ${escapeHtml(inc.followUpNotes||'')}</div>` : ''}
+      ${inc.resolved ? `<div style="font-size:.76rem;color:#2e7d32">✅ Resolved ${fmtTs(inc.resolvedAt)} by ${escapeHtml(inc.resolvedBy||'')}</div>` : ''}
+      <div class="btn-row">
+        ${!inc.resolved ? `<button class="btn btn-green btn-sm" onclick="openResolveModal(${inc.id})">✅ Resolve</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="editIncident(${inc.id})">✏️ Edit</button>
+        <button class="btn btn-blue btn-sm" onclick="exportSarra2CSV([${inc.id}])">📤 SARRA2 CSV</button>
+        ${!inc.sarra2Exported ? `<button class="btn btn-ghost btn-sm" onclick="markSarra2Sent(${inc.id})">✓ Mark Sent</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="printIncident(${inc.id})">🖨️ Print</button>
+        <button class="btn btn-red btn-sm" onclick="deleteIncident(${inc.id})">🗑️</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Render — Dashboard ────────────────────────────────────────────────────────
+function renderDashboard() {
+  const unresolved  = incidents.filter(i => !i.resolved);
+  const unexported  = incidents.filter(i => !i.sarra2Exported && !i.resolved);
+  const overdueFollowup = incidents.filter(i =>
+    i.followUpRequired && i.followUpDate && !i.resolved && i.followUpDate < today());
+
+  document.getElementById('dashStats').innerHTML = `<div class="stat-row">
+    <div class="sc"><div class="sv">${incidents.length}</div><div class="sl">Total</div></div>
+    <div class="sc unresolved"><div class="sv">${unresolved.length}</div><div class="sl">Unresolved</div></div>
+    <div class="sc sarra2"><div class="sv">${unexported.length}</div><div class="sl">SARRA2 Pending</div></div>
+    <div class="sc followup"><div class="sv">${overdueFollowup.length}</div><div class="sl">Follow-up Overdue</div></div>
+  </div>`;
+
+  // Follow-up overdue alerts
+  const fuHtml = overdueFollowup.length
+    ? `<div class="callout callout-warn"><strong>⚠️ ${overdueFollowup.length} follow-up${overdueFollowup.length>1?'s':''} overdue:</strong><br>
+       ${overdueFollowup.map(i=>`<a href="#" onclick="event.preventDefault();switchTab('active')" style="color:#e65100">${escapeHtml(i.type)} — ${fmtDate(i.date)}</a>`).join(', ')}</div>`
+    : '';
+  document.getElementById('dashFollowup').innerHTML = fuHtml;
+
+  // By-type breakdown
+  const typeCount = {};
+  for (const i of incidents) typeCount[i.type] = (typeCount[i.type]||0) + 1;
+  const sorted = Object.entries(typeCount).sort((a,b)=>b[1]-a[1]);
+  const typeHtml = sorted.length
+    ? `<div class="sf"><h3>📋 By Incident Type</h3>
+       <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+         ${sorted.map(([t,c])=>`<tr>
+           <td style="padding:5px 8px;border-bottom:1px solid #f0f0f0">${escapeHtml(t)}</td>
+           <td style="padding:5px 8px;border-bottom:1px solid #f0f0f0;width:50px;text-align:center;font-weight:700;color:#7b1fa2">${c}</td>
+           <td style="padding:5px 8px;border-bottom:1px solid #f0f0f0">
+             <div style="background:#f3e5f5;border-radius:4px;height:8px;width:${Math.round(c/incidents.length*100)}%"></div>
+           </td>
+         </tr>`).join('')}
+       </table></div>` : '';
+  document.getElementById('dashByType').innerHTML = typeHtml;
+
+  // SARRA2 backlog
+  const sarra2Html = unexported.length
+    ? `<div class="callout" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9">
+        📤 <strong>${unexported.length}</strong> incident report${unexported.length>1?'s':''} not yet exported to SARRA2.
+        <button class="btn btn-blue btn-sm" style="margin-left:8px" onclick="switchTab('history')">Export in History →</button>
+       </div>` : '';
+  document.getElementById('dashSarra2').innerHTML = sarra2Html;
+}
+
+// ── Render — Active ───────────────────────────────────────────────────────────
+function renderActive() {
+  const floorF   = document.getElementById('activeFloor')?.value || '';
+  const typeF    = document.getElementById('activeType')?.value  || '';
+  let   data     = incidents.filter(i => !i.resolved);
+
+  if (typeF) data = data.filter(i => i.type === typeF);
+  if (floorF) data = data.filter(i =>
+    (i.studentsInvolved||[]).some(s => getFloor(s.room) === floorF));
+
+  data.sort((a,b) => b.date.localeCompare(a.date));
+
+  document.getElementById('activeBody').innerHTML = data.length
+    ? data.map(i => incCardHtml(i, false)).join('')
+    : `<div style="text-align:center;padding:32px;color:#aaa;font-size:.85rem">No unresolved incidents${typeF||floorF?' matching filter':''}.</div>`;
+}
+
+// ── Render — History ──────────────────────────────────────────────────────────
+function renderHistory() {
+  histPage = 0; histSelected = new Set();
+  _renderHistPage();
+}
+function toggleHistSel(id, checked) {
+  if (checked) histSelected.add(id); else histSelected.delete(id);
+}
+function _renderHistPage() {
+  const from   = document.getElementById('histFrom')?.value || '';
+  const to     = document.getElementById('histTo')?.value   || '';
+  const type   = document.getElementById('histType')?.value || '';
+  const res    = document.getElementById('histResolved')?.value || '';
+  const s2     = document.getElementById('histSarra2')?.value  || '';
+
+  let data = [...incidents].sort((a,b) => b.date.localeCompare(a.date));
+  if (from)               data = data.filter(i => i.date >= from);
+  if (to)                 data = data.filter(i => i.date <= to);
+  if (type)               data = data.filter(i => i.type === type);
+  if (res==='unresolved') data = data.filter(i => !i.resolved);
+  if (res==='resolved')   data = data.filter(i => i.resolved);
+  if (s2==='pending')     data = data.filter(i => !i.sarra2Exported);
+  if (s2==='exported')    data = data.filter(i => i.sarra2Exported);
+
+  document.getElementById('histCount').textContent = data.length + ' records';
+  const page = data.slice(histPage * HIST_PG, (histPage+1) * HIST_PG);
+  document.getElementById('histBody').innerHTML = page.length
+    ? page.map(i => incCardHtml(i, true)).join('')
+    : `<div style="text-align:center;padding:28px;color:#aaa;font-size:.85rem">No incidents match the filter.</div>`;
+
+  const pages = Math.ceil(data.length / HIST_PG);
+  document.getElementById('histPager').innerHTML =
+    Array.from({length:pages},(_,i)=>
+      `<button class="btn ${i===histPage?'btn-primary':'btn-ghost'} btn-sm" onclick="histPage=${i};_renderHistPage()">${i+1}</button>`
+    ).join('');
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────────
+function printIncident(id) {
+  const inc = incidents.find(i => i.id === id);
+  if (!inc) return;
+  const studs = (inc.studentsInvolved||[]).map(s =>
+    `<tr><td>${escapeHtml(s.studentId||'—')}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.room||'—')}</td>
+     <td>${s.role}</td><td>${s.fineSuggested||0} ฿</td><td>${s.citizenshipPointsSuggested||0} pts</td></tr>`).join('');
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#000;margin:0}
+      h2{font-size:13pt;margin:0 0 4px}
+      .meta{font-size:8pt;color:#555;margin-bottom:14px;line-height:1.8}
+      table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:12px}
+      th{background:#e8e0ee;padding:5px 8px;text-align:left;border:1px solid #ccc}
+      td{padding:4px 8px;border:1px solid #ddd}
+      .section{margin-bottom:12px}
+      .section label{font-size:8pt;color:#555;font-weight:700;display:block;margin-bottom:2px}
+      .section p{font-size:9.5pt;border:1px solid #ccc;padding:6px;border-radius:3px;min-height:20px}
+      .sig{margin-top:28px;display:flex;gap:50px}
+      .sig-line{border-top:1px solid #000;padding-top:4px;width:200px;font-size:8pt;color:#555}
+      @page{size:A4 portrait;margin:12mm}
+    </style></head><body>
+    <h2>🚨 Incident Report</h2>
+    <div class="meta">
+      ${DormDB.getDormName()} &nbsp;·&nbsp; Date: ${inc.date} ${inc.time||''} &nbsp;·&nbsp;
+      Type: <strong>${escapeHtml(inc.type)}</strong> &nbsp;·&nbsp; Severity: ${inc.severity} &nbsp;·&nbsp;
+      Semester: ${escapeHtml(inc.semesterLabel||'—')} &nbsp;·&nbsp;
+      Reported by: ${escapeHtml(inc.reportedBy||'—')}
+      ${inc.resolved ? '&nbsp;·&nbsp; <strong>RESOLVED</strong> '+fmtTs(inc.resolvedAt) : '&nbsp;·&nbsp; <strong>OPEN</strong>'}
+    </div>
+    <h3 style="font-size:10pt;margin:0 0 6px">Students Involved</h3>
+    <table><thead><tr><th>ID</th><th>Name</th><th>Room</th><th>Role</th><th>Fine</th><th>CP Points</th></tr></thead>
+    <tbody>${studs}</tbody></table>
+    <div class="section"><label>Description</label><p>${escapeHtml(inc.description)}</p></div>
+    ${inc.witnesses ? `<div class="section"><label>Witnesses</label><p>${escapeHtml(inc.witnesses)}</p></div>` : ''}
+    ${inc.actionTaken ? `<div class="section"><label>Action Taken</label><p>${escapeHtml(inc.actionTaken)}</p></div>` : ''}
+    ${inc.followUpRequired ? `<div class="section"><label>Follow-up Required</label><p>Date: ${inc.followUpDate||'—'} &nbsp; Notes: ${escapeHtml(inc.followUpNotes||'')}</p></div>` : ''}
+    <div class="sig">
+      <div class="sig-line">Reporting Dean / RA</div>
+      <div class="sig-line">Dean's Signature</div>
+    </div>
+  </body></html>`);
+  w.document.close(); w.print();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+const DEFAULT_FINES = {
+  'Curfew Violation': 0, 'Noise Complaint': 0, 'Property Damage': 0,
+  'Unauthorized Room Change': 1000, 'Unauthorized Entry': 0,
+  'Harassment': 0, 'Cleanliness': 0, 'Theft': 0, 'Other': 0
+};
+const DEFAULT_IMPROPER_CHECKOUT = 500; // APIU handbook
+
+function loadSettings() {
+  const fines = incCfg.fineDefaults || DEFAULT_FINES;
+  const pts   = incCfg.pointDefaults || {minor:0,moderate:1,major:3,emergency:5};
+  const html = INCIDENT_TYPES.map(t => `
+    <div class="fg-row" style="margin-bottom:8px">
+      <div class="fg" style="flex:2"><label>${escapeHtml(t)}</label></div>
+      <div class="fg" style="max-width:120px">
+        <input type="number" class="fine-input" data-type="${escapeHtml(t)}"
+          min="0" value="${fines[t]||0}"
+          ${t==='Unauthorized Room Change'?'title="Handbook: 1,000 ฿"':''}
+          style="width:100%">
+      </div>
+    </div>`).join('') +
+    `<div style="font-size:.72rem;color:#888;margin-top:6px;font-style:italic">
+      Note: Improper Check-Out fine (500 ฿) is tracked in Room Inspection module.
+    </div>`;
+  document.getElementById('fineDefaults').innerHTML = html;
+  document.getElementById('pts_minor').value    = pts.minor    ?? 0;
+  document.getElementById('pts_moderate').value = pts.moderate ?? 1;
+  document.getElementById('pts_major').value    = pts.major    ?? 3;
+  document.getElementById('pts_emergency').value= pts.emergency?? 5;
+  document.getElementById('cfg_semester').value = incCfg.semesterLabel||'';
+}
+function saveSettings() {
+  const fines = {};
+  document.querySelectorAll('.fine-input').forEach(inp => {
+    fines[inp.dataset.type] = Number(inp.value)||0;
+  });
+  incCfg.fineDefaults   = fines;
+  incCfg.pointDefaults  = {
+    minor:     Number(document.getElementById('pts_minor').value)||0,
+    moderate:  Number(document.getElementById('pts_moderate').value)||1,
+    major:     Number(document.getElementById('pts_major').value)||3,
+    emergency: Number(document.getElementById('pts_emergency').value)||5,
+  };
+  incCfg.semesterLabel = document.getElementById('cfg_semester').value.trim();
+  DormDB.saveIncidentsCfg(incCfg);
+  showToast('✅ Settings saved');
+}
+
+// ── Modals / dialogs ──────────────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function askConfirm(msg, fn) {
+  document.getElementById('confirmTitle').textContent = 'Confirm';
+  document.getElementById('confirmMsg').textContent   = msg;
+  document.getElementById('confirmYes').onclick = () => { closeModal('confirmModal'); fn(); };
+  openModal('confirmModal');
+}
+let _toastTimer;
+function showToast(msg, dur=3200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') ['detailModal','resolveModal','confirmModal'].forEach(closeModal);
+});
+window.addEventListener('scroll', ()=>{
+  document.getElementById('scrollTopBtn').classList.toggle('show', window.scrollY>300);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function init() {
+  const params = new URLSearchParams(location.search);
+  const back   = params.get('back');
+  if (back) {
+    const el = document.getElementById('backLink');
+    el.href        = back + '.html';
+    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  document.getElementById('navDorm').textContent = DormDB.getDormName();
+
+  incidents = DormDB.getIncidents();
+  incCfg    = DormDB.getIncidentsCfg();
+
+  DormDB.on(DormDB.KEYS.INCIDENTS, () => {
+    incidents = DormDB.getIncidents();
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id==='tab-dashboard') renderDashboard();
+    if (active?.id==='tab-active')    renderActive();
+    if (active?.id==='tab-history')   renderHistory();
+  });
+
+  // Pre-fill from URL param (e.g. from attendance module)
+  const sessId = params.get('sessId');
+  if (sessId) {
+    document.getElementById('f_attSessId').value = sessId;
+    switchTab('new');
+  }
+
+  renderDashboard();
+  addStudentEntry();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
