@@ -66,9 +66,9 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
 | `modules/inventory.html` | 1,081 | Asset inventory — Code 39 barcodes, room template, maintenance flags |
-| `modules/attendance.html` | 1,192 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
+| `modules/attendance.html` | 1,198 | Nightly attendance, curfew countdown, SARRA2 leave import, session history |
 | `modules/incidents.html` | 959 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking |
-| `modules/student-admin.html` | 993 | Off-campus move requests + Dean's assistance log |
+| `modules/student-admin.html` | 1,002 | Off-campus move requests + Dean's assistance log |
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
 | `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
@@ -484,6 +484,11 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
 
 ---
+
+## Completed improvements (2026-06-04, post-expansion bugfixes)
+
+- [x] **3 high-severity bugs fixed (code-review findings):** (1) `incidents.html:590` — CSV export now strips `\r\n` from description before comma-escaping, preventing multi-row injection in SARRA2 CSV; (2) `attendance.html:618` — `confirmCreateIncidents()` adds dedup guard (`attendanceSessionId` check) and extracts `base = Date.now()` before `.map()` to prevent duplicate records on double-tap and same-millisecond ID collision; (3) `student-admin.html:569` — `initiateOffCampusClearance()` separates ID match from name fallback, adds multi-match guard ("multiple students named X — add Student ID first") to prevent wrong-student clearance on shared names. (attendance.html: 1,192 → 1,198; student-admin.html: 993 → 1,002)
+- [x] **BF-016 violation fixed (incidents.html):** `incCfg` was reading/writing `dormIncidentsConfig` via direct `localStorage` calls. Added `INCIDENTS_CFG` key to `dorm-db.js` K constants with `getIncidentsCfg()` / `saveIncidentsCfg()` and routed all access through DormDB. (dorm-db.js: 377 → 383 lines)
 
 ## Completed improvements (2026-06-04, sessions 27–34)
 
