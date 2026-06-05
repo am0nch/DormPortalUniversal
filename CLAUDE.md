@@ -72,7 +72,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
 | `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
-| `modules/userguide.html` | 2,267 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal |
+| `modules/userguide.html` | 2,349 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal |
 | `modules/handbook.html` | 1,865 | APIU Residence Hall Handbook — 50+ policies, fines table |
 
 ---
