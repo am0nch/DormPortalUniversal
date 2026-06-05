@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scholarly Activity Report — DormPortalUniversal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 11pt;
+    line-height: 1.75;
+    color: #111;
+    background: #e8e8e8;
+  }
+
+  .page {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: #fff;
+  }
+
+  /* ── Cover / Header ── */
+  .cover {
+    padding: 56px 60px 44px;
+    border-bottom: 3px double #222;
+    page-break-after: always;
+  }
+
+  .institution {
+    text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 4px;
+  }
+
+  .institution-name {
+    text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1a2a3f;
+    margin-bottom: 2px;
+    letter-spacing: 0.02em;
+  }
+
+  .form-tag {
+    text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.72rem;
+    color: #666;
+    margin-bottom: 36px;
+    letter-spacing: 0.06em;
+  }
+
+  .cover-divider {
+    text-align: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #1a2a3f;
+    border-top: 1px solid #bbb;
+    border-bottom: 1px solid #bbb;
+    padding: 10px 0;
+    margin-bottom: 32px;
+  }
+
+  /* ── Field block ── */
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid #bbb;
+    margin-bottom: 0;
+  }
+
+  .field-grid.single { grid-template-columns: 1fr; }
+  .field-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field-cell {
+    border: 1px solid #bbb;
+    padding: 6px 10px;
+  }
+
+  .field-label {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    margin-bottom: 2px;
+    font-weight: 700;
+  }
+
+  .field-value {
+    font-size: 0.9rem;
+    color: #111;
+    font-weight: 600;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  .field-value.normal { font-weight: 400; }
+
+  /* ── Body pages ── */
+  .body-page {
+    padding: 44px 60px;
+    page-break-after: always;
+  }
+
+  .body-page:last-child { page-break-after: auto; }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #888;
+    margin-bottom: 24px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  .ph-left { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 0.08em; }
+  .ph-right { font-size: 0.72rem; color: #555; }
+
+  /* ── Section headings ── */
+  h2 {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #1a2a3f;
+    background: #f0f3f8;
+    border-left: 4px solid #1a2a3f;
+    padding: 7px 12px;
+    margin: 24px 0 12px;
+  }
+
+  h2:first-child { margin-top: 0; }
+
+  h3 {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1a2a3f;
+    margin: 16px 0 5px;
+    border-bottom: 1px solid #dde3eb;
+    padding-bottom: 3px;
+  }
+
+  p { margin-bottom: 9px; font-size: 0.91rem; text-align: justify; }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+    margin: 10px 0 16px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  thead th {
+    background: #1a2a3f;
+    color: #fff;
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  tbody td {
+    padding: 6px 10px;
+    border: 1px solid #d0d7e0;
+    vertical-align: top;
+  }
+
+  tbody tr:nth-child(even) td { background: #f7f9fc; }
+
+  /* ── Numbered list ── */
+  ol.report-list {
+    padding-left: 22px;
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+  }
+
+  ol.report-list li { margin-bottom: 6px; }
+
+  ul.report-ul {
+    padding-left: 20px;
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+  }
+
+  ul.report-ul li { margin-bottom: 5px; }
+
+  /* ── Checklist ── */
+  ul.check { list-style: none; padding-left: 0; font-size: 0.88rem; }
+  ul.check li { padding: 2px 0; }
+  ul.check li::before { content: '☑ '; color: #1a2a3f; font-weight: 700; }
+
+  /* ── Output box ── */
+  .output-box {
+    border: 1px solid #b0bfd0;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 10px 0;
+    background: #f7fafd;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.85rem;
+  }
+
+  .output-box-title {
+    font-weight: 800;
+    color: #1a2a3f;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+  }
+
+  /* ── Metrics row ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 14px 0;
+  }
+
+  .metric-box {
+    border: 1px solid #b8c8dc;
+    border-radius: 4px;
+    padding: 10px 8px;
+    text-align: center;
+    background: #f5f8fc;
+    font-family: 'Segoe UI', Arial, sans-serif;
+  }
+
+  .metric-num {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1a2a3f;
+    line-height: 1.1;
+  }
+
+  .metric-lbl {
+    font-size: 0.63rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #5a7090;
+    margin-top: 3px;
+    font-weight: 600;
+  }
+
+  /* ── Sig block ── */
+  .sig-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+    margin-top: 32px;
+  }
+
+  .sig-block { font-family: 'Segoe UI', Arial, sans-serif; }
+  .sig-line { height: 40px; border-bottom: 1px solid #777; margin-bottom: 6px; }
+  .sig-name { font-size: 0.8rem; font-weight: 700; color: #1a2a3f; }
+  .sig-role { font-size: 0.74rem; color: #555; }
+
+  /* ── Footer ── */
+  .page-footer {
+    margin-top: 36px;
+    padding-top: 8px;
+    border-top: 1px solid #ccc;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.66rem;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Abstract box ── */
+  .abstract-box {
+    border: 1px solid #bbb;
+    padding: 14px 18px;
+    margin: 16px 0;
+    background: #fafbfc;
+    font-size: 0.88rem;
+    font-style: italic;
+    text-align: justify;
+  }
+
+  .abstract-box strong { font-style: normal; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; display: block; margin-bottom: 6px; font-family: 'Segoe UI', Arial, sans-serif; }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; font-size: 10.5pt; }
+    .body-page { padding: 36px 52px; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══════════════════════════════════════
+     COVER / FORM HEADER
+     ══════════════════════════════════════ -->
+<div class="cover">
+  <div class="institution">Asia-Pacific International University</div>
+  <div class="institution-name">Office of Research &amp; Scholarly Activities</div>
+  <div class="form-tag">Faculty / Staff Scholarly Activity Report Form · Academic Year 2025–2026</div>
+
+  <div class="cover-divider">Scholarly Activity Report</div>
+
+  <div class="field-grid single">
+    <div class="field-cell">
+      <div class="field-label">Title of Scholarly Activity / Project</div>
+      <div class="field-value">DormPortalUniversal: Design, Development, and Deployment of an Integrated Browser-Based Dormitory Management System for Asia-Pacific International University</div>
+    </div>
+  </div>
+
+  <div class="field-grid">
+    <div class="field-cell">
+      <div class="field-label">Faculty / Staff Name</div>
+      <div class="field-value">Richmond Panganiban Ilao</div>
+    </div>
+    <div class="field-cell">
+      <div class="field-label">Department / Office</div>
+      <div class="field-value">Dormitory Administration — Elijah Hall</div>
+    </div>
+  </div>
+
+  <div class="field-grid triple">
+    <div class="field-cell">
+      <div class="field-label">Type of Scholarly Activity</div>
+      <div class="field-value">Applied Research &amp; Development</div>
+    </div>
+    <div class="field-cell">
+      <div class="field-label">Activity Period</div>
+      <div class="field-value">May 2026 – June 2026</div>
+    </div>
+    <div class="field-cell">
+      <div class="field-label">Status</div>
+      <div class="field-value">Completed — Deployed</div>
+    </div>
+  </div>
+
+  <div class="field-grid">
+    <div class="field-cell">
+      <div class="field-label">Category (check all that apply)</div>
+      <div class="field-value normal">☑ Applied Research &nbsp;·&nbsp; ☑ Software Development &nbsp;·&nbsp; ☑ Institutional Service &nbsp;·&nbsp; ☑ Technology Innovation &nbsp;·&nbsp; ☐ Publication &nbsp;·&nbsp; ☐ Grant-funded</div>
+    </div>
+    <div class="field-cell">
+      <div class="field-label">Collaborators / Team</div>
+      <div class="field-value normal">Sole developer; informal feedback from dormitory RAs and Dorm Dean</div>
+    </div>
+  </div>
+
+  <div class="field-grid single">
+    <div class="field-cell">
+      <div class="field-label">Brief Description (2–3 sentences)</div>
+      <div class="field-value normal" style="font-size:.88rem;line-height:1.65">
+        This project designed, built, and deployed a fully integrated dormitory management system
+        — <em>DormPortalUniversal v4</em> — that replaces fragmented spreadsheet and paper-based
+        processes with 16 interconnected digital modules. The system runs entirely in a web browser
+        with no server, no subscription cost, and no internet dependency, making it deployable in
+        resource-constrained institutional settings. It is grounded in the 2017 APIU Residence Hall
+        Handbook policies and integrates with the university's SARRA2 student affairs system via a
+        documented CSV data exchange protocol.
+      </div>
+    </div>
+  </div>
+
+  <div class="field-grid triple" style="margin-top:0">
+    <div class="field-cell">
+      <div class="field-label">Date Submitted</div>
+      <div class="field-value">June 2026</div>
+    </div>
+    <div class="field-cell">
+      <div class="field-label">Academic Year</div>
+      <div class="field-value">2025 – 2026</div>
+    </div>
+    <div class="field-cell">
+      <div class="field-label">Email</div>
+      <div class="field-value normal" style="font-size:.8rem">richmond.panganiban.ilao@gmail.com</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 1 — ABSTRACT & BACKGROUND
+     ══════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="ph-left">Scholarly Activity Report · DormPortalUniversal</span>
+    <span class="ph-right">Section 1 of 4</span>
+  </div>
+
+  <h2>Section 1 — Abstract &amp; Background</h2>
+
+  <div class="abstract-box">
+    <strong>Abstract</strong>
+    Residential dormitory administration at Asia-Pacific International University (APIU) relied on a collection
+    of disconnected Microsoft Excel spreadsheets, physical logbooks, and manual paper forms to manage student
+    room assignments, nightly attendance, bedding sales, key issuance, incident reports, and student
+    clearance. This fragmentation created data silos, delayed administrative responses, introduced
+    transcription errors in cross-system reporting, and made semester-based retrospective analysis
+    impractical. This report documents the design, development, and deployment of
+    <em>DormPortalUniversal v4</em>, a browser-based, offline-capable, zero-cost integrated management
+    system comprising 16 operational modules. The system employs a shared localStorage data layer with
+    BroadcastChannel cross-tab synchronization, a policy-grounded data model aligned with the APIU
+    Residence Hall Handbook (2017), and a CSV-based integration protocol with the university's SARRA2
+    student affairs platform. The project was completed over a six-week development period and is currently
+    in active deployment at Elijah Hall.
+  </div>
+
+  <h2>1.1 Background and Institutional Context</h2>
+
+  <p>
+    Elijah Hall is the primary student dormitory at Asia-Pacific International University, housing
+    residential students across four floors. The dormitory operates under policies documented in the
+    APIU Residence Hall Handbook (1st Edition, August 2017), which specifies curfew times, fine
+    schedules, off-campus move procedures, residency exemption categories, and other operational
+    standards. The Dean of the dormitory and a team of Resident Assistants (RAs) carry out daily
+    administrative functions including room reservations, nightly attendance checking, bedding
+    distribution, key issuance, room inspection, and student clearance processing.
+  </p>
+
+  <p>
+    Prior to this project, all dormitory records were maintained in separate, unlinked Excel files with
+    no automated cross-referencing, search functionality, or audit trail. Semester-level reporting
+    required manual collation from multiple sources. Citizenship point deductions submitted to the
+    university's SARRA2 student affairs system involved manual data entry from physical forms, creating
+    a recurring source of transcription error and processing delays. Nightly attendance was recorded
+    in paper notebooks, with no mechanism for trend analysis or historical querying.
+  </p>
+
+  <h2>1.2 Research Problem and Motivation</h2>
+
+  <p>
+    The central research problem addressed by this project is: <em>How can a zero-cost, offline-capable
+    digital management system be designed and deployed to unify fragmented dormitory administration
+    records in a resource-constrained institutional setting, while maintaining full alignment with
+    existing institutional policy and enabling structured data exchange with an external student
+    information system?</em>
+  </p>
+
+  <p>
+    The project was motivated by three specific gaps identified through direct administrative experience:
+  </p>
+
+  <ol class="report-list">
+    <li><strong>Data fragmentation</strong> — student identity, room assignment, bedding purchase, key issuance, and clearance status resided in separate files with no linkage, requiring manual cross-referencing for routine decisions.</li>
+    <li><strong>Policy compliance drift</strong> — handbook policy values (curfew times, fine amounts, notice periods) were either not recorded in operational tools or entered inconsistently across files, with no authoritative default.</li>
+    <li><strong>Cross-system reporting friction</strong> — submitting structured incident data to SARRA2 for citizenship point processing required transcribing information from physical records into a separate interface, introducing errors and delays of one to three days per submission cycle.</li>
+  </ol>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 · Scholarly Activity Report · APIU Research Committee</span>
+    <span>Page 1</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 2 — METHODOLOGY & DESIGN
+     ══════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="ph-left">Scholarly Activity Report · DormPortalUniversal</span>
+    <span class="ph-right">Section 2 of 4</span>
+  </div>
+
+  <h2>Section 2 — Research Methodology &amp; System Design</h2>
+
+  <h3>2.1 Methodology: Design-Based Research</h3>
+
+  <p>
+    This project employed a <em>design-based research</em> (DBR) methodology, a recognized approach in
+    educational technology and information systems research in which the researcher is simultaneously
+    the designer, implementer, and evaluator of the artefact under study. DBR is particularly suited
+    to institutional settings where practical deployment constraints shape theoretical design decisions
+    and where iterative refinement in response to real use is the primary mode of validation.
+  </p>
+
+  <p>
+    The development proceeded through four iterative phases over six weeks:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Phase</th>
+        <th>Modules Developed</th>
+        <th>Period</th>
+        <th>Key Design Decisions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1 — Core Operations</strong></td>
+        <td>Room Reservations, Student Profiles, Floor Plan, Utilities &amp; Billing, Reports</td>
+        <td>May 2026</td>
+        <td>localStorage data layer; SheetJS bundled offline; BroadcastChannel sync; emptyStudent() factory pattern</td>
+      </tr>
+      <tr>
+        <td><strong>2 — Records &amp; Reference</strong></td>
+        <td>Room Inspection, Key Inventory, Inventory, Dean's User Guide, APIU Handbook</td>
+        <td>May 2026</td>
+        <td>IndexedDB for photos; A4/A5 CSS print layouts; Code 39 SVG barcode generation</td>
+      </tr>
+      <tr>
+        <td><strong>3 — Student Affairs &amp; Staff</strong></td>
+        <td>Nightly Attendance, Incident Reports, Student Admin, Dorm Workers, Staff Scheduling, Maintenance</td>
+        <td>June 2026</td>
+        <td>APIU Handbook policy grounding; SARRA2 CSV protocol; mobile-first RA interface; BF-016 DormDB compliance</td>
+      </tr>
+      <tr>
+        <td><strong>4 — Bedding &amp; Semester Registry</strong></td>
+        <td>Bedding Inventory tab (Inventory), Shared Semester Registry (all modules)</td>
+        <td>June 2026</td>
+        <td>Centralized semester registry; semester field on all student records; label-string matching for backward compatibility</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 Architectural Design Decisions</h3>
+
+  <p>
+    Three foundational constraints shaped the system architecture:
+  </p>
+
+  <ol class="report-list">
+    <li><strong>Zero external dependencies during operation.</strong> The system must function with no internet access, no server infrastructure, and no cloud subscription. This ruled out server-side databases (PostgreSQL, MySQL), cloud SaaS platforms, and framework-based front-ends requiring npm build pipelines. The solution: vanilla JavaScript ES6+ with all third-party libraries (SheetJS v0.20.2) bundled inline in the HTML file.</li>
+    <li><strong>Cross-module data consistency.</strong> When a student's name changes in Room Reservations, that change must be immediately visible in Student Profiles, Attendance, Reports, and Clearance. The solution: a single shared data API (<em>dorm-db.js</em>) with typed localStorage keys, getter/setter pairs, and a BroadcastChannel event bus that notifies all open browser tabs within one second of any data change.</li>
+    <li><strong>Policy-grounded defaults.</strong> Configurable values (curfew times, fine amounts, notice periods) must default to the values specified in the APIU Residence Hall Handbook (2017) to prevent policy drift. The solution: all default values are seeded from documented handbook sources and are visible in Settings tabs within each module.</li>
+  </ol>
+
+  <h3>2.3 Data Model Design</h3>
+
+  <p>
+    The central data model object (<code>emptyStudent(room)</code>) defines 18 fields per bed slot
+    covering identity, reservation status, period flags, move-out tracking, room hold, storage rental,
+    transfer history, clearance form, and enrollment semester. A companion <code>ensureStudent(s)</code>
+    function provides backward compatibility: any record loaded from an older Excel export or
+    localStorage snapshot is merged against the current field definitions before being written back,
+    preventing null-reference errors in downstream rendering functions.
+  </p>
+
+  <p>
+    The shared semester registry (<code>dormSemesterCfg</code> localStorage key, introduced in Phase 4)
+    stores a list of named semesters with start/end dates and a pointer to the current semester. This
+    single registry propagates to all 16 modules via <code>DormDB.on(SEMESTER_CFG, handler)</code>
+    subscriptions, replacing 7 previously isolated semester text fields that had caused cross-module
+    filter mismatches when semester labels were entered inconsistently.
+  </p>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 · Scholarly Activity Report · APIU Research Committee</span>
+    <span>Page 2</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 3 — OUTPUTS & RESULTS
+     ══════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="ph-left">Scholarly Activity Report · DormPortalUniversal</span>
+    <span class="ph-right">Section 3 of 4</span>
+  </div>
+
+  <h2>Section 3 — Outputs, Results &amp; Impact</h2>
+
+  <h3>3.1 Quantitative Output Metrics</h3>
+
+  <div class="metrics">
+    <div class="metric-box">
+      <div class="metric-num">16</div>
+      <div class="metric-lbl">Operational Modules</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-num">~14,000</div>
+      <div class="metric-lbl">Lines of Code</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-num">25+</div>
+      <div class="metric-lbl">DormDB Data Keys</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-num">6 wks</div>
+      <div class="metric-lbl">Development Period</div>
+    </div>
+    <div class="metric-box">
+      <div class="metric-num">฿0</div>
+      <div class="metric-lbl">Hosting / Licensing Cost</div>
+    </div>
+  </div>
+
+  <h3>3.2 Primary Outputs Produced</h3>
+
+  <div class="output-box">
+    <div class="output-box-title">Output 1 — Deployed Software System</div>
+    DormPortalUniversal v4 — 16-module browser-based dormitory management platform, currently in active use at Elijah Hall.
+    Public repository: <strong>github.com/am0nch/DormPortalUniversal</strong>. Version control history preserves the full
+    development record across 4 phases.
+  </div>
+
+  <div class="output-box">
+    <div class="output-box-title">Output 2 — SARRA2 Integration Protocol Document</div>
+    <em>SARRA2_INTEGRATION.md</em> — A structured technical protocol document specifying the CSV format, field mapping,
+    deduplication logic, and workflow for bidirectional data exchange between DormPortalUniversal and the university's
+    SARRA2 student affairs system. Suitable for distribution to SARRA2 system administrators without software development knowledge.
+  </div>
+
+  <div class="output-box">
+    <div class="output-box-title">Output 3 — Dean's User Guide (Interactive HTML Reference)</div>
+    A 2,267-line interactive HTML documentation module embedded within the system — covering all 16 operational modules,
+    system setup, data export/restore procedures, version history, and a development roadmap. Includes live text search,
+    collapsible sections, and a print-to-PDF pathway. Replaces the need for external documentation storage.
+  </div>
+
+  <div class="output-box">
+    <div class="output-box-title">Output 4 — APIU Residence Hall Handbook (Digital Interactive Version)</div>
+    A 1,865-line interactive digital rendering of the 2017 APIU Residence Hall Handbook with 50+ searchable policy entries,
+    a fines quick-reference table, and cross-links to the system development roadmap. Accessible offline from within
+    the platform — no physical handbook retrieval required during operations.
+  </div>
+
+  <div class="output-box">
+    <div class="output-box-title">Output 5 — Bug Documentation Log (BUGFIX_LOG)</div>
+    A systematically documented log of 19 software bugs identified and resolved during development, categorized by
+    failure class (data model, rendering, cross-module sync, print layout, security). This log informs a set of
+    architectural rules (<em>L99 Quality Gate</em> checklist and <em>Known Pitfalls</em> table) embedded in
+    CLAUDE.md, the project's living technical specification document.
+  </div>
+
+  <h3>3.3 Operational Impact</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Administrative Task</th>
+        <th>Before (Estimated Time)</th>
+        <th>After (Estimated Time)</th>
+        <th>Improvement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Student clearance form assembly</td>
+        <td>25–35 minutes</td>
+        <td>3–5 minutes</td>
+        <td>~85% reduction</td>
+      </tr>
+      <tr>
+        <td>Incident report + SARRA2 CSV submission</td>
+        <td>45–90 minutes (manual transcription)</td>
+        <td>5–8 minutes</td>
+        <td>~90% reduction</td>
+      </tr>
+      <tr>
+        <td>Nightly attendance record + absent list</td>
+        <td>15–20 minutes (paper)</td>
+        <td>5–10 minutes (digital, mobile)</td>
+        <td>~50% reduction</td>
+      </tr>
+      <tr>
+        <td>Semester-level bedding report</td>
+        <td>30–60 minutes (Excel collation)</td>
+        <td>Instant (live summary tab)</td>
+        <td>~98% reduction</td>
+      </tr>
+      <tr>
+        <td>Finding a specific student's room + status</td>
+        <td>2–5 minutes (multiple files)</td>
+        <td>&lt; 10 seconds (search bar)</td>
+        <td>~97% reduction</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.4 Policy Compliance Contributions</h3>
+  <p>
+    The system encodes 11 specific policy values from the APIU Residence Hall Handbook (2017) as
+    pre-configured system defaults: curfew times (22:00 weekday / 23:00 Saturday), grace period
+    (15 minutes), off-campus notice period (30 days), unauthorized room change fine (฿1,000),
+    improper check-out fine (฿500), and six residency exemption categories. This institutionalizes
+    policy knowledge within the operational tool, preventing the configuration drift that occurs
+    when policies are stored only in physical handbooks while operational tools use ad hoc values.
+  </p>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 · Scholarly Activity Report · APIU Research Committee</span>
+    <span>Page 3</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PAGE 4 — SIGNIFICANCE, FUTURE WORK & ATTESTATION
+     ══════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="ph-left">Scholarly Activity Report · DormPortalUniversal</span>
+    <span class="ph-right">Section 4 of 4</span>
+  </div>
+
+  <h2>Section 4 — Scholarly Significance, Future Research &amp; Attestation</h2>
+
+  <h3>4.1 Scholarly Significance</h3>
+
+  <p>
+    This project contributes to several intersecting areas of applied scholarly inquiry:
+  </p>
+
+  <ol class="report-list">
+    <li>
+      <strong>Educational technology in under-resourced institutional contexts.</strong>
+      The system demonstrates that fully functional, multi-module institutional software can be
+      built and deployed at zero licensing and infrastructure cost using browser-native technologies.
+      This is particularly significant for small or mission-driven universities (such as APIU) where
+      commercial dormitory management software (typically $300–$1,200 USD per year) is cost-prohibitive
+      or unavailable in a locally-compliant form.
+    </li>
+    <li>
+      <strong>Offline-first design for intermittent connectivity environments.</strong>
+      The architecture — localStorage persistence + IndexedDB photo storage + BroadcastChannel
+      real-time sync + inline-bundled third-party libraries — provides a reproducible design pattern
+      for institutional software that must operate reliably in settings where internet connectivity is
+      intermittent or absent.
+    </li>
+    <li>
+      <strong>Policy knowledge engineering in software defaults.</strong>
+      The approach of encoding institutional policy values (handbook curfew times, fine schedules,
+      notice periods) as verified, versioned default values in software configuration — rather than
+      leaving them to ad hoc staff interpretation — represents a practical model for reducing compliance
+      drift in academic residential settings.
+    </li>
+    <li>
+      <strong>Cross-system integration protocol design without API coupling.</strong>
+      The SARRA2 integration protocol (CSV export from DormPortalUniversal, manual import into SARRA2)
+      provides a reproducible pattern for lightweight inter-system data exchange between institutional
+      platforms that do not share a technical infrastructure, avoiding the complexity and cost of API
+      development while maintaining structured, auditable data transfer.
+    </li>
+  </ol>
+
+  <h3>4.2 Limitations</h3>
+  <ul class="report-ul">
+    <li><strong>Single-device data model:</strong> Data is stored on the Dean's device. Multi-user concurrent editing is not supported. The BroadcastChannel sync works across tabs on the same device only.</li>
+    <li><strong>No server-side backup:</strong> Data loss is possible if the device is lost or fails without a recent JSON export backup. Mitigation: regular "Export All Data" reminders documented in the User Guide.</li>
+    <li><strong>Time estimation:</strong> The operational time savings reported in Section 3.3 are estimates based on practitioner observation, not a controlled study with pre/post measurement. A formal time-and-motion study would strengthen these claims.</li>
+    <li><strong>Scalability:</strong> The localStorage ceiling (~5–10 MB) limits the system to approximately 200–300 active students with photos. For larger dormitories, a cloud-backed architecture would be required.</li>
+  </ul>
+
+  <h3>4.3 Future Research Directions</h3>
+  <ul class="check">
+    <li>Controlled pre/post study measuring administrative time savings with statistical rigor</li>
+    <li>Extension to multi-user (server-backed) architecture for larger dormitory contexts</li>
+    <li>Generalization of the SARRA2 CSV protocol to a standards-based data exchange format (e.g., SIF, Ed-Fi) for broader institutional interoperability</li>
+    <li>Comparative study of offline-first vs. cloud-first institutional software in intermittent-connectivity environments</li>
+    <li>Student satisfaction study measuring perceived administrative responsiveness before and after deployment</li>
+  </ul>
+
+  <h3>4.4 Selected References</h3>
+  <table>
+    <tbody>
+      <tr>
+        <td style="width:28px;vertical-align:top">[1]</td>
+        <td>APIU Office of Student Development. <em>Residence Hall Handbook</em>, 1st ed. Asia-Pacific International University, 2017.</td>
+      </tr>
+      <tr>
+        <td>[2]</td>
+        <td>Anderson, T., &amp; Shattuck, J. (2012). Design-Based Research: A Decade of Progress in Education Research? <em>Educational Researcher</em>, 41(1), 16–25.</td>
+      </tr>
+      <tr>
+        <td>[3]</td>
+        <td>Mozilla Developer Network. (2024). <em>Web Storage API</em>. Retrieved from developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API.</td>
+      </tr>
+      <tr>
+        <td>[4]</td>
+        <td>Mozilla Developer Network. (2024). <em>BroadcastChannel API</em>. Retrieved from developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel.</td>
+      </tr>
+      <tr>
+        <td>[5]</td>
+        <td>SheetJS LLC. (2024). <em>SheetJS Community Edition</em> (v0.20.2) [Software library]. Retrieved from sheetjs.com.</td>
+      </tr>
+      <tr>
+        <td>[6]</td>
+        <td>Offenhuber, D., &amp; Ratti, C. (Eds.). (2014). <em>Decoding the City: How Big Data Can Change Urbanism</em>. Birkhäuser. [Cited for offline-first design precedents in resource-constrained environments.]</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.5 Attestation</h3>
+  <p style="font-size:.85rem">
+    I hereby certify that the information provided in this Scholarly Activity Report is accurate and
+    complete to the best of my knowledge, and that the work described herein represents a genuine
+    scholarly contribution completed during the stated activity period.
+  </p>
+
+  <div class="sig-area">
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-name">Richmond Panganiban Ilao</div>
+      <div class="sig-role">Dormitory Dean, Elijah Hall — APIU</div>
+      <div class="sig-role" style="margin-top:5px">Date: ___________________</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-name">Department Head / Supervisor</div>
+      <div class="sig-role">Asia-Pacific International University</div>
+      <div class="sig-role" style="margin-top:5px">Date: ___________________</div>
+    </div>
+  </div>
+
+  <div style="margin-top:30px;padding:12px 16px;background:#f7f9fc;border:1px solid #c8d4e0;border-radius:4px;font-family:'Segoe UI',Arial,sans-serif;font-size:0.74rem;color:#5a7090">
+    <strong style="color:#1a2a3f">Repository:</strong> github.com/am0nch/DormPortalUniversal &nbsp;·&nbsp;
+    <strong style="color:#1a2a3f">System version:</strong> v4 (June 2026) &nbsp;·&nbsp;
+    <strong style="color:#1a2a3f">Modules delivered:</strong> 16 of 16 &nbsp;·&nbsp;
+    <strong style="color:#1a2a3f">Codebase:</strong> ~14,000 lines, vanilla JS / HTML / CSS
+  </div>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 · Scholarly Activity Report · APIU Research Committee</span>
+    <span>Page 4</span>
+  </div>
+</div>
+
+</div><!-- /.page -->
+</body>
+</html>

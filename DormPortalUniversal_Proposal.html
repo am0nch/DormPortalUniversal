@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DormPortalUniversal — Proposal to Student Administration</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.65;
+    color: #1a2535;
+    background: #f4f6f9;
+  }
+
+  .page {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: #fff;
+  }
+
+  /* ── Cover page ── */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 60px 56px 48px;
+    background: linear-gradient(160deg, #0d2340 0%, #1e3a5f 60%, #2a4f80 100%);
+    color: #fff;
+    page-break-after: always;
+  }
+
+  .cover-logo {
+    font-size: 2.4rem;
+    letter-spacing: -0.5px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .cover-logo span { color: #7ec8f8; }
+
+  .cover-sub {
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #90b8d8;
+    margin-bottom: 0;
+  }
+
+  .cover-divider {
+    width: 56px;
+    height: 3px;
+    background: #7ec8f8;
+    border-radius: 2px;
+    margin: 32px 0;
+  }
+
+  .cover-title {
+    font-size: 1.95rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #fff;
+    margin-bottom: 14px;
+    max-width: 560px;
+  }
+
+  .cover-desc {
+    font-size: 1.05rem;
+    color: #b8d4ec;
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  .cover-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 40px;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .cover-meta-item label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #7ea8c8;
+    margin-bottom: 3px;
+  }
+
+  .cover-meta-item span {
+    font-size: 0.88rem;
+    color: #d8eaf8;
+    font-weight: 600;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(126,200,248,0.18);
+    border: 1px solid rgba(126,200,248,0.35);
+    color: #7ec8f8;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Body pages ── */
+  .body-page {
+    padding: 44px 56px;
+    page-break-after: always;
+  }
+
+  .body-page:last-child { page-break-after: auto; }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1e3a5f;
+    margin-bottom: 28px;
+  }
+
+  .page-header-name {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #6b7d96;
+    font-weight: 700;
+  }
+
+  .page-header-logo {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #1e3a5f;
+  }
+
+  /* ── Headings ── */
+  h2 {
+    font-size: 1.22rem;
+    font-weight: 800;
+    color: #1e3a5f;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  h3 {
+    font-size: 0.93rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin: 18px 0 6px;
+  }
+
+  h4 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #344563;
+    margin: 12px 0 4px;
+  }
+
+  p { margin-bottom: 10px; font-size: 0.9rem; }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #7ea8c8;
+    margin-bottom: 8px;
+  }
+
+  /* ── Highlight box ── */
+  .highlight {
+    background: #eef5fc;
+    border-left: 4px solid #1e3a5f;
+    padding: 14px 18px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 0.88rem;
+  }
+
+  .highlight strong { color: #1e3a5f; }
+
+  /* ── Callout ── */
+  .callout {
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    padding: 13px 16px;
+    font-size: 0.85rem;
+    margin: 14px 0;
+  }
+
+  .callout-green {
+    background: #e8f5e9;
+    border-color: #a5d6a7;
+  }
+
+  /* ── Module grid ── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .module-card {
+    border: 1px solid #dde3eb;
+    border-radius: 8px;
+    padding: 11px 14px;
+    background: #f9fbfd;
+  }
+
+  .module-card-title {
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-bottom: 3px;
+  }
+
+  .module-card-desc {
+    font-size: 0.76rem;
+    color: #4a5e78;
+    line-height: 1.45;
+  }
+
+  .module-card-emoji {
+    font-size: 1rem;
+    margin-right: 4px;
+  }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 18px 0;
+  }
+
+  .stat-box {
+    text-align: center;
+    padding: 14px 10px;
+    background: #f0f5fb;
+    border-radius: 10px;
+    border: 1px solid #dde8f5;
+  }
+
+  .stat-number {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #1e3a5f;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #5a7090;
+    font-weight: 600;
+  }
+
+  /* ── Table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+    margin: 12px 0 18px;
+  }
+
+  thead th {
+    background: #1e3a5f;
+    color: #fff;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #e8edf3;
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:nth-child(even) td { background: #f7f9fc; }
+  tbody tr:hover td { background: #eef4fb; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-green { background: #e8f5e9; color: #2e7d32; }
+  .badge-blue  { background: #e3f2fd; color: #1565c0; }
+  .badge-amber { background: #fff8e1; color: #e65100; }
+  .badge-gray  { background: #f0f0f0; color: #555; }
+
+  /* ── Timeline ── */
+  .timeline { margin: 14px 0; }
+
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .timeline-dot {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    background: #1e3a5f;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-top: 1px;
+  }
+
+  .timeline-content h4 { margin-top: 2px; }
+
+  /* ── Comparison ── */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 14px 0;
+  }
+
+  .comp-col {
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 0.83rem;
+  }
+
+  .comp-col-before {
+    background: #fff3e0;
+    border: 1px solid #ffcc80;
+  }
+
+  .comp-col-after {
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+  }
+
+  .comp-col h4 { margin-top: 0; margin-bottom: 10px; }
+  .comp-col ul { padding-left: 16px; }
+  .comp-col li { margin-bottom: 5px; }
+
+  /* ── Signature block ── */
+  .sig-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 32px;
+  }
+
+  .sig-block {
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+  }
+
+  .sig-name { font-size: 0.82rem; font-weight: 700; color: #1e3a5f; }
+  .sig-role { font-size: 0.76rem; color: #5a7090; }
+
+  .sig-line {
+    height: 36px;
+    border-bottom: 1px solid #bbb;
+    margin-bottom: 8px;
+  }
+
+  /* ── Footer ── */
+  .page-footer {
+    margin-top: 40px;
+    padding-top: 12px;
+    border-top: 1px solid #dde3eb;
+    font-size: 0.68rem;
+    color: #8a9ab0;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { background: #fff; font-size: 9.5pt; }
+    .cover { min-height: 100vh; }
+    .body-page { padding: 36px 48px; }
+    h2 { font-size: 1.1rem; }
+    @page {
+      size: A4;
+      margin: 0;
+    }
+  }
+
+  ul.checklist { list-style: none; padding-left: 0; }
+  ul.checklist li { padding: 3px 0; font-size: 0.85rem; }
+  ul.checklist li::before { content: '✓ '; color: #2e7d32; font-weight: 700; }
+
+  ul.cross { list-style: none; padding-left: 0; }
+  ul.cross li { padding: 3px 0; font-size: 0.85rem; }
+  ul.cross li::before { content: '✗ '; color: #c62828; font-weight: 700; }
+
+  ul.bullet { padding-left: 18px; font-size: 0.85rem; }
+  ul.bullet li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══════════════════════════════════════════════════════════
+     COVER PAGE
+     ══════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div>
+    <div class="cover-logo">Dorm<span>Portal</span>Universal</div>
+    <div class="cover-sub">Asia-Pacific International University &nbsp;·&nbsp; Dormitory Management System</div>
+  </div>
+
+  <div>
+    <div class="cover-badge">Formal Proposal — For Approval</div>
+    <div class="cover-title">A Unified Digital Platform for Dormitory Administration</div>
+    <div class="cover-desc">
+      DormPortalUniversal is a browser-based, offline-capable dormitory management system designed specifically for APIU's Elijah Hall. It replaces fragmented spreadsheets and paper records with 16 integrated modules — covering room reservations, nightly attendance, incident tracking, bedding inventory, staff scheduling, and more — all grounded in APIU Handbook policies.
+    </div>
+
+    <div class="cover-meta">
+      <div class="cover-meta-item">
+        <label>Submitted by</label>
+        <span>Dormitory Administration Office</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Submitted to</label>
+        <span>Student Administration</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>System Version</label>
+        <span>DormPortalUniversal v4 (June 2026)</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Date</label>
+        <span>June 2026</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Modules Ready</label>
+        <span>16 of 16 — fully operational</span>
+      </div>
+      <div class="cover-meta-item">
+        <label>Deployment Cost</label>
+        <span>Zero — runs in any web browser</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 1 — EXECUTIVE SUMMARY
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">Executive Summary</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">Overview</div>
+  <h2>What We Built and Why</h2>
+
+  <p>
+    Elijah Hall dormitory administration has historically depended on a collection of disconnected Excel files,
+    handwritten logbooks, and manual paper processes. Student data existed in silos — a name in a room assignment
+    sheet, a different name in a bedding ledger, yet another in a curfew notebook — with no cross-reference,
+    no search, and no audit trail. When the Dean needed to answer "Who is in Room 312 and when do they leave?",
+    it required consulting multiple sources. When a curfew violation occurred, creating an incident record,
+    linking it to the student, and exporting it for SARRA2 took hours instead of minutes.
+  </p>
+
+  <p>
+    <strong>DormPortalUniversal v4</strong> solves this. It is a purpose-built, fully integrated dormitory
+    management platform developed specifically for APIU's Elijah Hall operations. It runs entirely in a web
+    browser — no server installation, no monthly subscriptions, no internet connection required during use.
+    Every module is connected through a shared data layer, so a student entered in Room Reservations
+    automatically appears in Student Profiles, Attendance, Incident Reports, and Clearance workflows.
+  </p>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-number">16</div>
+      <div class="stat-label">Operational Modules</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">₿0</div>
+      <div class="stat-label">Server / Hosting Cost</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">100%</div>
+      <div class="stat-label">Offline Capable</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number">APIU</div>
+      <div class="stat-label">Handbook-Grounded</div>
+    </div>
+  </div>
+
+  <div class="highlight">
+    <strong>Key Request:</strong> We respectfully request Student Administration's formal acknowledgment and
+    support of DormPortalUniversal as the official digital records system for Elijah Hall dormitory operations,
+    and approval to begin cross-system data sharing with SARRA2 via the documented CSV integration protocol.
+  </div>
+
+  <h3>What We Are Asking For</h3>
+  <ul class="bullet">
+    <li><strong>Official recognition</strong> of DormPortalUniversal as the authorized dormitory records platform for Elijah Hall</li>
+    <li><strong>Policy endorsement</strong> of the SARRA2 CSV integration protocol for citizenship point deductions and leave import</li>
+    <li><strong>Clearance process alignment</strong> — authorization for the Dorm Dean to mark student clearance status that flows into the university departure process</li>
+    <li><strong>Data retention acknowledgment</strong> — confirmation that dormitory digital records (stored locally on the Dean's device) satisfy institutional record-keeping requirements</li>
+  </ul>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 1</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 2 — PROBLEM STATEMENT
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">Problem Statement</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">Before DormPortalUniversal</div>
+  <h2>The Operational Challenges We Faced</h2>
+
+  <div class="comparison">
+    <div class="comp-col comp-col-before">
+      <h4>Before — Fragmented Processes</h4>
+      <ul class="cross">
+        <li>Room assignments tracked in Excel, manually updated</li>
+        <li>Nightly attendance recorded in physical notebooks</li>
+        <li>Bedding sales tracked in a separate Excel ledger</li>
+        <li>Incident reports written by hand, filed in folders</li>
+        <li>Key checkout/return in a separate paper logbook</li>
+        <li>Move-out clearance assembled from 5+ different sources</li>
+        <li>No cross-reference between student data sets</li>
+        <li>Semester data typed repeatedly in every file</li>
+        <li>Citizenship point export to SARRA2: manual, error-prone</li>
+        <li>No searchable history of past residents</li>
+        <li>RA duty schedules on a whiteboard or paper</li>
+      </ul>
+    </div>
+    <div class="comp-col comp-col-after">
+      <h4>After — DormPortalUniversal</h4>
+      <ul class="checklist">
+        <li>Room assignments live, searchable, filterable by floor or semester</li>
+        <li>Digital nightly roll call with mobile-first RA interface</li>
+        <li>Bedding sales auto-linked to room data; full semester summary</li>
+        <li>Incident reports with student lookup, fine defaults (handbook values), follow-up alerts</li>
+        <li>Key checkout log with overdue detection and fine recording</li>
+        <li>Clearance form auto-populated from room, inspection, and utility data</li>
+        <li>Single source of truth — change a student name once, updates everywhere</li>
+        <li>Shared semester registry: set once in the header, applies to all modules</li>
+        <li>SARRA2 CSV export generated in one click — deduplication built in</li>
+        <li>Full archived history of all past residents, searchable</li>
+        <li>Digital weekly shift grid with on-duty detection</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Specific Policy Compliance Issues DormPortalUniversal Addresses</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>APIU Handbook Policy</th>
+        <th>Previous State</th>
+        <th>DormPortalUniversal</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Curfew — 22:00 (Sun–Fri), 23:00 (Sat)</td>
+        <td>Manually noted per session</td>
+        <td>Pre-configured defaults; live countdown banner for RAs</td>
+      </tr>
+      <tr>
+        <td>Nightly check 15 min after curfew</td>
+        <td>Dean reminder, paper logbook</td>
+        <td>Configured grace period; session auto-timestamps</td>
+      </tr>
+      <tr>
+        <td>Off-campus move: 1 month written notice</td>
+        <td>No tracking</td>
+        <td>30-day notice compliance badge with alert if requirement not met</td>
+      </tr>
+      <tr>
+        <td>Unauthorized room change fine: ฿1,000</td>
+        <td>Dean discretion, no record</td>
+        <td>Pre-seeded as default fine in Incident module; logged with student record</td>
+      </tr>
+      <tr>
+        <td>Improper check-out fine: ฿500</td>
+        <td>Dean discretion, no record</td>
+        <td>Pre-seeded in Room Inspection module; auto-carried to clearance form</td>
+      </tr>
+      <tr>
+        <td>Residency exemption categories</td>
+        <td>No tracking</td>
+        <td>Student Admin module: 6 waiver categories (Commute &lt;50km, 6+ Semesters, Married, Health, Internship, Self-Supporting)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 2</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 3 — SYSTEM OVERVIEW / MODULES
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">System Overview</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">Feature Set</div>
+  <h2>16 Integrated Modules — All Operational</h2>
+
+  <p>All 16 modules share a common data layer. Student data entered in Room Reservations flows automatically
+  into Student Profiles, Attendance, Incident Reports, Clearance, and Bedding — no re-entry required.</p>
+
+  <h3>Operations</h3>
+  <div class="module-grid">
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🛏️</span>Room Reservations</div>
+      <div class="module-card-desc">Live bed-slot management across all floors. Room holds, solo occupancy, move-out clearance workflow, incoming queue, away students. Excel import/export. 18 data columns per student.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">👤</span>Student Profiles</div>
+      <div class="module-card-desc">Student directory with photos, academic details, enrollment semester, contact info. Printable A4 profile cards. Import from MS Forms CSV and Registrar Excel format.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🗺️</span>Floor Plan</div>
+      <div class="module-card-desc">Visual room grid showing occupancy status at a glance. Hot-water bathroom pairing configuration. A4 landscape print.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">⚡</span>Utilities &amp; Billing</div>
+      <div class="module-card-desc">Monthly electricity and hot-water meter readings. Per-student bill calculation with AC/non-AC differentiation. Billing archive. Excel export.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">📊</span>Reports (11 tabs)</div>
+      <div class="module-card-desc">Archive, room summary, custom pivot, holds, storage, clearance overview, fee collection, attendance statistics, incident summary, bedding semester report. Print-to-PDF ready.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🔑</span>Key Inventory</div>
+      <div class="module-card-desc">Key checkout/return/lost tracking. Assigned key lifecycle with deposit recording. Overdue alerts (auto-checked every 60 seconds). MS Forms import for RA borrow logs. Fine recording.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🔍</span>Room Inspection</div>
+      <div class="module-card-desc">Move-in and move-out checklists per room side (A/B). Auto charge calculation vs move-in record. Printable A4 inspection sheet and A5 cost card for posting in the room.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">📦</span>Inventory + Bedding</div>
+      <div class="module-card-desc">Asset tracking with Code 39 barcode labels. Bedding sales ledger (7th tab): records sales linked to students, stock events, physical counts, semester summary matching Excel layout. Revenue tracking.</div>
+    </div>
+  </div>
+
+  <h3>Student Affairs</h3>
+  <div class="module-grid">
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🌙</span>Nightly Attendance</div>
+      <div class="module-card-desc">Mobile-first digital roll call (RA uses phone on the floor). SARRA2 leave import. Live curfew countdown. 6 attendance statuses. Post-session incident creation for absent students. Archive by semester.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🚨</span>Incident Reports</div>
+      <div class="module-card-desc">Structured incident documentation with 9 incident types, 4 severity levels. SARRA2 citizenship CSV export (one click). Handbook fine defaults pre-loaded. Follow-up overdue alerts.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">📋</span>Student Admin</div>
+      <div class="module-card-desc">Off-campus move requests with 30-day notice tracking and waiver categories. Dean's Assistance Log (hospital transport, counseling, financial assistance, etc.) with hours and cost recording.</div>
+    </div>
+  </div>
+
+  <h3>Staff &amp; Facilities</h3>
+  <div class="module-grid">
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">👥</span>Dorm Workers (HR)</div>
+      <div class="module-card-desc">HR register for RAs, Monitors, Janitors, and SWP workers. Floor coverage map. Job description documents with A4 print. SWP SARRA2 cross-reference ID field.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">📅</span>Staff Scheduling</div>
+      <div class="module-card-desc">Weekly Mon–Sun shift grid. Category color coding. Live on-duty banner. "My Schedule" view. A4 landscape print for notice board.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">🔧</span>Maintenance</div>
+      <div class="module-card-desc">Plant/repair request tracking. Low/Normal/High/Emergency urgency levels. Dashboard with urgency bar chart and hot-rooms list. History with date-range filter.</div>
+    </div>
+  </div>
+
+  <h3>Reference</h3>
+  <div class="module-grid">
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">📖</span>Dean's User Guide</div>
+      <div class="module-card-desc">Interactive HTML guide covering all 16 modules. Sticky sidebar, collapsible sections, live search. Print-friendly. No internet required.</div>
+    </div>
+    <div class="module-card">
+      <div class="module-card-title"><span class="module-card-emoji">📜</span>Residence Hall Handbook</div>
+      <div class="module-card-desc">Interactive APIU policy reference (2017 Handbook). 50+ policies. Fines quick-reference table. Same search/sidebar UX as the User Guide.</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 3</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 4 — TECHNICAL ARCHITECTURE & SARRA2 INTEGRATION
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">Technical Architecture</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">How It Works</div>
+  <h2>Zero-Cost, Offline-First Architecture</h2>
+
+  <p>
+    DormPortalUniversal is built on vanilla web technologies (HTML, CSS, JavaScript ES6+) with no frameworks,
+    no server, no database, and no cloud subscription. It runs in any modern web browser on Windows, macOS,
+    or iPad — no installation required.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Concern</th>
+        <th>How It Is Handled</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Data storage</strong></td>
+        <td>Browser localStorage (text data) + IndexedDB (photos). All data stays on the Dean's device.</td>
+        <td>Free</td>
+      </tr>
+      <tr>
+        <td><strong>Backup / restore</strong></td>
+        <td>"Export All Data" creates a single JSON file. "Restore Backup" reloads it. One click each way.</td>
+        <td>Free</td>
+      </tr>
+      <tr>
+        <td><strong>Excel compatibility</strong></td>
+        <td>SheetJS library bundled inline (no CDN). Open/save .xlsx files from Room Reservations, Utilities, Student Profiles.</td>
+        <td>Free (open-source)</td>
+      </tr>
+      <tr>
+        <td><strong>Multi-tab sync</strong></td>
+        <td>BroadcastChannel API keeps all open browser tabs in sync in real time — change data in one tab, all others update instantly.</td>
+        <td>Free (browser built-in)</td>
+      </tr>
+      <tr>
+        <td><strong>Internet access</strong></td>
+        <td>Not required during normal operation. GitHub Pages hosts a public copy for initial load (optional).</td>
+        <td>Free (GitHub Pages)</td>
+      </tr>
+      <tr>
+        <td><strong>Security</strong></td>
+        <td>No login server to breach. Data never leaves the Dean's device. No personal data transmitted to any third-party.</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><strong>Updates</strong></td>
+        <td>New features pushed to GitHub repository. Dean pulls the latest version by refreshing the page (or downloading a new copy).</td>
+        <td>Free</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>SARRA2 Integration Protocol</h3>
+  <p>
+    DormPortalUniversal is designed as the <em>dormitory operations layer</em>. SARRA2 remains the
+    <em>campus student affairs layer</em>. Data flows one direction — DormPortalUniversal generates
+    structured CSV exports; SARRA2 operators import them manually. No API coupling is needed.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Data Type</th>
+        <th>Direction</th>
+        <th>Method</th>
+        <th>DormPortalUniversal Module</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Citizenship point deductions (incidents)</td>
+        <td>Dorm → SARRA2</td>
+        <td>CSV export, one click per incident or bulk by date range</td>
+        <td>Incident Reports</td>
+      </tr>
+      <tr>
+        <td>Approved campus leave list</td>
+        <td>SARRA2 → Dorm</td>
+        <td>CSV import snapshot; auto-marks "On Leave" status in nightly roll</td>
+        <td>Nightly Attendance</td>
+      </tr>
+      <tr>
+        <td>SWP worker assignment</td>
+        <td>Cross-reference only</td>
+        <td>SARRA2 ID field stored; hours/credits tracked in SARRA2</td>
+        <td>Dorm Workers</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>Privacy note:</strong> The SARRA2 CSV export contains only: StudentID, Name, Room, IncidentDate, Type, Severity, PointsDeducted, FineSuggested, Notes. No medical, financial, or sensitive personal data is included.
+  </div>
+
+  <h3>Shared Semester Registry (New in June 2026)</h3>
+  <p>
+    A central semester registry (<em>Set Current Semester</em> button in the system header) propagates the
+    active semester to all 16 modules simultaneously. Previously, the Dean typed the semester label separately
+    in 7 different Settings tabs — a typo caused records to miss filters. Now it is entered once.
+  </p>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 4</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 5 — BENEFITS & IMPACT
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">Benefits &amp; Impact</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">Why This Matters</div>
+  <h2>Operational Benefits for All Stakeholders</h2>
+
+  <h3>For the Dormitory Dean</h3>
+  <ul class="checklist">
+    <li>Complete picture of all residents on one screen — room, profile, history, clearance status, bedding purchased, key issued</li>
+    <li>Semester-filtered views across all data — no manual sorting of mixed-semester Excel rows</li>
+    <li>Clearance form auto-populated from Room Reservations + Room Inspection + Utilities data — from 30 minutes to 3 minutes per student</li>
+    <li>Incident report to SARRA2 CSV in one click — eliminates manual transcription and transcription errors</li>
+    <li>Off-campus move request queue with 30-day notice compliance status visible at a glance</li>
+    <li>Dean's Assistance Log — structured record of all student support activities for institutional reporting</li>
+    <li>Exportable backup: one JSON file contains the entire dormitory database</li>
+  </ul>
+
+  <h3>For RAs and Monitors</h3>
+  <ul class="checklist">
+    <li>Mobile-first nightly attendance: large Present/Absent/Leave/Exempt toggle buttons designed for one-handed phone use</li>
+    <li>Live curfew countdown banner so RAs know exactly when roll call must begin</li>
+    <li>SARRA2-imported leave list pre-marks students as "On Leave" automatically — no manual cross-referencing</li>
+    <li>Staff Scheduling: see personal weekly shifts; print the A4 shift sheet for the notice board</li>
+    <li>Key borrow log: scan/enter key number, system detects overdue returns automatically</li>
+  </ul>
+
+  <h3>For Students</h3>
+  <ul class="checklist">
+    <li>Faster clearance processing — Dean has all data on one screen, no hunting for files</li>
+    <li>Accurate off-campus move notices with 30-day countdown displayed to Dean</li>
+    <li>Bedding purchase history linked to student record — no disputes over what was purchased which semester</li>
+    <li>Room inspection results stored digitally — charges visible before move-out is finalized</li>
+  </ul>
+
+  <h3>For Student Administration</h3>
+  <ul class="checklist">
+    <li>Structured incident data with SARRA2-ready CSV means citizenship point deductions arrive correctly formatted — no data cleaning needed</li>
+    <li>Documented waiver request tracking (6 residency exemption categories from the Handbook)</li>
+    <li>Clearance data readable from DormPortalUniversal's Reports module — no physical form retrieval needed for verification</li>
+    <li>RA staffing and coverage data visible for oversight purposes</li>
+    <li>System records align with the 2017 APIU Residence Hall Handbook policy values — no interpretation drift</li>
+  </ul>
+
+  <h3>Cost Comparison</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Typical Commercial Alternative</th>
+        <th>DormPortalUniversal</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Software license (per year)</td>
+        <td>$300–$1,200 USD for dorm management SaaS</td>
+        <td><span class="badge badge-green">Free</span></td>
+      </tr>
+      <tr>
+        <td>Server / cloud hosting</td>
+        <td>$50–$200 USD/month</td>
+        <td><span class="badge badge-green">Free</span></td>
+      </tr>
+      <tr>
+        <td>Data privacy risk</td>
+        <td>Student data stored on vendor servers</td>
+        <td><span class="badge badge-green">Data stays on Dean's device</span></td>
+      </tr>
+      <tr>
+        <td>APIU policy alignment</td>
+        <td>Generic — requires manual customization</td>
+        <td><span class="badge badge-green">Built for APIU Handbook</span></td>
+      </tr>
+      <tr>
+        <td>SARRA2 integration</td>
+        <td>Custom API development required</td>
+        <td><span class="badge badge-green">CSV protocol (no API needed)</span></td>
+      </tr>
+      <tr>
+        <td>Internet dependency</td>
+        <td>Required for all operations</td>
+        <td><span class="badge badge-green">100% offline capable</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 5</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 6 — IMPLEMENTATION STATUS & NEXT STEPS
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">Implementation Status</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">Where We Are</div>
+  <h2>Development Timeline &amp; Current Status</h2>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot">✓</div>
+      <div class="timeline-content">
+        <h4>Phase 1 — Core Operations (May 2026) <span class="badge badge-green">Complete</span></h4>
+        <p style="font-size:.82rem;color:#4a5e78">Room Reservations (18-column bed-slot management), Student Profiles (photos, A4 print cards, import from MS Forms &amp; Registrar Excel), Floor Plan (visual grid), Electricity &amp; Hot Water Billing (per-student calculation), Reports hub (11 tabs). SheetJS bundled offline. Cross-tab sync via BroadcastChannel. Export All Data / Restore Backup.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">✓</div>
+      <div class="timeline-content">
+        <h4>Phase 2 — Reference &amp; Records (May 2026) <span class="badge badge-green">Complete</span></h4>
+        <p style="font-size:.82rem;color:#4a5e78">Room Inspection (move-in/out checklists, charge calculation, A4 + A5 print), Key Inventory (checkout/return/lost, assigned keys, MS Forms import, borrower agreement print), Inventory (asset tracking, Code 39 barcode labels, maintenance flag push), Dean's User Guide (interactive HTML, 16 modules covered), APIU Residence Hall Handbook (50+ policies, fines quick-reference).</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">✓</div>
+      <div class="timeline-content">
+        <h4>Phase 3 — Student Affairs &amp; Staff (June 2026) <span class="badge badge-green">Complete</span></h4>
+        <p style="font-size:.82rem;color:#4a5e78">Nightly Attendance (mobile-first, SARRA2 leave import, curfew countdown, session archive), Incident Reports (SARRA2 CSV export, fine defaults, follow-up management), Student Admin (off-campus requests, Dean's assistance log), Dorm Workers HR (RA/Monitor/Janitor/SWP, job documents), Staff Scheduling (weekly grid, A4 print), Maintenance request tracking.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">✓</div>
+      <div class="timeline-content">
+        <h4>Phase 4 — Bedding &amp; Semester Registry (June 2026) <span class="badge badge-green">Complete</span></h4>
+        <p style="font-size:.82rem;color:#4a5e78">Bedding Inventory tab (sales ledger, stock events, physical counts, semester summary matching existing Excel layout, revenue tracking). Shared semester registry — change semester once in the header, all 16 modules update. Semester field on every room bed slot enabling per-semester filtering. Enrollment semester on student profiles.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Pending Items (Minor, Non-Blocking)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Status</th>
+        <th>Impact if Deferred</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Password gate (optional access control)</td>
+        <td><span class="badge badge-amber">Deferred</span></td>
+        <td>System currently open to anyone with the URL — mitigated by offline-only use</td>
+      </tr>
+      <tr>
+        <td>Room Inspection semester field — route through shared registry</td>
+        <td><span class="badge badge-amber">Deferred</span></td>
+        <td>Room Inspection uses its own semester text field; does not affect other modules</td>
+      </tr>
+      <tr>
+        <td>GitHub Pages activation</td>
+        <td><span class="badge badge-amber">Awaiting Config</span></td>
+        <td>System works fully when opened as a local HTML file — Pages makes sharing easier</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-green">
+    <strong>System Status:</strong> DormPortalUniversal v4 is fully operational. All 16 modules are live and have been used in daily dormitory administration. The Bedding Inventory tab replaced the existing Excel "Students Bedding Report" spreadsheet in June 2026.
+  </div>
+
+  <h3>Proposed Next Steps Upon Approval</h3>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot">1</div>
+      <div class="timeline-content">
+        <h4>Student Administration signs off on SARRA2 CSV integration protocol</h4>
+        <p style="font-size:.82rem;color:#4a5e78">SARRA2_INTEGRATION.md (available on the GitHub repository) documents the exact CSV format for citizenship point submissions and leave imports. Alignment ensures no data mismatch.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">2</div>
+      <div class="timeline-content">
+        <h4>Test cross-system CSV exchange with SARRA2 team</h4>
+        <p style="font-size:.82rem;color:#4a5e78">One joint session with the SARRA2 operator to confirm the exported CSV fields map correctly to SARRA2's citizenship point import screen.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">3</div>
+      <div class="timeline-content">
+        <h4>Formal activation of digital clearance records</h4>
+        <p style="font-size:.82rem;color:#4a5e78">Agreement that DormPortalUniversal clearance records (exportable as JSON or printable as A4 PDF) satisfy the institutional requirement for a paper clearance trail.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 6</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE 7 — APPROVAL & SIGNATURES
+     ══════════════════════════════════════════════════════════ -->
+<div class="body-page">
+  <div class="page-header">
+    <span class="page-header-name">Approval &amp; Endorsement</span>
+    <span class="page-header-logo">DormPortalUniversal v4</span>
+  </div>
+
+  <div class="section-label">Request for Approval</div>
+  <h2>Formal Endorsement Request</h2>
+
+  <p>
+    The Dormitory Administration Office respectfully submits this proposal to Student Administration and
+    requests formal endorsement of DormPortalUniversal v4 as the official digital records and operations
+    platform for Elijah Hall.
+  </p>
+
+  <div class="highlight">
+    <strong>This proposal requests endorsement of the following:</strong><br><br>
+    <strong>1. Official Recognition</strong> — DormPortalUniversal is designated as the authorized digital records system for Elijah Hall dormitory operations, replacing fragmented spreadsheet-based processes.<br><br>
+    <strong>2. SARRA2 Integration Protocol</strong> — The CSV-based data exchange protocol (documented in SARRA2_INTEGRATION.md) is approved for use between DormPortalUniversal and the SARRA2 student affairs system.<br><br>
+    <strong>3. Clearance Record Validity</strong> — Digital clearance records generated by DormPortalUniversal (printable A4 / exportable JSON) are accepted as satisfying the institutional clearance documentation requirement.<br><br>
+    <strong>4. Data Retention Policy</strong> — The local-storage model (data maintained on the Dean's device with exportable JSON backups) is acknowledged as compliant with APIU's internal data retention expectations for dormitory records.
+  </div>
+
+  <div class="callout">
+    <strong>Note on Data Privacy:</strong> All student data remains on the Dormitory Dean's laptop. No student information is stored in any cloud service, third-party platform, or external server. The system has no login screen, no network calls, and no data transmission of any kind during normal operation. Backups are JSON files stored and managed entirely by the Dorm Dean.
+  </div>
+
+  <h3>Endorsement Signatures</h3>
+  <p style="font-size:.82rem;margin-bottom:6px">By signing below, the respective parties indicate their review, understanding, and approval of the DormPortalUniversal v4 system as described in this proposal.</p>
+
+  <div class="sig-grid">
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-name">Dormitory Dean</div>
+      <div class="sig-role">Elijah Hall, Asia-Pacific International University</div>
+      <div class="sig-role" style="margin-top:6px">Date: ___________________</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-line"></div>
+      <div class="sig-name">Director of Student Administration</div>
+      <div class="sig-role">Asia-Pacific International University</div>
+      <div class="sig-role" style="margin-top:6px">Date: ___________________</div>
+    </div>
+    <div class="sig-block" style="margin-top:28px">
+      <div class="sig-line"></div>
+      <div class="sig-name">SARRA2 System Administrator</div>
+      <div class="sig-role">Student Affairs Office, APIU</div>
+      <div class="sig-role" style="margin-top:6px">Date: ___________________</div>
+    </div>
+    <div class="sig-block" style="margin-top:28px">
+      <div class="sig-line"></div>
+      <div class="sig-name">Dean of Students (or Designee)</div>
+      <div class="sig-role">Asia-Pacific International University</div>
+      <div class="sig-role" style="margin-top:6px">Date: ___________________</div>
+    </div>
+  </div>
+
+  <div style="margin-top:36px;padding:16px;background:#f7f9fc;border-radius:8px;border:1px solid #dde3eb;font-size:0.78rem;color:#5a7090">
+    <strong style="color:#1e3a5f">Document reference:</strong>
+    DormPortalUniversal v4 · GitHub: am0nch/DormPortalUniversal ·
+    System version: June 2026 · All 16 modules operational ·
+    Codebase documentation: CLAUDE.md (project repository) ·
+    Integration protocol: SARRA2_INTEGRATION.md (project repository)
+  </div>
+
+  <div class="page-footer">
+    <span>DormPortalUniversal v4 — Proposal to Student Administration</span>
+    <span>Page 7</span>
+  </div>
+</div>
+
+</div><!-- /.page -->
+</body>
+</html>
