@@ -227,24 +227,25 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <div class="sw-card sw-card--red"><strong id="gradCount">0</strong><span>Move Out</span></div>
     <div class="sw-card sw-card--orange"><strong id="holdCount">0</strong><span>Held</span></div>
     <div class="sw-card sw-card--purple"><strong id="awayCount">0</strong><span>Away</span></div>
-    <button class="sw-toggle" id="statsToggleBtn" onclick="toggleStatsExpand()">▾ 15 more stats</button>
+    <button class="sw-toggle" id="statsToggleBtn" onclick="toggleStatsExpand()">▾ 7 more stats</button>
   </div>
   <div id="statsExpandPanel" style="display:none" class="sw-expand">
     <div class="stat-card">☀️ Summer: <span id="summerCount">0</span></div>
     <div class="stat-card">📖 1st Sem: <span id="sem1Count">0</span></div>
-    <div class="stat-card">🎓 Graduating: <span id="graduatingCount">0</span></div>
-    <div class="stat-card">🏠 Going Home: <span id="goingHomeCount">0</span></div>
     <div class="stat-card">🚪 Leaving Dorm: <span id="leavingDormCount">0</span></div>
-    <div class="stat-card">💼 Internship: <span id="internshipCount">0</span></div>
-    <div class="stat-card">📥 In Queue: <span id="queueStatCount">0</span></div>
     <div class="stat-card">📦 Storage: <span id="storageCount">0</span></div>
     <div class="stat-card">💰 Revenue: <span id="totalRevenue">0</span> ฿</div>
-    <div class="stat-card">🧍 Solo: <span id="soloCount">0</span></div>
-    <div class="stat-card">📜 Archived: <span id="archivedCount">0</span></div>
     <div class="stat-card">🔑 Keys Back: <span id="keysBackCount">0</span></div>
     <div class="stat-card">📋 Clearance Done: <span id="clearanceDoneCount">0</span></div>
-    <div class="stat-card">📥 Transfer-In: <span id="transferInCount">0</span></div>
     <div class="stat-card">✅ Confirmed: <span id="confirmedCount">0</span></div>
+    <!-- IDs below are hidden from UI but still updated by updateStats() for data integrity -->
+    <span id="graduatingCount" style="display:none">0</span>
+    <span id="goingHomeCount" style="display:none">0</span>
+    <span id="internshipCount" style="display:none">0</span>
+    <span id="queueStatCount" style="display:none">0</span>
+    <span id="soloCount" style="display:none">0</span>
+    <span id="archivedCount" style="display:none">0</span>
+    <span id="transferInCount" style="display:none">0</span>
   </div>
   <div id="conflictWarning" class="conflict-warning">⚠️ Some rooms have a waiting list — max capacity reached.</div>
 </div>
@@ -2040,7 +2041,7 @@ function toggleStatsExpand(){
   if(!p)return;
   const open=p.style.display!=='none';
   p.style.display=open?'none':'flex';
-  if(b)b.textContent=open?'▾ 15 more stats':'▴ Fewer stats';
+  if(b)b.textContent=open?'▾ 7 more stats':'▴ Fewer stats';
 }
 function toggleOverflow(){
   const m=document.getElementById('overflowMenu');
