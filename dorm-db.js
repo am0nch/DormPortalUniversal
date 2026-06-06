@@ -30,8 +30,10 @@ const DormDB = (() => {
     KEYS_CFG:      'dormKeysConfig',
     KEYS_ASSIGNED: 'dormKeysAssigned',
     INSPECTIONS: 'dormInspections',
+    INSP_CFG:    'dormInspConfig',
     INVENTORY:    'dormInventory',
     INV_TEMPLATE: 'dormInvTemplate',
+    INV_CFG:     'dormInvCfg',
     SCHEDULE:       'dormSchedule',
     MAINTENANCE:    'dormMaintenance',
     MAINTENANCE_CFG:'dormMaintenanceConfig',
@@ -151,7 +153,7 @@ const DormDB = (() => {
         ? (localStorage.getItem(K.NAME_CUSTOM) || 'Custom Dorm')
         : sel;
     },
-    getMaxOcc:      ()  => parseInt(localStorage.getItem(K.MAX_OCC) || '2'),
+    getMaxOcc:      ()  => _r(K.MAX_OCC, 2),
     getCurrentUser: ()  => localStorage.getItem(K.USER) || 'Unknown',
 
     // Shared settings — setters (route all writes here for BroadcastChannel sync)
@@ -160,17 +162,18 @@ const DormDB = (() => {
       localStorage.setItem(K.NAME_CUSTOM, custom || '');
       _broadcast(K.NAME_SEL);
     },
-    saveMaxOcc:      (v)    => localStorage.setItem(K.MAX_OCC, String(v)),
-    saveCurrentUser: (name) => localStorage.setItem(K.USER, name),
+    saveMaxOcc:      (v)    => _w(K.MAX_OCC, v),
+    saveCurrentUser: (name) => { localStorage.setItem(K.USER, name); _broadcast(K.USER); },
     saveLastSave(ts, user) {
       localStorage.setItem(K.LAST_UPDATE, ts);
       localStorage.setItem(K.LAST_USER, user);
+      _broadcast(K.LAST_UPDATE);
     },
     getLastSave: () => ({ ts: localStorage.getItem(K.LAST_UPDATE)||'', user: localStorage.getItem(K.LAST_USER)||'' }),
     getFloor:    ()    => localStorage.getItem(K.FLOOR) || '',
-    saveFloor:   (v)   => localStorage.setItem(K.FLOOR, v || ''),
+    saveFloor:   (v)   => { localStorage.setItem(K.FLOOR, v || ''); _broadcast(K.FLOOR); },
     getCols()          { try { return JSON.parse(localStorage.getItem(K.COLS) || '[]'); } catch { return []; } },
-    saveCols:    (arr) => localStorage.setItem(K.COLS, JSON.stringify(arr)),
+    saveCols:    (arr) => { localStorage.setItem(K.COLS, JSON.stringify(arr)); _broadcast(K.COLS); },
     getPhotosFlag: ()  => localStorage.getItem(K.PHOTOS_MIGRATED),
     setPhotosFlag: (v) => localStorage.setItem(K.PHOTOS_MIGRATED, v),
 
@@ -185,10 +188,14 @@ const DormDB = (() => {
     saveAssignedKeys: (d) => _w(K.KEYS_ASSIGNED, d),
     getInspections:  ()  => _r(K.INSPECTIONS, []),
     saveInspections: (d) => _w(K.INSPECTIONS, d),
+    getInspCfg()         { return _r(K.INSP_CFG, { defaultCharges: {}, semesterLabel: '' }); },
+    saveInspCfg:     (d) => _w(K.INSP_CFG, d),
     getInventory:    ()  => _r(K.INVENTORY, []),
     saveInventory:   (d) => _w(K.INVENTORY, d),
     getInvTemplate:  ()  => _r(K.INV_TEMPLATE, []),
     saveInvTemplate: (d) => _w(K.INV_TEMPLATE, d),
+    getInvCfg()          { return _r(K.INV_CFG, { categories: [], customLocs: [] }); },
+    saveInvCfg:      (d) => _w(K.INV_CFG, d),
     getSchedule:     ()  => _r(K.SCHEDULE, []),
     saveSchedule:    (d) => _w(K.SCHEDULE, d),
     getMaintenance:    ()  => _r(K.MAINTENANCE, []),
@@ -296,8 +303,8 @@ const DormDB = (() => {
         unresolvedIncidents: incidents.filter(i => !i.resolved).length,
         pendingOffCampus:   offcampus.filter(r => r.status === 'Pending').length,
         activeWorkers:      workers.filter(w => w.status === 'Active').length,
-        beddingSoldThisSem: (() => { const c = _r(K.BEDDING_CFG, { currentSemester: '' }); return _r(K.BEDDING, []).filter(t => t.semester === c.currentSemester).length; })(),
-        beddingMissing:     (() => { const c = _r(K.BEDDING_CFG, { currentSemester: '' }); const cts = _r(K.BEDDING_COUNT, []).filter(x => x.semester === c.currentSemester).sort((a,b) => b.countDate.localeCompare(a.countDate)); return cts.length ? cts[0].items.reduce((a,i) => a + Math.max(0,(i.expected||0)-(i.actual||0)), 0) : 0; })(),
+        beddingSoldThisSem: (() => { const sem = _r(K.SEMESTER_CFG, { current: '' }).current || ''; return _r(K.BEDDING, []).filter(t => t.semester === sem).length; })(),
+        beddingMissing:     (() => { const sem = _r(K.SEMESTER_CFG, { current: '' }).current || ''; const cts = _r(K.BEDDING_COUNT, []).filter(x => x.semester === sem).sort((a,b) => b.countDate.localeCompare(a.countDate)); return cts.length ? cts[0].items.reduce((a,i) => a + Math.max(0,(i.expected||0)-(i.actual||0)), 0) : 0; })(),
       };
     },
 

@@ -288,8 +288,8 @@ const SEVERITY={
 };
 
 function getDefaultCharges(){
-  const saved=localStorage.getItem('dormInspDefaultCharges');
-  if(saved)try{return JSON.parse(saved);}catch(e){}
+  const saved=DormDB.getInspCfg().defaultCharges;
+  if(saved&&Object.keys(saved).length)return saved;
   const d={};
   SIDE_ITEMS.forEach(i=>d[i.key]=i.base);
   SHARED_ITEMS.forEach(i=>d[i.key]=i.base);
@@ -297,8 +297,7 @@ function getDefaultCharges(){
 }
 
 function getSemesterPref(){
-  return localStorage.getItem('dormInspSemester')||
-    new Date().getFullYear()+' Semester';
+  return DormDB.getInspCfg().semesterLabel||DormDB.getCurrentSemester();
 }
 
 // ══ Lifecycle ══════════════════════════════════════════════════════════════
@@ -323,6 +322,7 @@ function init(){
   renderSettings();
   DormDB.on(DormDB.KEYS.ROOMS,()=>{loadData();populateRoomDropdowns();});
   DormDB.on(DormDB.KEYS.INSPECTIONS,()=>{loadData();renderList();renderCharges();});
+  DormDB.on(DormDB.KEYS.PROFILES,()=>{populateRoomDropdowns();});
 }
 
 // ══ Tabs ═══════════════════════════════════════════════════════════════════
@@ -936,20 +936,22 @@ function saveDefaultCharges(){
   const d={};
   SIDE_ITEMS.forEach(i=>{const el=document.getElementById('set_'+i.key);if(el)d[i.key]=parseFloat(el.value)||0;});
   SHARED_ITEMS.forEach(i=>{const el=document.getElementById('set_'+i.key);if(el)d[i.key]=parseFloat(el.value)||0;});
-  localStorage.setItem('dormInspDefaultCharges',JSON.stringify(d));
+  const cfg=DormDB.getInspCfg();
+  DormDB.saveInspCfg({...cfg,defaultCharges:d});
   showToast('✅ Default costs saved.');
 }
 
 function resetDefaultCharges(){
   if(!confirm('Reset all default costs to the code defaults? Your saved overrides will be lost.'))return;
-  localStorage.removeItem('dormInspDefaultCharges');
+  const cfg=DormDB.getInspCfg();
+  DormDB.saveInspCfg({...cfg,defaultCharges:{}});
   renderSettings();
   showToast('✅ Reset to code defaults. Click "Save Costs" to keep them.');
 }
 
 function saveSemesterPref(){
   const val=document.getElementById('defaultSemester').value.trim();
-  if(val)localStorage.setItem('dormInspSemester',val);
+  if(val){const cfg=DormDB.getInspCfg();DormDB.saveInspCfg({...cfg,semesterLabel:val});}
   showToast('✅ Semester label saved.');
 }
 

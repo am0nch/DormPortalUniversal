@@ -453,6 +453,7 @@ async function init() {
   renderList();
   DormDB.on('dormProfiles',      () => { profiles = DormDB.getProfiles(); renderList(); });
   DormDB.on('dormKeysAssigned',  () => { profiles = DormDB.getProfiles(); renderList(); });
+  DormDB.on(DormDB.KEYS.ROOMS,   () => { renderList(); });
   populateSemesterSelect();
   DormDB.on(DormDB.KEYS.SEMESTER_CFG, populateSemesterSelect);
 }

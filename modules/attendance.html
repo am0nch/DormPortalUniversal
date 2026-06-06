@@ -1204,6 +1204,11 @@ function init() {
 
   populateAttSemSelects();
   DormDB.on(DormDB.KEYS.SEMESTER_CFG, populateAttSemSelects);
+  DormDB.on(DormDB.KEYS.CURFEW_CFG, () => {
+    curfewCfg = DormDB.getCurfewCfg();
+    renderDashboard();
+    startCountdown();
+  });
 
   renderDashboard();
   startCountdown();

@@ -484,6 +484,7 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [x] Update Dean's User Guide (userguide.html) to cover the 6 new modules added in sessions 27–34 ✅
 - [ ] Password gate re-enable (code removed, ready to re-add to `index.html` when ready)
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
+- [ ] ATT_ARCHIVE (`dormAttendanceArchive`) is write-only — `DormDB.archiveAttendance()` moves sessions there but no module reads them back. Future work: add an "Archived Semesters" tab to `reports.html` → Attendance tab using `DormDB.getAttArchive()`.
 
 ---
 

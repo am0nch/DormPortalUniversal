@@ -499,7 +499,7 @@ function renderDashboard() {
   }).join('');
 
   // On duty check via dormSchedule
-  const schedule = DormDB.getSchedule ? DormDB.getSchedule() : (JSON.parse(localStorage.getItem('dormSchedule')||'[]'));
+  const schedule = DormDB.getSchedule();
   const now = new Date();
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const curDay = days[now.getDay()];
@@ -732,6 +732,10 @@ function init() {
     workersCfg = DormDB.getWorkersCfg();
     const active = document.querySelector('.tab-panel.active');
     if (active?.id === 'tab-jobdocs') renderJobDocs();
+  });
+  DormDB.on(DormDB.KEYS.SCHEDULE, () => {
+    const active = document.querySelector('.tab-panel.active');
+    if (active?.id === 'tab-dashboard') renderDashboard();
   });
 
   renderDashboard();
