@@ -783,17 +783,44 @@ All rooms default to 2 beds. Max occupants configurable via dropdown (1–4). Cu
 7. Run verification: `wc -l <file>`
 8. **Check autocompact signal** — suggest `/compact` if context is long or a major phase just completed
 9. **After every session — sync all MD files** (see rule below)
-10. **Commit and push directly to `main`** — this is a solo project; no PRs needed
+10. **Run pre-push code review** (see rule below) — fix all CONFIRMED findings before pushing
+11. **Commit and push directly to `main`** — this is a solo project; no PRs needed
 
 ### Git workflow (solo project)
 
 ```bash
 git add <files>
 git commit -m "type: description"
+# run /code-review --fix before this:
 git push origin main
 ```
 
 No feature branches or pull requests required. Branch only when experimenting with something potentially breaking; merge back to main immediately once it works.
+
+---
+
+## Pre-push code review rule
+
+**Trigger:** Before every `git push origin main` that contains functional code changes.
+
+**How to run:** invoke `/code-review --fix` on the current diff.
+
+The review checks 7 angles automatically:
+- **Correctness** — logic errors, null/undefined deref, off-by-one, missing await, wrong conditions
+- **Removed-behavior audit** — deleted guards or invariants not re-established elsewhere
+- **Cross-file tracer** — callers broken by changed function signatures or return shapes
+- **Architecture** — fixes at the wrong depth; special-casing something that should be generalised
+- **Security** — XSS via unescaped HTML, direct localStorage writes bypassing DormDB, injection vectors
+- **Performance** — redundant JSON.parse on hot paths, missing debounce on keypress handlers
+- **Reuse / simplification** — logic duplicated from existing helpers; unnecessary complexity
+
+**Gate:**
+- All **CONFIRMED** findings must be fixed before pushing.
+- **PLAUSIBLE** findings must be either fixed or explicitly accepted with a one-line reason in the commit message.
+- **REFUTED** findings may be ignored.
+- If no findings survive verification → push immediately.
+
+**Skip when:** the commit is docs-only (`CLAUDE.md`, `userguide.html`, `handbook.html`), a revert, or a hotfix for a production incident where speed outweighs review overhead — note the skip in the commit message.
 
 ---
 
