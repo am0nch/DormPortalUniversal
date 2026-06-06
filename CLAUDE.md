@@ -52,24 +52,24 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 ---
 
-## File stats (as of 2026-06-06, session 37–38)
+## File stats (as of 2026-06-06, session 40)
 
 | File | Lines | Notes |
 |------|-------|-------|
 | `index.html` | 642 | Main menu, 16 module cards (all ready), section headers, live stats; semester badge + modal + rollover UI |
 | `dorm-db.js` | 470 | Central data API; 17 new keys; rolloverToSemester/flagKeyForVacatedStudent; INSP_CFG/INV_CFG/INCIDENTS_CFG |
-| `modules/room-reservations.html` | 1,978 | Active room reservations (SheetJS bundled inline); semester col 18 + filter; archive restore modal |
+| `modules/room-reservations.html` | 2,079 | Active room reservations (SheetJS bundled inline); semester col 18 + filter; archive restore modal; modernized UI (progressive disclosure; auto-show KPI cards) |
 | `modules/student-profiles.html` | 1,224 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline); archived/Alumni toggle + Restore link |
 | `modules/floor-plan.html` | 497 | Visual room grid + bathroom pairing config |
 | `modules/utilities.html` | 674 | Electricity & hot water billing (SheetJS bundled inline) |
 | `modules/reports.html` | 1,558 | 12-tab report hub (+ Away Students tab; archive semester filter + sort; bugs fixed) |
-| `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
+| `modules/room-inspection.html` | 1,148 | Move-in/out checklists, key issuance, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
-| `modules/inventory.html` | 1,770 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab; semester selects |
-| `modules/attendance.html` | 1,215 | Nightly attendance, curfew countdown, SARRA2 leave import, session history; semester select |
+| `modules/inventory.html` | 1,772 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab; semester selects |
+| `modules/attendance.html` | 1,220 | Nightly attendance, curfew countdown, SARRA2 leave import, session history; semester select |
 | `modules/incidents.html` | 977 | Incident reports, SARRA2 CSV export, fine defaults, follow-up tracking; semester selects |
 | `modules/student-admin.html` | 1,002 | Off-campus move requests + Dean's assistance log |
-| `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
+| `modules/dorm-workers.html` | 747 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
 | `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
 | `modules/userguide.html` | 2,397 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal; dev/testing disclaimer banner |
@@ -520,6 +520,14 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [ ] `userguide.html` needs updating to document: semester rollover UI, Alumni view in Student Profiles, Away Students report tab, archive restore flow
 
 ---
+
+## Completed improvements (2026-06-06, session 40 — Room Reservations UI Modernization)
+
+- [x] **`modules/room-reservations.html`** — Full UI/UX modernization using progressive disclosure pattern. Five stacked gray toolbar rows collapsed into three distinct zones: navy unified page header (breadcrumb + unsaved badge + last-saved meta), white consolidated toolbar (dorm select + max occupants + semester badge + file actions), and gray filter bar (search + floor/semester filters + count + Queue/Away/Floor Plan/Reports). Table visible without scrolling past controls. (1,978 → 2,079 lines)
+- [x] **`modules/room-reservations.html`** — 21-card stat sprawl replaced with 6 always-visible KPI cards (Students, Empty Beds, Waiting, Move Out, Held, Away) in a compact inline strip. Secondary stat cards (Summer, 1st Sem, Leaving Dorm, Storage, Revenue, Keys Back, Clearance Done, Confirmed) auto-appear in the same strip when their value is > 0 and disappear when zero — no manual toggle required.
+- [x] **`modules/room-reservations.html`** — All 21 original stat `id` attributes preserved (removed IDs retained as hidden `<span>` elements) so `updateStats()` never throws null-reference errors.
+- [x] **`modules/room-reservations.html`** — `_refreshSecondaryCards()` function added; `updateStats()` patched via IIFE to call it after every data refresh; immediate call in IIFE catches values already set by page-load render.
+- [x] **`modules/room-reservations.html`** — Footer actions (Queue, Away, Floor Plan, Reports) moved to filter bar where they sit adjacent to the table. Overflow menu (···) added to toolbar for infrequently-used actions (Reset to Elijah Hall, Empty Template). `toggleOverflow()` helper added with click-outside-to-close behavior.
 
 ## Completed improvements (2026-06-06, session 39 — Code Review Bug Fixes)
 
