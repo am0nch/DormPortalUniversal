@@ -359,10 +359,27 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <span class="section-badge ready">Ready</span>
     </div>
 
+    <div class="subsection" id="sub-rr-layout">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Page Layout</div>
+      <div class="collapse-body">
+        <p>The Room Reservations page uses a <strong>three-zone layout</strong> that keeps the data table immediately visible without scrolling past controls.</p>
+        <table class="guide-table">
+          <thead><tr><th>Zone</th><th>Background</th><th>Controls</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Page Header</strong></td><td>Navy</td><td>← Menu breadcrumb · Module title · Dorm name · ⚠️ Unsaved badge · Last-saved time &amp; user</td></tr>
+            <tr><td><strong>Toolbar</strong></td><td>White</td><td>Dorm selector · Max Occupants · 📅 Semester badge · 📂 Load · 💾 Save · ↩ Undo · ↪ Redo · Cols ▾ · ··· Overflow menu</td></tr>
+            <tr><td><strong>Filter Bar</strong></td><td>Light gray</td><td>🔍 Search · Floor filter · Semester filter · Filter button · Bed count · 📥 Queue · 📤 Away · 🏢 Floor Plan · 📊 Reports</td></tr>
+          </tbody>
+        </table>
+        <p>The <strong>··· Overflow menu</strong> in the toolbar contains infrequently-used actions: <strong>🔄 Reset to Elijah Hall</strong> (restore the default embedded layout) and <strong>📄 Empty Template</strong> (export a blank Excel template).</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>Queue and Away panel buttons live in the Filter Bar — right above the table — so toggling them doesn't require scrolling to the bottom of the page.</span></div>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-rr-table">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Understanding the Table</div>
       <div class="collapse-body">
-        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Columns ▾</strong> in the toolbar to show or hide specific columns. The 18 columns are:</p>
+        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Cols ▾</strong> in the toolbar to show or hide specific columns. The 18 columns are:</p>
         <table class="guide-table">
           <thead><tr><th>#</th><th>Column</th><th>What it does</th></tr></thead>
           <tbody>
@@ -383,17 +400,39 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>15</td><td>🧍 Solo</td><td>Student paying double rate for a private room (blocks roommates)</td></tr>
             <tr><td>16</td><td>🏠 Hold</td><td>Room Hold (paid absence). Requires ☀️ or 📖 to be checked first.</td></tr>
             <tr><td>17</td><td>📋 Clearance</td><td>Opens clearance form — appears only when Move Out is set</td></tr>
+            <tr><td>18</td><td>📅 Semester</td><td>Semester the student is enrolled in — hidden by default; select from shared semester registry</td></tr>
           </tbody>
         </table>
         <div class="tip"><span class="tip-icon">💡</span><span>The room color badge updates automatically: <span class="badge badge-green">🟢 Available</span> → <span class="badge" style="background:#fff9c4;color:#5d4037">🟡 Leaving Soon</span> → <span class="badge badge-amber">🟠 Held</span> → <span class="badge badge-red">🔴 Full</span></span></div>
       </div>
     </div>
 
+    <div class="subsection" id="sub-rr-stats">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Statistics at a Glance</div>
+      <div class="collapse-body">
+        <p>A compact <strong>KPI strip</strong> sits between the Filter Bar and the table. Six primary cards are always visible:</p>
+        <table class="guide-table">
+          <thead><tr><th>Card</th><th>What it shows</th></tr></thead>
+          <tbody>
+            <tr><td>👥 <strong>Students</strong></td><td>Total named bed slots currently occupied</td></tr>
+            <tr><td>🛏️ <strong>Empty Beds</strong></td><td>Unnamed bed slots available for assignment</td></tr>
+            <tr><td>⏳ <strong>Waiting</strong></td><td>Students with a Requested Room who are on the waiting list</td></tr>
+            <tr><td>🚪 <strong>Move Out</strong></td><td>Students with any Move Out reason set</td></tr>
+            <tr><td>🏠 <strong>Held</strong></td><td>Rooms currently on an active Room Hold</td></tr>
+            <tr><td>📤 <strong>Away</strong></td><td>Students in the Away Students panel</td></tr>
+          </tbody>
+        </table>
+        <p>Eight <strong>secondary cards</strong> auto-appear in the same strip when their value is greater than zero, and disappear when the count returns to zero — no toggle needed:</p>
+        <p style="font-size:.85rem;color:#555;margin:.4rem 0">☀️ Summer &nbsp;·&nbsp; 📖 1st Sem &nbsp;·&nbsp; 🚪 Leaving Dorm &nbsp;·&nbsp; 📦 Storage &nbsp;·&nbsp; 💰 Revenue ฿ &nbsp;·&nbsp; 🔑 Keys Back &nbsp;·&nbsp; ✅ Clearance Done &nbsp;·&nbsp; ✔️ Confirmed</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>The KPI strip updates instantly after every cell edit — no need to save or refresh to see counts change.</span></div>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-rr-setup">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Dorm Setup</div>
       <div class="collapse-body">
-        <p>On first use, click <strong>🏗️ Generate Dorm Setup</strong> to create the room list. Enter room numbers manually or use a range format (e.g., <code>101AC-106AC, 201AC-227AC</code>). Rooms with the suffix <strong>AC</strong> are auto-flagged as air-conditioned.</p>
-        <p>The <strong>Max Occupants</strong> dropdown (top-right of the toolbar) sets how many bed slots appear per room: 1–4. Default is 2.</p>
+        <p>On first use, click <strong>🏗️ Setup</strong> in the toolbar to open the Generator modal. Enter room numbers manually or use a range format (e.g., <code>101AC-106AC, 201AC-227AC</code>). Rooms with the suffix <strong>AC</strong> are auto-flagged as air-conditioned.</p>
+        <p>The <strong>Max Occupants</strong> dropdown in the toolbar sets how many bed slots appear per room: 1–4. Default is 2.</p>
         <div class="note"><span class="note-icon">ℹ️</span><span>Elijah Hall default layout: Floors 1–2 (101AC–106AC, 201AC–227AC), Floors 3–4 (301AC–327AC, 401AC–427AC). All rooms default to 2 beds.</span></div>
       </div>
     </div>
@@ -438,7 +477,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-rr-away">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Away Students Panel</div>
       <div class="collapse-body">
-        <p>The <strong>Away Students</strong> panel (🏃 button in the toolbar) stores student records that have been temporarily moved out without being permanently archived. Their bed is released but all data is preserved.</p>
+        <p>The <strong>Away Students</strong> panel (<strong>📤 Away</strong> button in the Filter Bar) stores student records that have been temporarily moved out without being permanently archived. Their bed is released but all data is preserved.</p>
         <ul>
           <li>Click <strong>Mark Away</strong> from the student's row options to move them to the Away panel.</li>
           <li>When they return, click <strong>↩️ Restore</strong> and choose the room to place them back into a bed slot.</li>
@@ -450,7 +489,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-rr-queue">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Incoming Queue</div>
       <div class="collapse-body">
-        <p>The <strong>Incoming Queue</strong> panel (🚶 button) manages pre-reservations — students who will move in but don't have a confirmed room yet.</p>
+        <p>The <strong>Incoming Queue</strong> panel (<strong>📥 Queue</strong> button in the Filter Bar) manages pre-reservations — students who will move in but don't have a confirmed room yet.</p>
         <ol class="steps">
           <li>Click <strong>+ Add Incoming</strong> and fill in: Name, Student Type, Target Room, Expected Move-In Date, Transfer From (if applicable), and Notes.</li>
           <li>Once a room becomes available, click <strong>✅ Confirm to Room</strong> on the queue entry to place the student in a bed slot directly.</li>
@@ -486,10 +525,11 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Saving & Loading Data</div>
       <div class="collapse-body">
         <ul>
-          <li><strong>Auto-save:</strong> Every change is immediately saved to localStorage. The status bar shows the last save time and current localStorage usage.</li>
-          <li><strong>💾 Save Excel:</strong> Exports all room data to an <code>.xlsx</code> file with three sheets: DormData, IncomingQueue, RoomHistory.</li>
-          <li><strong>📂 Load File:</strong> Import a previously saved <code>.xlsx</code> file to restore room data.</li>
-          <li><strong>Undo / Redo:</strong> Buttons in the toolbar, or <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd>.</li>
+          <li><strong>Auto-save:</strong> Every change is immediately saved to browser storage. The page header shows the last save time and user. The ⚠️ Unsaved badge appears when there are unsaved Excel changes.</li>
+          <li><strong>💾 Save:</strong> Exports all room data to an <code>.xlsx</code> file with three sheets: DormData, IncomingQueue, RoomHistory.</li>
+          <li><strong>📂 Load:</strong> Import a previously saved <code>.xlsx</code> file to restore room data.</li>
+          <li><strong>↩ Undo / ↪ Redo:</strong> Buttons in the toolbar revert or re-apply the last change.</li>
+          <li><strong>··· Overflow menu:</strong> Click <strong>···</strong> in the toolbar for less-frequent actions — <strong>🔄 Reset to Elijah Hall</strong> (restore built-in layout) and <strong>📄 Empty Template</strong> (download a blank import file).</li>
         </ul>
         <div class="warn"><span class="warn-icon">⚠️</span><span>Loading from an Excel file overwrites all current room data. Always export a backup before loading.</span></div>
       </div>
@@ -2086,7 +2126,9 @@ const TOC = [
   ]},
   { label:'Modules', items:[
     { id:'sec-room-reservations', text:'🛏️ Room Reservations', subs:[
+      { id:'sub-rr-layout',   text:'Page Layout' },
       { id:'sub-rr-table',    text:'Understanding the Table' },
+      { id:'sub-rr-stats',    text:'Statistics at a Glance' },
       { id:'sub-rr-setup',    text:'Dorm Setup' },
       { id:'sub-rr-moveout',  text:'Move-Out & Clearance' },
       { id:'sub-rr-roomhold', text:'Room Hold' },
