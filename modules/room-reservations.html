@@ -1003,13 +1003,13 @@ function renderTable(){
     // 1: AC
     const tdAC=document.createElement('td');tdAC.className='checkbox-cell';
     const chkAC=document.createElement('input');chkAC.type='checkbox';chkAC.checked=!!s.ac;chkAC.title='Air conditioned room';
-    chkAC.onchange=e=>{const v=e.target.checked;fullData.filter(x=>x.room===s.room).forEach(x=>x.ac=v);pushState();recordUpdate();renderTable();};
+    chkAC.onchange=e=>{const v=e.target.checked;fullData.filter(x=>x.room===s.room).forEach(x=>x.ac=v);pushState();recordUpdate();applyFilter();};
     addInteractivity(chkAC,row,ri,1);tdAC.appendChild(chkAC);row.appendChild(tdAC);
 
     // 2: Name + Transfer badge
     const td1=document.createElement('td');
     const inpN=document.createElement('input');inpN.type='text';inpN.value=s.name;inpN.placeholder='Name';inpN.style.width='100%';
-    const dbN=debounce(v=>{s.name=v;pushState();recordUpdate();renderTable();},400);
+    const dbN=debounce(v=>{s.name=v;pushState();recordUpdate();applyFilter();},400);
     inpN.addEventListener('input',e=>dbN(e.target.value));addInteractivity(inpN,row,ri,2);td1.appendChild(inpN);
     const tb=document.createElement('span');
     if(s.transferIn&&s.transferIn.fromDorm){tb.className='transfer-badge';tb.title=`From ${s.transferIn.fromDorm} Rm ${s.transferIn.fromRoom||'?'}`;tb.textContent=`📥 ${s.transferIn.fromDorm}`;}
@@ -1185,7 +1185,7 @@ function updateStats(){
     if(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm')leavingDorm++;
     if(s.moveOutReason==='Internship')internship++;
     if(isHoldActive(s))holds++;
-    if(s.storageRental){storage++;revenue+=s.storageQty*100;}
+    if(s.storageRental){storage++;revenue+=(s.storageQty||1)*100;}
     if(s.requestStatus==='Waiting')waiting++;
     if(s.solo)solo++;
     if(s.keysReturned)keysBack++;
@@ -1373,7 +1373,7 @@ function saveStorage(){
   currentStorageStudent.paymentMethod=document.getElementById('paymentMethodSelect').value;
   for(let i=1;i<=3;i++){const ce=document.getElementById(`box${i}Color`),ne=document.getElementById(`box${i}No`);currentStorageStudent[`box${i}Color`]=(i<=currentStorageStudent.storageQty&&ce)?ce.value:'';currentStorageStudent[`box${i}No`]=(i<=currentStorageStudent.storageQty&&ne)?ne.value:'';}
   currentStorageStudent.totalAmount=currentStorageStudent.storageRental?currentStorageStudent.storageQty*100:0;
-  closeModal('storageModal');pushState();recordUpdate();renderTable();
+  closeModal('storageModal');pushState();recordUpdate();applyFilter();
 }
 
 // ═══ CLEARANCE MODAL ═══
@@ -1442,7 +1442,7 @@ function readClearanceFields(s){
   c.formNo=document.getElementById('cl_formNo').value;
   c.formCompleted=document.getElementById('cl_formCompleted').checked;
 }
-function saveClearance(){if(!currentClearanceStudent)return;readClearanceFields(currentClearanceStudent);closeModal('clearanceModal');pushState();recordUpdate();renderTable();}
+function saveClearance(){if(!currentClearanceStudent)return;readClearanceFields(currentClearanceStudent);closeModal('clearanceModal');pushState();recordUpdate();applyFilter();}
 function vacateAndArchive(){
   if(!currentClearanceStudent)return;
   const s=currentClearanceStudent;
