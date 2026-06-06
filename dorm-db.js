@@ -30,8 +30,10 @@ const DormDB = (() => {
     KEYS_CFG:      'dormKeysConfig',
     KEYS_ASSIGNED: 'dormKeysAssigned',
     INSPECTIONS: 'dormInspections',
+    INSP_CFG:    'dormInspConfig',
     INVENTORY:    'dormInventory',
     INV_TEMPLATE: 'dormInvTemplate',
+    INV_CFG:     'dormInvCfg',
     SCHEDULE:       'dormSchedule',
     MAINTENANCE:    'dormMaintenance',
     MAINTENANCE_CFG:'dormMaintenanceConfig',
@@ -151,7 +153,7 @@ const DormDB = (() => {
         ? (localStorage.getItem(K.NAME_CUSTOM) || 'Custom Dorm')
         : sel;
     },
-    getMaxOcc:      ()  => parseInt(localStorage.getItem(K.MAX_OCC) || '2'),
+    getMaxOcc:      ()  => _r(K.MAX_OCC, 2),
     getCurrentUser: ()  => localStorage.getItem(K.USER) || 'Unknown',
 
     // Shared settings — setters (route all writes here for BroadcastChannel sync)
@@ -160,17 +162,18 @@ const DormDB = (() => {
       localStorage.setItem(K.NAME_CUSTOM, custom || '');
       _broadcast(K.NAME_SEL);
     },
-    saveMaxOcc:      (v)    => localStorage.setItem(K.MAX_OCC, String(v)),
-    saveCurrentUser: (name) => localStorage.setItem(K.USER, name),
+    saveMaxOcc:      (v)    => _w(K.MAX_OCC, v),
+    saveCurrentUser: (name) => { localStorage.setItem(K.USER, name); _broadcast(K.USER); },
     saveLastSave(ts, user) {
       localStorage.setItem(K.LAST_UPDATE, ts);
       localStorage.setItem(K.LAST_USER, user);
+      _broadcast(K.LAST_UPDATE);
     },
     getLastSave: () => ({ ts: localStorage.getItem(K.LAST_UPDATE)||'', user: localStorage.getItem(K.LAST_USER)||'' }),
     getFloor:    ()    => localStorage.getItem(K.FLOOR) || '',
-    saveFloor:   (v)   => localStorage.setItem(K.FLOOR, v || ''),
+    saveFloor:   (v)   => { localStorage.setItem(K.FLOOR, v || ''); _broadcast(K.FLOOR); },
     getCols()          { try { return JSON.parse(localStorage.getItem(K.COLS) || '[]'); } catch { return []; } },
-    saveCols:    (arr) => localStorage.setItem(K.COLS, JSON.stringify(arr)),
+    saveCols:    (arr) => { localStorage.setItem(K.COLS, JSON.stringify(arr)); _broadcast(K.COLS); },
     getPhotosFlag: ()  => localStorage.getItem(K.PHOTOS_MIGRATED),
     setPhotosFlag: (v) => localStorage.setItem(K.PHOTOS_MIGRATED, v),
 
@@ -185,10 +188,14 @@ const DormDB = (() => {
     saveAssignedKeys: (d) => _w(K.KEYS_ASSIGNED, d),
     getInspections:  ()  => _r(K.INSPECTIONS, []),
     saveInspections: (d) => _w(K.INSPECTIONS, d),
+    getInspCfg()         { return _r(K.INSP_CFG, { defaultCharges: {}, semesterLabel: '' }); },
+    saveInspCfg:     (d) => _w(K.INSP_CFG, d),
     getInventory:    ()  => _r(K.INVENTORY, []),
     saveInventory:   (d) => _w(K.INVENTORY, d),
     getInvTemplate:  ()  => _r(K.INV_TEMPLATE, []),
     saveInvTemplate: (d) => _w(K.INV_TEMPLATE, d),
+    getInvCfg()          { return _r(K.INV_CFG, { categories: [], customLocs: [] }); },
+    saveInvCfg:      (d) => _w(K.INV_CFG, d),
     getSchedule:     ()  => _r(K.SCHEDULE, []),
     saveSchedule:    (d) => _w(K.SCHEDULE, d),
     getMaintenance:    ()  => _r(K.MAINTENANCE, []),
@@ -287,8 +294,8 @@ const DormDB = (() => {
         failedInspections:  inspect.filter(r => r.type==='move-out' && r.charges && [...(r.charges.sideA||[]),...(r.charges.sideB||[]),...(r.charges.shared||[]),...(r.charges.bathroom||[])].reduce((a,c)=>a+c.amount,0)>0).length,
         lowStock:           invent.filter(i => typeof i.qty === 'number' && i.isConsumable && i.qty <= (i.reorderAt || 0)).length,
         maintenanceFlagged: invent.filter(i => i.maintenanceFlag && !i.maintenancePushed).length,
-        profileCount:       profiles.length,
-        profilesComplete:   profiles.filter(p => pctOf(p) >= 90).length,
+        profileCount:       profiles.filter(p => !p.archived).length,
+        profilesComplete:   profiles.filter(p => !p.archived && pctOf(p) >= 90).length,
         depositsCollected:  assigned.filter(k => k.depositPaid).length,
         depositsPending:    assigned.filter(k => !k.depositPaid && k.status === 'With Student').length,
         studentsOnLeave:    (leavesImp.students || []).length,
@@ -296,9 +303,47 @@ const DormDB = (() => {
         unresolvedIncidents: incidents.filter(i => !i.resolved).length,
         pendingOffCampus:   offcampus.filter(r => r.status === 'Pending').length,
         activeWorkers:      workers.filter(w => w.status === 'Active').length,
-        beddingSoldThisSem: (() => { const c = _r(K.BEDDING_CFG, { currentSemester: '' }); return _r(K.BEDDING, []).filter(t => t.semester === c.currentSemester).length; })(),
-        beddingMissing:     (() => { const c = _r(K.BEDDING_CFG, { currentSemester: '' }); const cts = _r(K.BEDDING_COUNT, []).filter(x => x.semester === c.currentSemester).sort((a,b) => b.countDate.localeCompare(a.countDate)); return cts.length ? cts[0].items.reduce((a,i) => a + Math.max(0,(i.expected||0)-(i.actual||0)), 0) : 0; })(),
+        beddingSoldThisSem: (() => { const sem = _r(K.SEMESTER_CFG, { current: '' }).current || ''; return _r(K.BEDDING, []).filter(t => t.semester === sem).length; })(),
+        beddingMissing:     (() => { const sem = _r(K.SEMESTER_CFG, { current: '' }).current || ''; const cts = _r(K.BEDDING_COUNT, []).filter(x => x.semester === sem).sort((a,b) => b.countDate.localeCompare(a.countDate)); return cts.length ? cts[0].items.reduce((a,i) => a + Math.max(0,(i.expected||0)-(i.actual||0)), 0) : 0; })(),
       };
+    },
+
+    // Semester rollover — resets semester-specific flags for continuing students
+    rolloverToSemester(newLabel) {
+      const rooms = _r(K.ROOMS, []);
+      let rolled = 0, skipped = 0;
+      const updated = rooms.map(s => {
+        if (!s.name || !s.name.trim()) return s;
+        if (s.graduating && s.moveOutReason) { skipped++; return s; }
+        rolled++;
+        return {
+          ...s,
+          semester: newLabel,
+          summer: false,
+          firstSem: false,
+          returnDate: '',
+          requestedRoom: '',
+          requestStatus: 'Confirmed',
+          manualStatus: false,
+          keysReturned: false,
+          roomHold: { active: false, paymentMethod: 'Not Paid', amountPaid: 0 },
+        };
+      });
+      _w(K.ROOMS, updated);
+      return { rolled, skipped };
+    },
+
+    // Flag an assigned key as 'Pending Return' when its student is vacated
+    flagKeyForVacatedStudent(studentId, name) {
+      const keys = _r(K.KEYS_ASSIGNED, []);
+      let changed = false;
+      const updated = keys.map(k => {
+        const match = (studentId && k.studentId === studentId) ||
+          (!studentId && k.studentName && k.studentName.toLowerCase() === (name || '').toLowerCase());
+        if (match && k.status === 'With Student') { changed = true; return { ...k, status: 'Pending Return' }; }
+        return k;
+      });
+      if (changed) _w(K.KEYS_ASSIGNED, updated);
     },
 
     // Archive attendance sessions for a completed semester

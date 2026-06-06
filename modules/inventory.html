@@ -544,18 +544,21 @@ function _isActive(id) { return document.getElementById(id)?.classList.contains(
 function isAcRoom(r) { return r && r.toUpperCase().includes('AC'); }
 
 function getCategories() {
-  const s = localStorage.getItem('dormInvCategories');
-  if (s) try { return JSON.parse(s); } catch(e) {}
-  return [...DEFAULT_CATEGORIES];
+  const saved = DormDB.getInvCfg().categories;
+  return (saved && saved.length) ? saved : [...DEFAULT_CATEGORIES];
 }
-function saveCategories(a) { localStorage.setItem('dormInvCategories', JSON.stringify(a)); }
+function saveCategories(a) {
+  const cfg = DormDB.getInvCfg();
+  DormDB.saveInvCfg({ ...cfg, categories: a });
+}
 
 function getCustomLocations() {
-  const s = localStorage.getItem('dormInvCustomLocs');
-  if (s) try { return JSON.parse(s); } catch(e) {}
-  return [];
+  return DormDB.getInvCfg().customLocs || [];
 }
-function saveCustomLocations(a) { localStorage.setItem('dormInvCustomLocs', JSON.stringify(a)); }
+function saveCustomLocations(a) {
+  const cfg = DormDB.getInvCfg();
+  DormDB.saveInvCfg({ ...cfg, customLocs: a });
+}
 
 function getAllLocations() {
   const rooms = [...new Set(DormDB.getRooms().map(s => s.room).filter(Boolean))].sort();
@@ -955,8 +958,7 @@ function resetTemplateToDefaults() {
   renderTemplateRows();
 }
 function _saveTpl(tpl) {
-  if (DormDB.saveInvTemplate) DormDB.saveInvTemplate(tpl);
-  else localStorage.setItem('dormInvTemplate', JSON.stringify(tpl));
+  DormDB.saveInvTemplate(tpl);
 }
 
 function renderCategories() {
