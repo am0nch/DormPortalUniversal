@@ -328,16 +328,18 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>👤 Student Profiles</td><td>Full student directory with photos, Registrar/MS Forms import</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🏢 Floor Plan</td><td>Visual room grid with occupancy colors and bathroom pairing</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>⚡ Electricity & Hot Water</td><td>Meter readings and per-student utility bill calculation</td><td><span class="badge badge-green">Ready</span></td></tr>
-            <tr><td>📊 Reports</td><td>10-tab hub: archive, room, custom, pivot, holds, storage, clearance, fees, attendance, incidents</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📊 Reports</td><td>12-tab hub: archive, away students, room, custom, pivot, holds, storage, clearance, fees, attendance, incidents, bedding</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔑 Key Inventory</td><td>Key checkout, return, lost key tracking, fines, shift print</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔍 Room Inspection</td><td>Move-in/out checklists, damage charges, clearance pre-fill</td><td><span class="badge badge-green">Ready</span></td></tr>
-            <tr><td>📦 Inventory</td><td>Asset tracking, Code 39 barcodes, room template comparison</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📦 Inventory</td><td>Asset tracking, Code 39 barcodes, room template comparison, bedding sales ledger</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>📅 Nightly Attendance</td><td>Nightly roll call, curfew countdown, SARRA2 leave import, session history</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🚨 Incident Reports</td><td>Behavioral incident tracking, SARRA2 CSV export, handbook fine defaults</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🎓 Student Admin</td><td>Off-campus move requests (30-day notice), Dean's assistance log</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>👷 Dorm Workers</td><td>HR register for RAs, Monitors, Janitors, SWP workers; job documents</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>📆 Staff Scheduling</td><td>Weekly shift grid, on-duty detection, A4 print sheet</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔧 Maintenance</td><td>Plant service request tracking, urgency levels, dashboard chart</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📖 Dean's User Guide</td><td>This guide — complete reference for all 16 modules</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📋 Residence Hall Handbook</td><td>Interactive APIU policy reference — 50+ policies, fines table</td><td><span class="badge badge-green">Ready</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -360,7 +362,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-rr-table">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Understanding the Table</div>
       <div class="collapse-body">
-        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Columns ▾</strong> in the toolbar to show or hide specific columns. The 17 columns are:</p>
+        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Columns ▾</strong> in the toolbar to show or hide specific columns. The 18 columns are:</p>
         <table class="guide-table">
           <thead><tr><th>#</th><th>Column</th><th>What it does</th></tr></thead>
           <tbody>
@@ -679,12 +681,12 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <span class="section-badge ready">Ready</span>
     </div>
 
-    <p style="margin-bottom:16px">The Reports module has <strong>10 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
+    <p style="margin-bottom:16px">The Reports module has <strong>12 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
 
     <div class="subsection" id="sub-rpt-archive">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📁 Archive Tab</div>
       <div class="collapse-body">
-        <p>Shows all students who have been vacated and archived — Graduating, Off Campus, and Internship departures. Displays clearance form completion status, fees collected, meter readings, and contact info. Filterable by floor, searchable by name. Click <strong>🖨️ Print Archive</strong> for an A4 report.</p>
+        <p>Shows all students who have been vacated and archived — Graduating, Off Campus, and Internship departures. Displays clearance form completion status, fees collected, meter readings, semester label, and contact info. Filter by move-out type or semester; search by name, room, or Student ID. Click any column header to sort. Click <strong>🖨️ Print Archive</strong> for a landscape A4 report that respects the active search and semester filter.</p>
       </div>
     </div>
 
@@ -773,6 +775,31 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <li><strong>SARRA2 export backlog</strong> — count of incident records not yet exported to SARRA2, with a direct link to the Incident Reports module to take action</li>
         </ul>
         <p>Click <strong>🖨️ Print Incidents Report</strong> for an A4 summary.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-away">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🏃 Away Students Tab</div>
+      <div class="collapse-body">
+        <p>Lists all students currently marked as Away — their bed is released but their data is preserved in the Away panel of Room Reservations. Columns: Room, Name, Student ID, Type, Semester, Expected Return, Days Left, Away Since.</p>
+        <ul>
+          <li><strong>Days Left</strong> — colour-coded: green (on track), orange (≤3 days), red (overdue)</li>
+          <li>Click any column header to sort. Null return dates always sort last.</li>
+        </ul>
+        <p>Click <strong>🖨️ Print Away Report</strong> for a portrait A4 sheet — useful for RA handovers.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-bedding">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🛏️ Bedding Report Tab</div>
+      <div class="collapse-body">
+        <p>Read-only summary of bedding sales for the selected semester, mirroring the data managed in <strong>Inventory → 🛏️ Bedding</strong>. Shows:</p>
+        <ul>
+          <li><strong>Summary table</strong> — Starting stock, Added, Sold, Calculated remaining, Physical count, Missing, Revenue</li>
+          <li><strong>Payment breakdown</strong> — Cash vs. QR stat cards</li>
+          <li><strong>Transaction list</strong> — Collapsible sales ledger for the semester</li>
+        </ul>
+        <p>Click <strong>🖨️ Print Report</strong> for an A4 portrait summary for Finance.</p>
       </div>
     </div>
   </section>
@@ -1832,7 +1859,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td><strong>👷 Dorm Workers</strong></td><td>Jun 2026</td><td>HR register for RAs/Monitors/Janitors/SWP; floor coverage grid; SARRA2 SWP cross-reference; job document creator with A4 agreement print</td></tr>
             <tr><td><strong>📆 Staff Scheduling</strong></td><td>Jun 2026</td><td>Mon–Sun shift grid with category color-coding, on-duty detection from real clock time, My Schedule view, A4 landscape print sheet</td></tr>
             <tr><td><strong>🔧 Maintenance</strong></td><td>Jun 2026</td><td>Plant/repair request tracking (Open → In Progress → Completed), urgency levels, dashboard bar chart, hot-rooms list, integration with Room Inspection and Inventory</td></tr>
-            <tr><td><strong>📊 Reports (+ 2 tabs)</strong></td><td>Jun 2026</td><td>Attendance tab (session log, per-student absence counts, ≥3 alert); Incidents tab (by-type summary, SARRA2 backlog count) — now 10 tabs total</td></tr>
+            <tr><td><strong>📊 Reports (+ 4 tabs)</strong></td><td>Jun 2026</td><td>Attendance + Incidents tabs (sessions 27–34); Away Students + Bedding tabs (sessions 35–38); semester filter + sort in Archive tab — now 12 tabs total</td></tr>
           </tbody>
         </table>
         <div class="note"><span class="note-icon">ℹ️</span><span><strong>Bug fixes in v4.1:</strong> CSV newline injection in SARRA2 export (incidents.html); duplicate incident records on double-tap (attendance.html); wrong-student clearance on shared names (student-admin.html); direct localStorage access for incident config (dorm-db.js BF-016).</span></div>
@@ -2087,7 +2114,7 @@ const TOC = [
       { id:'sub-util-hw',      text:'Hot Water Tab' },
       { id:'sub-util-summary', text:'Summary & Export' },
     ]},
-    { id:'sec-reports', text:'📊 Reports (10 tabs)', subs:[
+    { id:'sec-reports', text:'📊 Reports (12 tabs)', subs:[
       { id:'sub-rpt-archive',    text:'📁 Archive' },
       { id:'sub-rpt-room',       text:'🛏️ Room Report' },
       { id:'sub-rpt-custom',     text:'📋 Custom Report' },
@@ -2098,6 +2125,8 @@ const TOC = [
       { id:'sub-rpt-fees',       text:'💰 Fee Collection' },
       { id:'sub-rpt-attendance', text:'📅 Attendance' },
       { id:'sub-rpt-incidents',  text:'🚨 Incidents' },
+      { id:'sub-rpt-away',       text:'🏃 Away Students' },
+      { id:'sub-rpt-bedding',    text:'🛏️ Bedding' },
     ]},
     { id:'sec-key-inventory', text:'🔑 Key Inventory', subs:[
       { id:'sub-ki-setup',    text:'Initial Setup' },
