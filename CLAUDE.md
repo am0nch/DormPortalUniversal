@@ -783,6 +783,17 @@ All rooms default to 2 beds. Max occupants configurable via dropdown (1–4). Cu
 7. Run verification: `wc -l <file>`
 8. **Check autocompact signal** — suggest `/compact` if context is long or a major phase just completed
 9. **After every session — sync all MD files** (see rule below)
+10. **Commit and push directly to `main`** — this is a solo project; no PRs needed
+
+### Git workflow (solo project)
+
+```bash
+git add <files>
+git commit -m "type: description"
+git push origin main
+```
+
+No feature branches or pull requests required. Branch only when experimenting with something potentially breaking; merge back to main immediately once it works.
 
 ---
 
