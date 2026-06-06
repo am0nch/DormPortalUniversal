@@ -294,8 +294,8 @@ const DormDB = (() => {
         failedInspections:  inspect.filter(r => r.type==='move-out' && r.charges && [...(r.charges.sideA||[]),...(r.charges.sideB||[]),...(r.charges.shared||[]),...(r.charges.bathroom||[])].reduce((a,c)=>a+c.amount,0)>0).length,
         lowStock:           invent.filter(i => typeof i.qty === 'number' && i.isConsumable && i.qty <= (i.reorderAt || 0)).length,
         maintenanceFlagged: invent.filter(i => i.maintenanceFlag && !i.maintenancePushed).length,
-        profileCount:       profiles.length,
-        profilesComplete:   profiles.filter(p => pctOf(p) >= 90).length,
+        profileCount:       profiles.filter(p => !p.archived).length,
+        profilesComplete:   profiles.filter(p => !p.archived && pctOf(p) >= 90).length,
         depositsCollected:  assigned.filter(k => k.depositPaid).length,
         depositsPending:    assigned.filter(k => !k.depositPaid && k.status === 'With Student').length,
         studentsOnLeave:    (leavesImp.students || []).length,
@@ -306,6 +306,44 @@ const DormDB = (() => {
         beddingSoldThisSem: (() => { const sem = _r(K.SEMESTER_CFG, { current: '' }).current || ''; return _r(K.BEDDING, []).filter(t => t.semester === sem).length; })(),
         beddingMissing:     (() => { const sem = _r(K.SEMESTER_CFG, { current: '' }).current || ''; const cts = _r(K.BEDDING_COUNT, []).filter(x => x.semester === sem).sort((a,b) => b.countDate.localeCompare(a.countDate)); return cts.length ? cts[0].items.reduce((a,i) => a + Math.max(0,(i.expected||0)-(i.actual||0)), 0) : 0; })(),
       };
+    },
+
+    // Semester rollover — resets semester-specific flags for continuing students
+    rolloverToSemester(newLabel) {
+      const rooms = _r(K.ROOMS, []);
+      let rolled = 0, skipped = 0;
+      const updated = rooms.map(s => {
+        if (!s.name || !s.name.trim()) return s;
+        if (s.graduating && s.moveOutReason) { skipped++; return s; }
+        rolled++;
+        return {
+          ...s,
+          semester: newLabel,
+          summer: false,
+          firstSem: false,
+          returnDate: '',
+          requestedRoom: '',
+          requestStatus: 'Confirmed',
+          manualStatus: false,
+          keysReturned: false,
+          roomHold: { active: false, paymentMethod: 'Not Paid', amountPaid: 0 },
+        };
+      });
+      _w(K.ROOMS, updated);
+      return { rolled, skipped };
+    },
+
+    // Flag an assigned key as 'Pending Return' when its student is vacated
+    flagKeyForVacatedStudent(studentId, name) {
+      const keys = _r(K.KEYS_ASSIGNED, []);
+      let changed = false;
+      const updated = keys.map(k => {
+        const match = (studentId && k.studentId === studentId) ||
+          (!studentId && k.studentName && k.studentName.toLowerCase() === (name || '').toLowerCase());
+        if (match && k.status === 'With Student') { changed = true; return { ...k, status: 'Pending Return' }; }
+        return k;
+      });
+      if (changed) _w(K.KEYS_ASSIGNED, updated);
     },
 
     // Archive attendance sessions for a completed semester

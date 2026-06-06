@@ -182,6 +182,7 @@ tr:hover td{background:#f4f8fc}
   <button class="btn btn-gray" title="Import personal details from Microsoft Forms CSV export" onclick="document.getElementById('msfInput').click()">📥 Import MS Forms</button>
   <input type="file" id="msfInput" accept=".xlsx,.csv" style="display:none" onchange="importMSForms(this)">
   <button class="btn btn-gray" onclick="exportExcel()" title="Export all profiles to Excel">📤 Export Excel</button>
+  <button id="alumniToggleBtn" class="btn btn-gray" onclick="toggleAlumni()" title="Switch between active profiles and alumni" style="background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8">🎓 Alumni (0)</button>
   <button class="btn btn-primary" onclick="openEditModal(null)">➕ Add Profile</button>
 </div>
 
@@ -397,6 +398,7 @@ let editingId = null;
 let photoBlobPending = null;   // Blob staged during upload, saved on form submit
 let currentObjectURL = null;   // Object URL for the preview img — revoked on close
 let searchTerm = '';
+let showAlumni = false;
 
 // ── Photo compression (Canvas API, no dependencies) ───────────────────────
 function compressPhoto(file) {
@@ -459,19 +461,32 @@ async function init() {
 }
 
 // ── Render list ────────────────────────────────────────────────────────────
+function toggleAlumni() {
+  showAlumni = !showAlumni;
+  renderList();
+}
+
 function renderList() {
   const rooms = DormDB.getRooms();
-  let data = profiles;
+  const active   = profiles.filter(p => !p.archived);
+  const alumni   = profiles.filter(p => p.archived);
+  let pool = showAlumni ? alumni : active;
+
+  // Update toggle button label
+  const btn = document.getElementById('alumniToggleBtn');
+  if (btn) btn.textContent = showAlumni
+    ? `👤 Active (${active.length})`
+    : `🎓 Alumni (${alumni.length})`;
 
   if (searchTerm) {
     const t = searchTerm.toLowerCase();
-    data = profiles.filter(p =>
+    pool = pool.filter(p =>
       (p.firstName + ' ' + p.surname).toLowerCase().includes(t) ||
       (p.studentId || '').toLowerCase().includes(t)
     );
   }
 
-  data = [...data].sort((a, b) => {
+  pool = [...pool].sort((a, b) => {
     const sa = (a.surname + a.firstName).toLowerCase();
     const sb = (b.surname + b.firstName).toLowerCase();
     return sa < sb ? -1 : sa > sb ? 1 : 0;
@@ -479,23 +494,40 @@ function renderList() {
 
   const tbody = document.getElementById('profileTbody');
 
-  if (!data.length) {
+  if (!pool.length) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
-      <span class="empty-icon">👤</span>
+      <span class="empty-icon">${showAlumni ? '🎓' : '👤'}</span>
       ${searchTerm
         ? 'No profiles match your search.'
-        : 'No profiles yet. Click <strong>+ Add Profile</strong> or use <strong>📂 Import Registrar</strong> to get started.'}
+        : showAlumni
+          ? 'No alumni yet. Alumni are students who have been vacated and archived.'
+          : 'No profiles yet. Click <strong>+ Add Profile</strong> or use <strong>📂 Import Registrar</strong> to get started.'}
     </div></td></tr>`;
     updateStats();
     return;
   }
 
-  tbody.innerHTML = data.map(p => {
+  tbody.innerHTML = pool.map(p => {
     const pct = calcCompleteness(p);
     const name = [p.firstName, p.surname].filter(Boolean).join(' ') || '—';
-    const room = p.room || getRoomFromReservations(p, rooms) || '—';
     const completeCls = pct >= 90 ? 'badge-green' : pct >= 50 ? 'badge-yellow' : 'badge-red';
     const sourceLbl = { registrar: 'Registrar', msforms: 'MS Forms', manual: 'Manual' }[p.source] || p.source || 'Manual';
+    if (showAlumni) {
+      return `<tr style="opacity:.85">
+        <td><strong>${esc(name)}</strong></td>
+        <td>${esc(p.studentId || '—')}</td>
+        <td><span style="font-size:.7rem;background:#f3e5f5;color:#6a1b9a;border-radius:8px;padding:1px 6px">🎓 ${esc(p.archivedSemester || '—')}</span></td>
+        <td>${esc(p.department || '—')}</td>
+        <td>${esc(p.academicYear || '—')}</td>
+        <td><span class="badge ${completeCls}">${pct}%</span></td>
+        <td><span class="badge badge-blue">${esc(sourceLbl)}</span></td>
+        <td>
+          <button class="btn btn-gray" style="padding:4px 9px;font-size:.75rem" onclick="openEditModal(${p.id})">✏️ Edit</button>
+          <button class="btn btn-primary" style="padding:4px 9px;font-size:.75rem;margin-left:4px" onclick="printCard(${p.id})" title="Print profile card">🖨️</button>
+        </td>
+      </tr>`;
+    }
+    const room = p.room || getRoomFromReservations(p, rooms) || '—';
     return `<tr>
       <td><strong>${esc(name)}</strong>${p.keyReceived ? ' <span title="Key received" style="font-size:.85em">🔑</span>' : ''}${p.enrollmentSemester ? ` <span style="display:inline-block;font-size:.65rem;background:#e8f4fd;color:#1565c0;border-radius:8px;padding:1px 6px;font-weight:700;margin-top:2px">📅 ${esc(p.enrollmentSemester)}</span>` : ''}</td>
       <td>${esc(p.studentId || '—')}</td>
@@ -529,15 +561,18 @@ function getRoomFromReservations(profile, rooms) {
 }
 
 function updateStats() {
-  const total = profiles.length;
-  const complete = profiles.filter(p => calcCompleteness(p) >= 90).length;
-  const stubs = profiles.filter(p => calcCompleteness(p) < 50).length;
-  const partial = total - complete - stubs;
+  const active   = profiles.filter(p => !p.archived);
+  const total    = active.length;
+  const complete = active.filter(p => calcCompleteness(p) >= 90).length;
+  const stubs    = active.filter(p => calcCompleteness(p) < 50).length;
+  const partial  = total - complete - stubs;
+  const alumniCt = profiles.filter(p => p.archived).length;
   document.getElementById('statsBar').innerHTML =
-    `<span><strong>${total}</strong> profiles</span>` +
+    `<span><strong>${total}</strong> active profiles</span>` +
     `<span><strong>${complete}</strong> complete (≥90%)</span>` +
     (partial > 0 ? `<span><strong>${partial}</strong> partial</span>` : '') +
-    (stubs > 0 ? `<span><strong>${stubs}</strong> stubs (needs data)</span>` : '');
+    (stubs > 0 ? `<span><strong>${stubs}</strong> stubs (needs data)</span>` : '') +
+    (alumniCt > 0 ? `<span style="color:#7b1fa2"><strong>${alumniCt}</strong> alumni</span>` : '');
 }
 
 function calcCompleteness(p) {
@@ -973,6 +1008,7 @@ function emptyProfile() {
     emergencyName:'',emergencyPhone:'',emergencyRelation:'',emergencyAddress:'',
     keysDepositAmount:0,keysDepositDate:'',receivedBy:'',keyReceived:false,remarks:'',
     enrollmentSemester:'',
+    archived:false,archivedAt:'',archivedSemester:'',
   };
 }
 

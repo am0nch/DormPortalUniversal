@@ -61,6 +61,7 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
 
 <div class="tabs no-print">
   <button class="tab-btn active" data-tab="archive" onclick="switchTab('archive')">📜 Archive</button>
+  <button class="tab-btn" data-tab="away" onclick="switchTab('away')">👤 Away Students</button>
   <button class="tab-btn" data-tab="room" onclick="switchTab('room')">📋 Room Report</button>
   <button class="tab-btn" data-tab="custom" onclick="switchTab('custom')">📄 Custom Report</button>
   <button class="tab-btn" data-tab="pivot" onclick="switchTab('pivot')">📊 Pivot</button>
@@ -76,8 +77,8 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
 <!-- ── ARCHIVE TAB ── -->
 <div id="tab-archive" class="tab-panel active">
   <div class="tab-toolbar">
-    <input type="text" id="archSearch" placeholder="Search name, room, or ID…" style="width:220px" oninput="renderArchive()">
-    <select id="archFilterType" onchange="renderArchive()" style="width:190px">
+    <input type="text" id="archSearch" placeholder="Search name, room, or ID…" style="width:200px" oninput="renderArchive()">
+    <select id="archFilterType" onchange="renderArchive()" style="width:180px">
       <option value="">All move-out types</option>
       <option value="Graduating">🎓 Graduating</option>
       <option value="Going Home">🏠 Going Home</option>
@@ -85,10 +86,22 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
       <option value="Internship">💼 Internship</option>
       <option value="storage">📦 Outstanding storage</option>
     </select>
+    <select id="archFilterSemester" onchange="renderArchive()" style="width:180px">
+      <option value="">All semesters</option>
+    </select>
     <button class="btn btn-orange" onclick="printArchive()">🖨️ Print</button>
     <span id="archCount" class="stat-lbl" style="margin:0"></span>
   </div>
   <div style="overflow-x:auto;max-height:70vh"><div id="archBody"></div></div>
+</div>
+
+<!-- ── AWAY STUDENTS TAB ── -->
+<div id="tab-away" class="tab-panel">
+  <div class="tab-toolbar">
+    <button class="btn btn-orange" onclick="printAway()">🖨️ Print</button>
+    <span id="awayCount" class="stat-lbl" style="margin:0"></span>
+  </div>
+  <div style="overflow-x:auto;max-height:70vh"><div id="awayBody"></div></div>
 </div>
 
 <!-- ── ROOM REPORT TAB ── -->
@@ -326,7 +339,8 @@ function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
-  if (name === 'archive') renderArchive();
+  if (name === 'archive') { _seedSemesterFilter(); renderArchive(); }
+  if (name === 'away')    renderAway();
   if (name === 'room')    renderRoomReport();
   if (name === 'pivot')   renderPivot();
   if (name === 'holds')     renderHolds();
@@ -352,9 +366,9 @@ function storageSubRow(h) {
   const dayStr = days > 0 ? `${days} day${days !== 1 ? 's' : ''} since leave date` : 'Left today';
   if (h.storageResolved) {
     const rd = h.storageResolvedAt ? ` on ${new Date(h.storageResolvedAt).toLocaleDateString()}` : '';
-    return `<tr style="background:#f0fff4"><td colspan="10" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#27ae60">📦 ✅ Storage retrieved${rd} &nbsp;·&nbsp; ${escapeHtml(boxStr)}</td></tr>`;
+    return `<tr style="background:#f0fff4"><td colspan="11" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#27ae60">📦 ✅ Storage retrieved${rd} &nbsp;·&nbsp; ${escapeHtml(boxStr)}</td></tr>`;
   }
-  return `<tr style="background:#fff8e1"><td colspan="10" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#856404">📦 <strong>${h.storageQty || 1} box${(h.storageQty || 1) !== 1 ? 'es' : ''} outstanding</strong> &nbsp;·&nbsp; ${escapeHtml(boxStr)} &nbsp;·&nbsp; ⏱ ${escapeHtml(dayStr)} &nbsp;<button onclick="resolveStorage('${h.archivedAt}')" style="padding:1px 8px;font-size:.72rem;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer">✓ Mark Retrieved</button></td></tr>`;
+  return `<tr style="background:#fff8e1"><td colspan="11" style="padding:3px 12px 5px 24px;font-size:.74rem;color:#856404">📦 <strong>${h.storageQty || 1} box${(h.storageQty || 1) !== 1 ? 'es' : ''} outstanding</strong> &nbsp;·&nbsp; ${escapeHtml(boxStr)} &nbsp;·&nbsp; ⏱ ${escapeHtml(dayStr)} &nbsp;<button onclick="resolveStorage('${h.archivedAt}')" style="padding:1px 8px;font-size:.72rem;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer">✓ Mark Retrieved</button></td></tr>`;
 }
 
 function resolveStorage(archivedAt) {
@@ -368,25 +382,55 @@ function resolveStorage(archivedAt) {
   renderArchive();
 }
 
+let _archSortCol = 'archivedAt', _archSortDir = -1;
+function _archSort(col) {
+  if (_archSortCol === col) _archSortDir *= -1;
+  else { _archSortCol = col; _archSortDir = -1; }
+  renderArchive();
+}
+function _seedSemesterFilter() {
+  const sel = document.getElementById('archFilterSemester');
+  if (!sel) return;
+  const history = DormDB.getHistory();
+  const regSems = DormDB.getSemesterCfg().list.map(s => s.label);
+  const dataSems = [...new Set(history.map(h => h.semesterLabel).filter(Boolean))];
+  const all = [...new Set([...regSems, ...dataSems])].sort();
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All semesters</option>' +
+    all.map(s => `<option value="${escapeHtml(s)}"${s === cur ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+}
 function renderArchive() {
   const history = DormDB.getHistory();
   const term = (document.getElementById('archSearch').value || '').toLowerCase();
   const typeFilter = document.getElementById('archFilterType').value;
+  const semFilter  = (document.getElementById('archFilterSemester')?.value) || '';
   const typeIcon = { regular: '🎓', new: '🆕', visitor: '👤', guest: '🏨' };
-  const entries = history.filter(h => {
+  let entries = history.filter(h => {
     const reason = (h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '')).toLowerCase();
     const matchSearch = !term || (h.name || '').toLowerCase().includes(term) || (h.room || '').toLowerCase().includes(term) || (h.studentId || '').toLowerCase().includes(term);
     const matchType = !typeFilter || (typeFilter === 'storage' ? (h.storageRental && !h.storageResolved) : reason.toLowerCase().includes(typeFilter.toLowerCase()));
-    return matchSearch && matchType;
+    const matchSem = !semFilter || (h.semesterLabel || '') === semFilter;
+    return matchSearch && matchType && matchSem;
+  });
+  // Sort
+  entries = [...entries].sort((a, b) => {
+    let av = a[_archSortCol] || '', bv = b[_archSortCol] || '';
+    return (av < bv ? -1 : av > bv ? 1 : 0) * _archSortDir;
   });
   document.getElementById('archCount').textContent = `${entries.length} record${entries.length !== 1 ? 's' : ''}`;
   if (!entries.length) {
     document.getElementById('archBody').innerHTML = '<p style="color:#888;font-size:.85rem;padding:8px 0">No archived records match your search.</p>';
     return;
   }
-  let html = `<table class="h-tbl" style="min-width:780px"><thead><tr>
-    <th>Room</th><th>Name</th><th>ID</th><th>Type</th><th>Move-Out</th>
-    <th>Leave Date</th><th>To Dorm</th><th>Fees (฿)</th><th>Form</th><th>Archived</th>
+  const th = (col, label) => {
+    const active = _archSortCol === col;
+    const arrow = active ? (_archSortDir === 1 ? ' ▲' : ' ▼') : '';
+    return `<th style="cursor:pointer;user-select:none${active ? ';color:#1565c0' : ''}" onclick="_archSort('${col}')">${label}${arrow}</th>`;
+  };
+  let html = `<table class="h-tbl" style="min-width:900px"><thead><tr>
+    ${th('room','Room')}${th('name','Name')}<th>ID</th><th>Type</th>${th('moveOutReason','Move-Out')}
+    ${th('leaveDate','Leave Date')}<th>To Dorm</th><th>Fees (฿)</th><th>Form</th>
+    ${th('semesterLabel','Semester')}${th('archivedAt','Archived')}
   </tr></thead><tbody>`;
   for (const h of entries) {
     const reason = h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '');
@@ -401,6 +445,7 @@ function renderArchive() {
       <td style='font-size:.75rem'>${escapeHtml(h.toDorm || '—')}</td>
       <td>${h.totalFees ? Number(h.totalFees).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '—'}</td>
       <td style='text-align:center'>${h.formCompleted ? '✅' : '⏳'}</td>
+      <td style='font-size:.72rem'>${escapeHtml(h.semesterLabel || '—')}</td>
       <td style='font-size:.72rem'>${new Date(h.archivedAt).toLocaleDateString()}</td>
     </tr>${storageSubRow(h)}`;
   }
@@ -412,20 +457,101 @@ function printArchive() {
   const history = DormDB.getHistory();
   const term = (document.getElementById('archSearch').value || '').toLowerCase();
   const typeFilter = document.getElementById('archFilterType').value;
-  const entries = history.filter(h => {
+  const semFilter  = (document.getElementById('archFilterSemester')?.value) || '';
+  let entries = history.filter(h => {
     const reason = (h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '')).toLowerCase();
     const matchSearch = !term || (h.name || '').toLowerCase().includes(term) || (h.room || '').toLowerCase().includes(term);
     const matchType = !typeFilter || (typeFilter === 'storage' ? (h.storageRental && !h.storageResolved) : reason.toLowerCase().includes(typeFilter.toLowerCase()));
-    return matchSearch && matchType;
+    const matchSem = !semFilter || (h.semesterLabel || '') === semFilter;
+    return matchSearch && matchType && matchSem;
+  });
+  entries = [...entries].sort((a, b) => {
+    let av = a[_archSortCol] || '', bv = b[_archSortCol] || '';
+    return (av < bv ? -1 : av > bv ? 1 : 0) * _archSortDir;
   });
   const dormName = DormDB.getDormName();
   const rows = entries.map(h => {
     const reason = h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '');
     const storageNote = h.storageRental ? (h.storageResolved ? 'Retrieved' : '⚠ Outstanding') : '—';
-    return `<tr><td>${escapeHtml(h.room)}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.studentId || '')}</td><td>${escapeHtml(reason || '—')}</td><td>${escapeHtml(h.leaveDate || '—')}</td><td>${escapeHtml(h.toDorm || '—')}</td><td>${h.totalFees ? Number(h.totalFees).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '—'}</td><td>${h.formCompleted ? 'Yes' : 'No'}</td><td>${escapeHtml(storageNote)}</td><td>${new Date(h.archivedAt).toLocaleDateString()}</td></tr>`;
+    return `<tr><td>${escapeHtml(h.room)}</td><td>${escapeHtml(h.name)}</td><td>${escapeHtml(h.studentId || '')}</td><td>${escapeHtml(reason || '—')}</td><td>${escapeHtml(h.leaveDate || '—')}</td><td>${escapeHtml(h.toDorm || '—')}</td><td>${h.totalFees ? Number(h.totalFees).toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '—'}</td><td>${h.formCompleted ? 'Yes' : 'No'}</td><td>${escapeHtml(storageNote)}</td><td>${escapeHtml(h.semesterLabel || '—')}</td><td>${new Date(h.archivedAt).toLocaleDateString()}</td></tr>`;
   }).join('');
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Archive — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:20px}h1{font-size:1.2rem;border-bottom:2px solid #1e3a5f;padding-bottom:5px}table{border-collapse:collapse;width:100%;font-size:.8rem}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}td{border:1px solid #aaa;padding:5px 7px}tr:nth-child(even)td{background:#f5f5f5}@media print{body{margin:5px}}</style></head><body><h1>${escapeHtml(dormName)} — Room Archive History</h1><p style='font-size:.8rem'>${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Records: ${entries.length}</p><table><thead><tr><th>Room</th><th>Name</th><th>Student ID</th><th>Move-Out</th><th>Leave Date</th><th>To Dorm</th><th>Total Fees</th><th>Clearance</th><th>Storage</th><th>Archived</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><title>Archive — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:20px}h1{font-size:1.2rem;border-bottom:2px solid #1e3a5f;padding-bottom:5px}table{border-collapse:collapse;width:100%;font-size:.8rem}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}td{border:1px solid #aaa;padding:5px 7px}tr:nth-child(even)td{background:#f5f5f5}@media print{body{margin:5px}@page{size:A4 landscape;margin:12mm}}</style></head><body><h1>${escapeHtml(dormName)} — Room Archive History</h1><p style='font-size:.8rem'>${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Records: ${entries.length}${semFilter ? ' | Semester: ' + escapeHtml(semFilter) : ''}</p><table><thead><tr><th>Room</th><th>Name</th><th>Student ID</th><th>Move-Out</th><th>Leave Date</th><th>To Dorm</th><th>Total Fees</th><th>Clearance</th><th>Storage</th><th>Semester</th><th>Archived</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+
+// ── AWAY STUDENTS ──────────────────────────────────────────────────────────
+let _awaySortCol = 'room', _awaySortDir = 1;
+function _awaySort(col) {
+  if (_awaySortCol === col) _awaySortDir *= -1;
+  else { _awaySortCol = col; _awaySortDir = 1; }
+  renderAway();
+}
+function renderAway() {
+  const away = DormDB.getAway();
+  document.getElementById('awayCount').textContent = `${away.length} student${away.length !== 1 ? 's' : ''} away`;
+  if (!away.length) {
+    document.getElementById('awayBody').innerHTML = '<p style="color:#888;font-size:.85rem;padding:8px 0">No students currently marked as away.</p>';
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  let entries = away.map(s => {
+    const returnD = s.awayReturnDate ? new Date(s.awayReturnDate) : null;
+    const daysLeft = returnD ? Math.ceil((returnD - today) / 86400000) : null;
+    return { ...s, _returnD: returnD, _daysLeft: daysLeft };
+  });
+  entries = [...entries].sort((a, b) => {
+    let av = a[_awaySortCol] || '', bv = b[_awaySortCol] || '';
+    if (_awaySortCol === 'awayReturnDate') { av = a._returnD || 0; bv = b._returnD || 0; }
+    return (av < bv ? -1 : av > bv ? 1 : 0) * _awaySortDir;
+  });
+  const ath = (col, label) => {
+    const active = _awaySortCol === col;
+    const arrow = active ? (_awaySortDir === 1 ? ' ▲' : ' ▼') : '';
+    return `<th style="cursor:pointer;user-select:none${active ? ';color:#1565c0' : ''}" onclick="_awaySort('${col}')">${label}${arrow}</th>`;
+  };
+  let html = `<table class="h-tbl"><thead><tr>
+    ${ath('room','Room')}${ath('name','Name')}<th>ID</th><th>Type</th>
+    ${ath('semester','Semester')}${ath('awayReturnDate','Expected Return')}<th>Days Left</th><th>Away Since</th>
+  </tr></thead><tbody>`;
+  for (const s of entries) {
+    const daysLeft = s._daysLeft;
+    const daysStyle = daysLeft === null ? '' : daysLeft < 0 ? 'color:#c62828;font-weight:700' : daysLeft <= 3 ? 'color:#e65100;font-weight:700' : 'color:#2e7d32';
+    const daysStr = daysLeft === null ? '—' : daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Today' : `${daysLeft}d`;
+    html += `<tr>
+      <td><strong>${escapeHtml(s.originalRoom || s.room)}</strong></td>
+      <td>${escapeHtml(s.name)}</td>
+      <td style="font-size:.75rem">${escapeHtml(s.studentId || '—')}</td>
+      <td>${escapeHtml(s.studentType || 'regular')}</td>
+      <td style="font-size:.75rem">${escapeHtml(s.semester || '—')}</td>
+      <td>${escapeHtml(s.awayReturnDate || '—')}</td>
+      <td style="${daysStyle}">${daysStr}</td>
+      <td style="font-size:.72rem">${s.awayAddedAt ? new Date(s.awayAddedAt).toLocaleDateString() : '—'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('awayBody').innerHTML = html;
+}
+function printAway() {
+  const away = DormDB.getAway();
+  if (!away.length) return alert('No away students to print.');
+  const today = new Date(); today.setHours(0,0,0,0);
+  let entries = away.map(s => {
+    const returnD = s.awayReturnDate ? new Date(s.awayReturnDate) : null;
+    return { ...s, _returnD: returnD, _daysLeft: returnD ? Math.ceil((returnD - today) / 86400000) : null };
+  }).sort((a,b) => {
+    let av = a[_awaySortCol] || '', bv = b[_awaySortCol] || '';
+    if (_awaySortCol === 'awayReturnDate') { av = a._returnD || 0; bv = b._returnD || 0; }
+    return (av < bv ? -1 : av > bv ? 1 : 0) * _awaySortDir;
+  });
+  const dormName = DormDB.getDormName();
+  const rows = entries.map(s => {
+    const daysLeft = s._daysLeft;
+    const daysStr = daysLeft === null ? '—' : daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : daysLeft === 0 ? 'Today' : `${daysLeft}d`;
+    return `<tr><td>${escapeHtml(s.originalRoom||s.room)}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.studentId||'')}</td><td>${escapeHtml(s.studentType||'regular')}</td><td>${escapeHtml(s.semester||'—')}</td><td>${escapeHtml(s.awayReturnDate||'—')}</td><td>${daysStr}</td><td>${s.awayAddedAt?new Date(s.awayAddedAt).toLocaleDateString():'—'}</td></tr>`;
+  }).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Away Students — ${escapeHtml(dormName)}</title><style>body{font-family:sans-serif;margin:20px}h1{font-size:1.2rem;border-bottom:2px solid #1e3a5f;padding-bottom:5px}table{border-collapse:collapse;width:100%;font-size:.82rem}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}td{border:1px solid #aaa;padding:5px 7px}tr:nth-child(even)td{background:#f5f5f5}@media print{body{margin:5px}@page{size:A4 portrait;margin:12mm}}</style></head><body><h1>${escapeHtml(dormName)} — Away Students</h1><p style='font-size:.8rem'>Printed: ${new Date().toLocaleString()} | By: ${escapeHtml(DormDB.getCurrentUser())} | Total: ${entries.length}</p><table><thead><tr><th>Room</th><th>Name</th><th>Student ID</th><th>Type</th><th>Semester</th><th>Expected Return</th><th>Days Left</th><th>Away Since</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
   win.document.close();
 }
 
@@ -1401,9 +1527,9 @@ function printBeddingReport() {
 
 // ── Live reload on data changes ────────────────────────────────────────────
 const _isActive = id => document.getElementById(id).classList.contains('active');
-DormDB.on('dormData',    () => { renderArchive(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-holds')) renderHolds(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-room')) renderRoomReport(); if(_isActive('tab-clearance')){ renderClearance(); populateClearanceRooms(); } if(_isActive('tab-fees')) renderFees(); });
-DormDB.on('dormHistory', () => { renderArchive(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); });
-DormDB.on('dormAway',    () => { if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-fees')) renderFees(); });
+DormDB.on('dormData',    () => { if(_isActive('tab-archive')) renderArchive(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-holds')) renderHolds(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-room')) renderRoomReport(); if(_isActive('tab-clearance')){ renderClearance(); populateClearanceRooms(); } if(_isActive('tab-fees')) renderFees(); });
+DormDB.on('dormHistory', () => { _seedSemesterFilter(); if(_isActive('tab-archive')) renderArchive(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); });
+DormDB.on('dormAway',    () => { if(_isActive('tab-away')) renderAway(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-fees')) renderFees(); });
 DormDB.on('dormKeysInv',    () => { if(_isActive('tab-fees'))       renderFees(); });
 DormDB.on('dormAttendance',    () => { if(_isActive('tab-attendance')) renderAttendanceReport(); });
 DormDB.on('dormIncidents',     () => { if(_isActive('tab-incidents'))  renderIncidentsReport(); });
@@ -1413,6 +1539,7 @@ DormDB.on('dormBeddingCount',  () => { if(_isActive('tab-bedding'))    renderBed
 DormDB.on('dormBeddingCfg',    () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
 
 // Initial render
+_seedSemesterFilter();
 renderArchive();
 </script>
 <script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>

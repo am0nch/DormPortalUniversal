@@ -447,6 +447,11 @@ function openSemesterModal() {
   sel.innerHTML = cfg.list.map(s =>
     `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
   ).join('');
+  const rsel = document.getElementById('rolloverTarget');
+  rsel.innerHTML = '<option value="">— Select target semester —</option>' +
+    cfg.list.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
+  document.getElementById('rolloverMsg').textContent = '';
+  document.getElementById('rolloverBtn').disabled = true;
   _renderSemesterTable(cfg);
   document.getElementById('smAddLabel').value = '';
   document.getElementById('smAddType').value = 'Academic';
@@ -521,6 +526,40 @@ function _renderSemesterTable(cfg) {
 
 refreshSemesterHeader();
 DormDB.on(DormDB.KEYS.SEMESTER_CFG, refreshSemesterHeader);
+
+function updateRolloverPreview() {
+  const rooms = DormDB.getRooms();
+  const named = rooms.filter(s => s.name && s.name.trim());
+  const pending = named.filter(s => s.graduating && s.moveOutReason);
+  const continuing = named.filter(s => !s.graduating || !s.moveOutReason);
+  const sel = document.getElementById('rolloverTarget').value;
+  const msgEl = document.getElementById('rolloverMsg');
+  const btn = document.getElementById('rolloverBtn');
+  if (!sel) { msgEl.textContent = ''; btn.disabled = true; return; }
+  if (pending.length) {
+    msgEl.innerHTML = `<span style="color:#c62828">⚠ ${pending.length} student${pending.length!==1?'s':''} still marked for checkout. Complete their clearance before rolling over.</span><br><span style="color:#555">${continuing.length} student${continuing.length!==1?'s':''} will be rolled over to <strong>${escapeHtml(sel)}</strong>.</span>`;
+    btn.disabled = true;
+  } else {
+    msgEl.innerHTML = `<span style="color:#2e7d32">✓ ${continuing.length} student${continuing.length!==1?'s':''} will be rolled over to <strong>${escapeHtml(sel)}</strong>. No pending clearances.</span>`;
+    btn.disabled = false;
+  }
+}
+
+function startSemesterRollover() {
+  const sel = document.getElementById('rolloverTarget').value;
+  if (!sel) return;
+  if (!confirm(`Roll over all continuing students to "${sel}"?\n\nThis will:\n• Update semester to "${sel}"\n• Reset summer/1st-sem flags, room holds, and key-return status\n• Preserve room, name, student type, solo, and storage\n\nThis cannot be undone.`)) return;
+  const { rolled, skipped } = DormDB.rolloverToSemester(sel);
+  // Also update the shared current semester
+  const cfg = DormDB.getSemesterCfg();
+  cfg.current = sel;
+  DormDB.saveSemesterCfg(cfg);
+  refreshSemesterHeader();
+  closeSemesterModal();
+  alert(`✅ Semester rollover complete.\n\n${rolled} student${rolled!==1?'s':''} rolled over to "${sel}".\n${skipped>0?skipped+' student'+(skipped!==1?'s':'')+' with pending clearance were skipped.':'No students skipped.'}`);
+}
+
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
 
 <!-- Semester Management Modal -->
@@ -584,6 +623,18 @@ DormDB.on(DormDB.KEYS.SEMESTER_CFG, refreshSemesterHeader);
           </div>
           <button onclick="addSemesterToList()" style="padding:5px 14px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap">+ Add</button>
         </div>
+      </div>
+      <!-- Semester Rollover -->
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:14px;margin-top:16px">
+        <label style="font-size:.8rem;font-weight:700;color:#e65100;display:block;margin-bottom:8px">🔄 Start New Semester Rollover</label>
+        <p style="font-size:.75rem;color:#555;margin:0 0 10px">Resets summer/break flags and room holds for all continuing students. Students with pending clearance must be archived first.</p>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <select id="rolloverTarget" style="font-size:.82rem;padding:4px 8px;border:1px solid #ccc;border-radius:6px;flex:1;min-width:180px" onchange="updateRolloverPreview()">
+            <option value="">— Select target semester —</option>
+          </select>
+          <button id="rolloverBtn" onclick="startSemesterRollover()" disabled style="padding:5px 14px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;opacity:.6">🔄 Start Rollover</button>
+        </div>
+        <div id="rolloverMsg" style="font-size:.75rem;margin-top:6px;min-height:1.5em"></div>
       </div>
     </div>
   </div>
