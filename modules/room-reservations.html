@@ -33,18 +33,56 @@ w[f]=1}i[b]=f;}}for(g=l.s.r+n;g<=l.e.r;++g){if((T[g]||{}).hidden)continue;var A=
 <script src="../dorm-db.js"></script>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
-body{background:#f0f4f8;margin:0;padding:20px}
-.container{max-width:100%;margin:0 auto;background:#fff;border-radius:16px;padding:20px}
-h1{color:#1e3a5f;margin-top:0}
-.status-bar,.role-area,.filter-area,.upload-area,.stats,.footer-buttons{margin-bottom:14px;background:#e9ecef;padding:10px 15px;border-radius:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-.btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
+body{background:#e8ecf2;margin:0;padding:16px}
+.container{max-width:1600px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)}
+/* ── Page Header (navy bar) ── */
+.page-header{display:flex;align-items:center;justify-content:space-between;background:#1e3a5f;color:#fff;padding:10px 18px;flex-wrap:wrap;gap:8px}
+.ph-left{display:flex;align-items:center}
+.ph-back{color:#7eb8f7;text-decoration:none;font-size:.82rem;font-weight:700}
+.ph-back:hover{color:#fff}
+.ph-sep{color:#4a6a8a;margin:0 10px;font-size:.9rem}
+.ph-title{font-size:.95rem;font-weight:700}
+.ph-right{display:flex;align-items:center;gap:10px;font-size:.74rem;color:#aac4de;flex-wrap:wrap}
+.ph-unsaved{background:#ffc107;color:#333;padding:2px 8px;border-radius:10px;font-weight:700;font-size:.7rem}
+.ph-autosave{font-size:.71rem}
+.ph-meta{font-size:.69rem;color:#7d9ab5}
+/* ── Toolbar ── */
+.toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;padding:8px 14px;border-bottom:1px solid #e8ecf2}
+.tb-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tb-divider{width:1px;height:22px;background:#dde3eb;margin:0 4px;flex-shrink:0}
+.tb-select{font-size:.76rem;padding:3px 6px;border:1px solid #ccc;border-radius:6px;height:26px}
+.sem-badge{padding:3px 11px;background:#e8f4fd;color:#1565c0;border-radius:12px;font-size:.73rem;font-weight:700;white-space:nowrap}
+/* ── Filter Bar ── */
+.filter-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;background:#f8f9fc;padding:7px 14px;border-bottom:1px solid #e8ecf2}
+.fb-left,.fb-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fb-search-wrap{display:flex;align-items:center;gap:4px}
+.fb-count{font-size:.76rem;color:#555;padding:0 4px;white-space:nowrap}
+/* ── Stats Widget ── */
+.stats-widget{background:#fff;border-bottom:1px solid #e8ecf2}
+.sw-highlights{display:flex;align-items:center;gap:8px;padding:9px 14px;flex-wrap:wrap}
+.sw-card{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 13px;border-radius:10px;min-width:70px;text-align:center;font-size:.66rem;line-height:1.3;border:1px solid transparent}
+.sw-card strong{font-size:1.05rem;font-weight:800;display:block;line-height:1.1}
+.sw-card span{font-size:.62rem;opacity:.8}
+.sw-card--blue{background:#e8f4fd;color:#1565c0;border-color:#b3d9f5}
+.sw-card--green{background:#e8f7ee;color:#2c7a4d;border-color:#a8d9bb}
+.sw-card--amber{background:#fff8e1;color:#b26a00;border-color:#ffe082}
+.sw-card--red{background:#fce4ec;color:#c62828;border-color:#f48fb1}
+.sw-card--orange{background:#fff3e0;color:#e65100;border-color:#ffcc80}
+.sw-card--purple{background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8}
+.sw-toggle{margin-left:auto;font-size:.70rem;background:none;border:1px solid #dde3eb;border-radius:8px;padding:4px 10px;cursor:pointer;color:#555;white-space:nowrap}
+.sw-toggle:hover{background:#f0f4f8}
+.sw-expand{padding:8px 14px 10px;border-top:1px solid #eee;display:flex;flex-wrap:wrap;gap:6px}
+.stat-card{background:#f9fafb;border:1px solid #e0e6ee;border-radius:12px;padding:3px 10px;font-size:.74rem;white-space:nowrap;color:#333}
+/* ── Table ── */
+.table-container{overflow-x:auto;max-height:calc(100vh - 260px)}
+.conflict-warning{background:#f8d7da;color:#721c24;padding:8px 14px;display:none;font-size:.82rem}
+table{width:100%;border-collapse:collapse;font-size:.78rem;min-width:1550px}
+/* ── Footer ── */
+.footer-minimal{display:flex;align-items:center;gap:12px;padding:8px 14px;border-top:1px solid #eee}
+/* ── Buttons ── */
+.btn{background:#1e3a5f;color:#fff;border:none;padding:5px 11px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.78rem}
 .btn:hover{opacity:.88}
 .btn-green{background:#2c7a4d}.btn-blue{background:#2980b9}.btn-purple{background:#6f42c1}.btn-orange{background:#e67e22}.btn-red{background:#c0392b}.btn-teal{background:#16a085}
-.stats{background:#d9e6f5}
-.stat-card{background:#fff;padding:4px 10px;border-radius:20px;font-size:.78rem;white-space:nowrap}
-.conflict-warning{background:#f8d7da;color:#721c24;padding:8px 12px;border-radius:8px;display:none;margin-bottom:8px;font-size:.85rem}
-#unsavedBanner{display:none;background:#fff3cd;color:#856404;padding:6px 14px;border-radius:8px;margin-bottom:8px;font-size:.82rem}
-table{width:100%;border-collapse:collapse;font-size:.78rem;min-width:1550px}
 th,td{border:1px solid #ccc;padding:5px 4px;vertical-align:top}
 th{background:#1e3a5f;color:#fff;position:sticky;top:0;z-index:10;padding:7px 5px}
 .checkbox-cell{text-align:center;width:42px;vertical-align:middle}
@@ -102,92 +140,116 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
 </head>
 <body>
 <div class="container">
-<div id="unsavedBanner">⚠️ Unsaved changes — use 💾 Save Excel to export, or data is auto-saved to browser storage.</div>
-<div style="margin-bottom:10px"><a id="backLink" href="../index.html" style="color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px">← Menu</a></div>
+<!-- Page Header -->
+<div class="page-header">
+  <div class="ph-left">
+    <a id="backLink" href="../index.html" class="ph-back">← Menu</a>
+    <span class="ph-sep">|</span>
+    <span class="ph-title">🛏️ Room Reservations — <span id="dormNameSpan">Elijah Hall</span></span>
+  </div>
+  <div class="ph-right">
+    <span id="autoSaveIndicator" class="ph-autosave"></span>
+    <span id="unsavedBanner" class="ph-unsaved" style="display:none">⚠️ Unsaved</span>
+    <span class="ph-meta">Saved: <span id="lastUpdateTime">—</span> · <span id="lastUpdateUser">—</span></span>
+  </div>
+</div>
 <script>(function(){const from=new URLSearchParams(location.search).get('back');if(from){const labels={'reports':'← Reports','floor-plan':'← Floor Plan'};const l=document.getElementById('backLink');if(l&&labels[from]){l.href=from+'.html';l.textContent=labels[from];}}})()</script>
-<h1>🛏️ Room Reservations — <span id="dormNameSpan">Elijah Hall</span></h1>
-<div class="status-bar">
-  <span>📁 Last saved: <span id="lastUpdateTime">—</span></span>
-  <span>👤 Last updated by: <span id="lastUpdateUser">—</span></span>
-  <span id="autoSaveIndicator" style="font-size:.78rem;color:#2c7a4d"></span>
-</div>
-<div class="role-area">
-  <label>🏢 Dormitory:</label>
-  <select id="dormSelect" onchange="updateDormName()">
-    <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
-    <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
-    <option value="Other">Other (custom)</option>
-  </select>
-  <input type="text" id="customDormName" placeholder="Custom name" style="display:none;width:130px" oninput="updateDormName()">
-  <label>👥 Max/room:</label>
-  <select id="maxOccupantsSelect" onchange="setMaxOccupants()">
-    <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option>
-  </select>
-  <button class="btn btn-purple" onclick="openGeneratorModal()">🏗️ Generate Dorm Setup</button>
-  <span style="padding:4px 12px;background:#e8f4fd;color:#1565c0;border-radius:6px;font-size:.78rem;font-weight:600">📅 <span id="rrSemLabel">—</span></span>
-</div>
-<div class="filter-area">
-  <div id="floorFilterDiv">
-    <label>👥 Floor:</label>
-    <select id="floorFilter">
-      <option value="all">All floors</option><option value="1,2">1st &amp; 2nd</option>
-      <option value="3">3rd</option><option value="4">4th</option>
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="tb-group">
+    <select id="dormSelect" onchange="updateDormName()" class="tb-select">
+      <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+      <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
+      <option value="Other">Other (custom)</option>
     </select>
-    <button class="btn" onclick="applyFloorFilter()">Apply</button>
-  </div>
-  <div id="semesterFilterDiv" style="display:flex;align-items:center;gap:4px">
-    <label>📅 Semester:</label>
-    <select id="semesterFilter">
-      <option value="all">All</option>
+    <input type="text" id="customDormName" placeholder="Custom name" class="tb-select" style="display:none;width:120px" oninput="updateDormName()">
+    <select id="maxOccupantsSelect" onchange="setMaxOccupants()" class="tb-select" style="width:50px">
+      <option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option>
     </select>
-    <button class="btn" onclick="applyFloorFilter()">Apply</button>
+    <span class="sem-badge">📅 <span id="rrSemLabel">—</span></span>
+    <button class="btn btn-purple" style="font-size:.74rem;padding:4px 10px" onclick="openGeneratorModal()">🏗️ Setup</button>
   </div>
-  <div style="display:flex;gap:6px;align-items:center">
-    <button class="btn" onclick="toggleSearch()">🔍 Search</button>
-    <div id="searchBox" style="display:none;gap:4px;align-items:center">
-      <input type="text" id="searchRoomInput" placeholder="Name or room…" style="width:175px" onkeydown="if(event.key==='Enter')doSearch()">
-      <button class="btn" onclick="doSearch()">Go</button>
-      <button class="btn" onclick="closeSearch()">✖</button>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <label class="btn" style="font-size:.74rem;padding:4px 10px;cursor:pointer">
+      📂 Load<input type="file" id="excelInput" accept=".xlsx,.xls,.csv" style="display:none">
+    </label>
+    <button class="btn btn-green" style="font-size:.74rem;padding:4px 10px" onclick="saveToExcel()">💾 Save</button>
+    <button class="btn" style="font-size:.74rem;padding:4px 10px" onclick="undo()">↩ Undo</button>
+    <button class="btn" style="font-size:.74rem;padding:4px 10px" onclick="redo()">↪ Redo</button>
+    <button id="colPickerBtn" class="btn btn-blue" style="font-size:.74rem;padding:4px 10px" onclick="toggleColPicker()">Cols ▾</button>
+    <div style="position:relative">
+      <button class="btn" style="font-size:.74rem;padding:4px 10px" onclick="toggleOverflow()">···</button>
+      <div id="overflowMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:300;background:#fff;border:1px solid #ccc;border-radius:8px;padding:6px;min-width:205px;box-shadow:0 4px 12px rgba(0,0,0,.15);flex-direction:column;gap:4px">
+        <button class="btn" style="font-size:.74rem;padding:4px 10px;width:100%;text-align:left" onclick="resetToEmbedded()">🔄 Reset to Elijah Hall</button>
+        <button class="btn" style="font-size:.74rem;padding:4px 10px;width:100%;text-align:left" onclick="exportEmptyTemplate()">📄 Empty Template</button>
+      </div>
     </div>
+    <span id="loadStatus" style="font-size:.74rem;color:#2c7a4d"></span>
   </div>
-  <span style="font-size:.82rem">Showing <span id="filteredCount">0</span>/<span id="totalCount">0</span> beds</span>
 </div>
-<div class="upload-area">
-  <input type="file" id="excelInput" accept=".xlsx,.xls,.csv">
-  <button class="btn" onclick="loadFromInput()">⟳ Load File</button>
-  <button class="btn" onclick="resetToEmbedded()">🔄 Reset to Elijah Hall</button>
-  <button class="btn" onclick="exportEmptyTemplate()">📄 Empty Template</button>
-  <button class="btn btn-green" onclick="saveToExcel()">💾 Save Excel</button>
-  <button class="btn" onclick="undo()">↩️ Undo</button>
-  <button class="btn" onclick="redo()">↪️ Redo</button>
-  <button id="colPickerBtn" class="btn btn-blue" onclick="toggleColPicker()">Columns ▾</button>
-  <span id="loadStatus" style="font-size:.8rem;color:#2c7a4d"></span>
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <div class="fb-left">
+    <div class="fb-search-wrap">
+      <input type="text" id="searchRoomInput" placeholder="🔍 Search name or room…" style="width:185px;font-size:.76rem;padding:3px 8px;border:1px solid #ccc;border-radius:6px;height:26px" onkeydown="if(event.key==='Enter')doSearch()" oninput="if(!this.value)closeSearch()">
+      <button class="btn" style="font-size:.74rem;padding:3px 9px" onclick="doSearch()">Go</button>
+    </div>
+    <div id="floorFilterDiv" style="display:flex;align-items:center;gap:4px">
+      <select id="floorFilter" class="tb-select" style="width:108px">
+        <option value="all">All floors</option><option value="1,2">1st &amp; 2nd</option>
+        <option value="3">3rd</option><option value="4">4th</option>
+      </select>
+    </div>
+    <div id="semesterFilterDiv" style="display:flex;align-items:center;gap:4px">
+      <select id="semesterFilter" class="tb-select" style="width:138px">
+        <option value="all">All semesters</option>
+      </select>
+    </div>
+    <button class="btn" style="font-size:.74rem;padding:3px 9px" onclick="applyFloorFilter()">Filter</button>
+    <span class="fb-count">📋 <span id="filteredCount">0</span>/<span id="totalCount">0</span> beds</span>
+    <!-- keep legacy searchBox id for any JS that checks it -->
+    <div id="searchBox" style="display:none"></div>
+  </div>
+  <div class="fb-right">
+    <button class="btn btn-teal" style="font-size:.74rem;padding:4px 10px" onclick="toggleQueuePanel()">📥 Queue <span id="queueBadge"></span></button>
+    <button class="btn btn-teal" style="font-size:.74rem;padding:4px 10px" onclick="toggleAwayPanel()">📤 Away <span id="awayBadge"></span></button>
+    <button class="btn btn-purple" style="font-size:.74rem;padding:4px 10px" onclick="window.location='floor-plan.html?back=room-reservations'">🏢 Floor Plan</button>
+    <button class="btn btn-purple" style="font-size:.74rem;padding:4px 10px" onclick="window.location='reports.html?back=room-reservations'">📊 Reports</button>
+  </div>
 </div>
-<div class="stats">
-  <div class="stat-card">☀️ Summer: <span id="summerCount">0</span></div>
-  <div class="stat-card">📖 1st Sem: <span id="sem1Count">0</span></div>
-  <div class="stat-card">🚪 Move Out: <span id="gradCount">0</span></div>
-  <div class="stat-card">🎓 Graduating: <span id="graduatingCount">0</span></div>
-  <div class="stat-card">🏠 Going Home: <span id="goingHomeCount">0</span></div>
-  <div class="stat-card">🚪 Leaving Dorm: <span id="leavingDormCount">0</span></div>
-  <div class="stat-card">💼 Internship: <span id="internshipCount">0</span></div>
-  <div class="stat-card">🏠 Held: <span id="holdCount">0</span></div>
-  <div class="stat-card">📥 In Queue: <span id="queueStatCount">0</span></div>
-  <div class="stat-card">📦 Storage: <span id="storageCount">0</span></div>
-  <div class="stat-card">💰 Revenue: <span id="totalRevenue">0</span> ฿</div>
-  <div class="stat-card">👥 Students: <span id="totalStudents">0</span></div>
-  <div class="stat-card">⏳ Waiting: <span id="waitingCount">0</span></div>
-  <div class="stat-card">🧍 Solo: <span id="soloCount">0</span></div>
-  <div class="stat-card">📤 Away: <span id="awayCount">0</span></div>
-  <div class="stat-card">📜 Archived: <span id="archivedCount">0</span></div>
-  <div class="stat-card">🔑 Keys Back: <span id="keysBackCount">0</span></div>
-  <div class="stat-card">📋 Clearance Done: <span id="clearanceDoneCount">0</span></div>
-  <div class="stat-card">📥 Transfer-In: <span id="transferInCount">0</span></div>
-  <div class="stat-card">✅ Confirmed: <span id="confirmedCount">0</span></div>
-  <div class="stat-card">🏠 Empty Beds: <span id="emptyBedsCount">0</span></div>
+<!-- Stats Widget -->
+<div class="stats-widget">
+  <div class="sw-highlights">
+    <div class="sw-card sw-card--blue"><strong id="totalStudents">0</strong><span>Students</span></div>
+    <div class="sw-card sw-card--green"><strong id="emptyBedsCount">0</strong><span>Empty Beds</span></div>
+    <div class="sw-card sw-card--amber"><strong id="waitingCount">0</strong><span>Waiting</span></div>
+    <div class="sw-card sw-card--red"><strong id="gradCount">0</strong><span>Move Out</span></div>
+    <div class="sw-card sw-card--orange"><strong id="holdCount">0</strong><span>Held</span></div>
+    <div class="sw-card sw-card--purple"><strong id="awayCount">0</strong><span>Away</span></div>
+    <button class="sw-toggle" id="statsToggleBtn" onclick="toggleStatsExpand()">▾ 15 more stats</button>
+  </div>
+  <div id="statsExpandPanel" style="display:none" class="sw-expand">
+    <div class="stat-card">☀️ Summer: <span id="summerCount">0</span></div>
+    <div class="stat-card">📖 1st Sem: <span id="sem1Count">0</span></div>
+    <div class="stat-card">🎓 Graduating: <span id="graduatingCount">0</span></div>
+    <div class="stat-card">🏠 Going Home: <span id="goingHomeCount">0</span></div>
+    <div class="stat-card">🚪 Leaving Dorm: <span id="leavingDormCount">0</span></div>
+    <div class="stat-card">💼 Internship: <span id="internshipCount">0</span></div>
+    <div class="stat-card">📥 In Queue: <span id="queueStatCount">0</span></div>
+    <div class="stat-card">📦 Storage: <span id="storageCount">0</span></div>
+    <div class="stat-card">💰 Revenue: <span id="totalRevenue">0</span> ฿</div>
+    <div class="stat-card">🧍 Solo: <span id="soloCount">0</span></div>
+    <div class="stat-card">📜 Archived: <span id="archivedCount">0</span></div>
+    <div class="stat-card">🔑 Keys Back: <span id="keysBackCount">0</span></div>
+    <div class="stat-card">📋 Clearance Done: <span id="clearanceDoneCount">0</span></div>
+    <div class="stat-card">📥 Transfer-In: <span id="transferInCount">0</span></div>
+    <div class="stat-card">✅ Confirmed: <span id="confirmedCount">0</span></div>
+  </div>
+  <div id="conflictWarning" class="conflict-warning">⚠️ Some rooms have a waiting list — max capacity reached.</div>
 </div>
-<div id="conflictWarning" class="conflict-warning">⚠️ Some rooms have a waiting list — max capacity reached.</div>
-<div style="overflow-x:auto;max-height:70vh">
+<!-- Table -->
+<div class="table-container">
   <table id="studentTable">
     <thead><tr>
       <th style="min-width:90px">Room &amp; Occup.</th>
@@ -211,12 +273,10 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <tbody id="tableBody"></tbody>
   </table>
 </div>
-<div class="footer-buttons">
-  <button class="btn btn-red" onclick="resetAllEdits()">🔄 Reset All Edits</button>
-  <button class="btn btn-teal" onclick="toggleQueuePanel()">📥 Incoming Queue <span id="queueBadge"></span></button>
-  <button class="btn btn-teal" onclick="toggleAwayPanel()">📤 Away <span id="awayBadge"></span></button>
-  <button class="btn btn-purple" onclick="window.location='floor-plan.html?back=room-reservations'">🏢 Floor Plan</button>
-  <button class="btn btn-purple" onclick="window.location='reports.html?back=room-reservations'">📊 Reports</button>
+<!-- Footer -->
+<div class="footer-minimal">
+  <button class="btn btn-red" style="font-size:.74rem;padding:4px 10px" onclick="resetAllEdits()">🔄 Reset All Edits</button>
+  <span style="font-size:.71rem;color:#aaa">Changes auto-saved to browser storage every 2 seconds.</span>
 </div>
 <div id="colPickerPanel" style="display:none;position:fixed;z-index:500;background:#fff;border:1px solid #bbb;border-radius:10px;padding:12px 16px;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.18);font-size:.82rem"></div>
 <div id="queuePanel" class="queue-panel" style="display:none">
@@ -679,7 +739,7 @@ function loadFromLS(){
     return true;
   }catch(e){return false;}
 }
-function markUnsaved(){unsavedChanges=true;document.getElementById('unsavedBanner').style.display='block';}
+function markUnsaved(){unsavedChanges=true;document.getElementById('unsavedBanner').style.display='inline-block';}
 function markSaved(){unsavedChanges=false;document.getElementById('unsavedBanner').style.display='none';}
 window.addEventListener('beforeunload',e=>{if(unsavedChanges){e.preventDefault();e.returnValue='Unsaved changes exist.';}});
 
@@ -1973,6 +2033,27 @@ _runInit();
 </div></div>
 
 <div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none"></div>
+<script>
+function toggleStatsExpand(){
+  const p=document.getElementById('statsExpandPanel');
+  const b=document.getElementById('statsToggleBtn');
+  if(!p)return;
+  const open=p.style.display!=='none';
+  p.style.display=open?'none':'flex';
+  if(b)b.textContent=open?'▾ 15 more stats':'▴ Fewer stats';
+}
+function toggleOverflow(){
+  const m=document.getElementById('overflowMenu');
+  if(!m)return;
+  m.style.display=m.style.display==='none'?'flex':'none';
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest||!e.target.closest('[onclick="toggleOverflow()"]')){
+    const m=document.getElementById('overflowMenu');
+    if(m&&!e.target.closest('#overflowMenu'))m.style.display='none';
+  }
+});
+</script>
 <script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>
 </body>
 </html>
