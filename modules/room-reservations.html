@@ -60,6 +60,7 @@ body{background:#e8ecf2;margin:0;padding:16px}
 /* ── Stats Widget ── */
 .stats-widget{background:#fff;border-bottom:1px solid #e8ecf2}
 .sw-highlights{display:flex;align-items:center;gap:8px;padding:9px 14px;flex-wrap:wrap}
+.sw-sep{width:1px;height:32px;background:#dde3eb;margin:0 4px;flex-shrink:0}
 .sw-card{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 13px;border-radius:10px;min-width:70px;text-align:center;font-size:.66rem;line-height:1.3;border:1px solid transparent}
 .sw-card strong{font-size:1.05rem;font-weight:800;display:block;line-height:1.1}
 .sw-card span{font-size:.62rem;opacity:.8}
@@ -69,9 +70,6 @@ body{background:#e8ecf2;margin:0;padding:16px}
 .sw-card--red{background:#fce4ec;color:#c62828;border-color:#f48fb1}
 .sw-card--orange{background:#fff3e0;color:#e65100;border-color:#ffcc80}
 .sw-card--purple{background:#f3e5f5;color:#6a1b9a;border-color:#ce93d8}
-.sw-toggle{margin-left:auto;font-size:.70rem;background:none;border:1px solid #dde3eb;border-radius:8px;padding:4px 10px;cursor:pointer;color:#555;white-space:nowrap}
-.sw-toggle:hover{background:#f0f4f8}
-.sw-expand{padding:8px 14px 10px;border-top:1px solid #eee;display:flex;flex-wrap:wrap;gap:6px}
 .stat-card{background:#f9fafb;border:1px solid #e0e6ee;border-radius:12px;padding:3px 10px;font-size:.74rem;white-space:nowrap;color:#333}
 /* ── Table ── */
 .table-container{overflow-x:auto;max-height:calc(100vh - 260px)}
@@ -221,30 +219,31 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
 <!-- Stats Widget -->
 <div class="stats-widget">
   <div class="sw-highlights">
+    <!-- Primary 6 — always visible -->
     <div class="sw-card sw-card--blue"><strong id="totalStudents">0</strong><span>Students</span></div>
     <div class="sw-card sw-card--green"><strong id="emptyBedsCount">0</strong><span>Empty Beds</span></div>
     <div class="sw-card sw-card--amber"><strong id="waitingCount">0</strong><span>Waiting</span></div>
     <div class="sw-card sw-card--red"><strong id="gradCount">0</strong><span>Move Out</span></div>
     <div class="sw-card sw-card--orange"><strong id="holdCount">0</strong><span>Held</span></div>
     <div class="sw-card sw-card--purple"><strong id="awayCount">0</strong><span>Away</span></div>
-    <button class="sw-toggle" id="statsToggleBtn" onclick="toggleStatsExpand()">▾ 7 more stats</button>
-  </div>
-  <div id="statsExpandPanel" style="display:none" class="sw-expand">
-    <div class="stat-card">☀️ Summer: <span id="summerCount">0</span></div>
-    <div class="stat-card">📖 1st Sem: <span id="sem1Count">0</span></div>
-    <div class="stat-card">🚪 Leaving Dorm: <span id="leavingDormCount">0</span></div>
-    <div class="stat-card">📦 Storage: <span id="storageCount">0</span></div>
-    <div class="stat-card">💰 Revenue: <span id="totalRevenue">0</span> ฿</div>
-    <div class="stat-card">🔑 Keys Back: <span id="keysBackCount">0</span></div>
-    <div class="stat-card">📋 Clearance Done: <span id="clearanceDoneCount">0</span></div>
-    <div class="stat-card">✅ Confirmed: <span id="confirmedCount">0</span></div>
-    <!-- IDs below are hidden from UI but still updated by updateStats() for data integrity -->
+    <!-- Separator — auto-shown when any secondary card is active -->
+    <div id="sc-sep" class="sw-sep" style="display:none"></div>
+    <!-- Secondary 7 — auto-appear when value > 0 -->
+    <div id="sc-summer"    class="sw-card sw-card--amber"  style="display:none"><strong id="summerCount">0</strong><span>Summer</span></div>
+    <div id="sc-sem1"      class="sw-card sw-card--amber"  style="display:none"><strong id="sem1Count">0</strong><span>1st Sem</span></div>
+    <div id="sc-leaving"   class="sw-card sw-card--red"    style="display:none"><strong id="leavingDormCount">0</strong><span>Leaving Dorm</span></div>
+    <div id="sc-storage"   class="sw-card sw-card--blue"   style="display:none"><strong id="storageCount">0</strong><span>Storage</span></div>
+    <div id="sc-revenue"   class="sw-card sw-card--green"  style="display:none"><strong id="totalRevenue">0</strong><span>Revenue ฿</span></div>
+    <div id="sc-keys"      class="sw-card sw-card--purple" style="display:none"><strong id="keysBackCount">0</strong><span>Keys Back</span></div>
+    <div id="sc-clearance" class="sw-card sw-card--green"  style="display:none"><strong id="clearanceDoneCount">0</strong><span>Clearance ✓</span></div>
+    <div id="sc-confirmed" class="sw-card sw-card--blue"   style="display:none"><strong id="confirmedCount">0</strong><span>Confirmed</span></div>
+    <!-- IDs for removed stats — kept so updateStats() never throws null errors -->
     <span id="graduatingCount" style="display:none">0</span>
-    <span id="goingHomeCount" style="display:none">0</span>
+    <span id="goingHomeCount"  style="display:none">0</span>
     <span id="internshipCount" style="display:none">0</span>
-    <span id="queueStatCount" style="display:none">0</span>
-    <span id="soloCount" style="display:none">0</span>
-    <span id="archivedCount" style="display:none">0</span>
+    <span id="queueStatCount"  style="display:none">0</span>
+    <span id="soloCount"       style="display:none">0</span>
+    <span id="archivedCount"   style="display:none">0</span>
     <span id="transferInCount" style="display:none">0</span>
   </div>
   <div id="conflictWarning" class="conflict-warning">⚠️ Some rooms have a waiting list — max capacity reached.</div>
@@ -2035,14 +2034,34 @@ _runInit();
 
 <div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none"></div>
 <script>
-function toggleStatsExpand(){
-  const p=document.getElementById('statsExpandPanel');
-  const b=document.getElementById('statsToggleBtn');
-  if(!p)return;
-  const open=p.style.display!=='none';
-  p.style.display=open?'none':'flex';
-  if(b)b.textContent=open?'▾ 7 more stats':'▴ Fewer stats';
+function _refreshSecondaryCards(){
+  const cards=[
+    ['summerCount','sc-summer'],
+    ['sem1Count','sc-sem1'],
+    ['leavingDormCount','sc-leaving'],
+    ['storageCount','sc-storage'],
+    ['totalRevenue','sc-revenue'],
+    ['keysBackCount','sc-keys'],
+    ['clearanceDoneCount','sc-clearance'],
+    ['confirmedCount','sc-confirmed'],
+  ];
+  let any=false;
+  cards.forEach(function([spanId,cardId]){
+    const el=document.getElementById(spanId);
+    const val=el?parseInt(el.textContent||'0',10):0;
+    const card=document.getElementById(cardId);
+    const vis=val>0;
+    if(card)card.style.display=vis?'flex':'none';
+    if(vis)any=true;
+  });
+  const sep=document.getElementById('sc-sep');
+  if(sep)sep.style.display=any?'block':'none';
 }
+(function(){
+  const _orig=updateStats;
+  updateStats=function(){_orig.apply(this,arguments);_refreshSecondaryCards();};
+  _refreshSecondaryCards();
+})();
 function toggleOverflow(){
   const m=document.getElementById('overflowMenu');
   if(!m)return;
