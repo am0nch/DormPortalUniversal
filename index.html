@@ -554,7 +554,6 @@ function startSemesterRollover() {
   const cfg = DormDB.getSemesterCfg();
   cfg.current = sel;
   DormDB.saveSemesterCfg(cfg);
-  refreshSemesterHeader();
   closeSemesterModal();
   alert(`✅ Semester rollover complete.\n\n${rolled} student${rolled!==1?'s':''} rolled over to "${sel}".\n${skipped>0?skipped+' student'+(skipped!==1?'s':'')+' with pending clearance were skipped.':'No students skipped.'}`);
 }

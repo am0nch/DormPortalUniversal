@@ -56,13 +56,13 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 
 | File | Lines | Notes |
 |------|-------|-------|
-| `index.html` | 643 | Main menu, 16 module cards (all ready), section headers, live stats; semester badge + modal + rollover UI |
+| `index.html` | 642 | Main menu, 16 module cards (all ready), section headers, live stats; semester badge + modal + rollover UI |
 | `dorm-db.js` | 470 | Central data API; 17 new keys; rolloverToSemester/flagKeyForVacatedStudent; INSP_CFG/INV_CFG/INCIDENTS_CFG |
 | `modules/room-reservations.html` | 1,978 | Active room reservations (SheetJS bundled inline); semester col 18 + filter; archive restore modal |
-| `modules/student-profiles.html` | 1,223 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline); archived/Alumni toggle |
+| `modules/student-profiles.html` | 1,224 | Student profiles, print cards, CSV/Excel import (SheetJS bundled inline); archived/Alumni toggle + Restore link |
 | `modules/floor-plan.html` | 497 | Visual room grid + bathroom pairing config |
 | `modules/utilities.html` | 674 | Electricity & hot water billing (SheetJS bundled inline) |
-| `modules/reports.html` | 1,547 | 12-tab report hub (+ Away Students tab; archive semester filter + sort) |
+| `modules/reports.html` | 1,558 | 12-tab report hub (+ Away Students tab; archive semester filter + sort; bugs fixed) |
 | `modules/room-inspection.html` | 1,146 | Move-in/out checklists, key issuance, charge calc, cost sheet |
 | `modules/key-inventory.html` | 1,570 | Assigned key tracking + borrow log (MS Forms import), overdue alerts |
 | `modules/inventory.html` | 1,770 | Asset inventory — Code 39 barcodes, room template, maintenance flags; 🛏️ Bedding tab; semester selects |
@@ -72,7 +72,7 @@ The system is organized as a main menu (`index.html`) linking to separate HTML m
 | `modules/dorm-workers.html` | 743 | HR register (RAs/Monitors/Janitors/SWP), job documents, floor coverage |
 | `modules/staff-scheduling.html` | 624 | Weekly shift grid, category filters, on-duty detection, A4 print |
 | `modules/plant-requests.html` | 607 | Maintenance requests, urgency levels, dashboard chart, history |
-| `modules/userguide.html` | 2,349 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal |
+| `modules/userguide.html` | 2,368 | Dean's User Guide — all 16 modules + About/Version History/Roadmap/Legal; dev/testing disclaimer banner |
 | `modules/handbook.html` | 1,865 | APIU Residence Hall Handbook — 50+ policies, fines table |
 
 ---
@@ -495,6 +495,15 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 - [ ] `userguide.html` needs updating to document: semester rollover UI, Alumni view in Student Profiles, Away Students report tab, archive restore flow
 
 ---
+
+## Completed improvements (2026-06-06, session 39 — Code Review Bug Fixes)
+
+- [x] **`modules/reports.html`** — `printArchive()` was missing the `studentId` search branch present in `renderArchive()`, causing student-ID searches to show filtered results on screen but unfiltered results on print. Fixed by adding `|| (h.studentId || '').toLowerCase().includes(term)`. (1,547 → 1,558 lines)
+- [x] **`modules/reports.html`** — `_awaySort` / `renderAway()` / `printAway()`: null return-date entries were substituted with `0` (Unix epoch 1970) causing them to sort to the top in ascending order instead of the bottom. Fixed with explicit null-last comparator: `if (!a._returnD) return 1; if (!b._returnD) return -1;`
+- [x] **`modules/student-profiles.html`** — Alumni view was missing the documented "↩ Restore" button. Since `openArchiveRestoreModal` lives in `room-reservations.html` (a different page), added a "↩ Restore" button that navigates to Room Reservations where the archive restore modal is fully functional. (1,223 → 1,224 lines)
+- [x] **`modules/reports.html`** — Added `DormDB.on(DormDB.KEYS.SEMESTER_CFG, _seedSemesterFilter)` subscription so the Archive tab semester filter dropdown refreshes when a new semester is added from the main menu's semester modal (previously only refreshed on tab switch or history change).
+- [x] **`index.html`** — `startSemesterRollover()` was calling `refreshSemesterHeader()` explicitly after `saveSemesterCfg()`, causing a double render since `saveSemesterCfg` already broadcasts `SEMESTER_CFG` which triggers the subscription. Removed redundant call. (643 → 642 lines)
+- [x] **`modules/userguide.html`** — Added development/testing disclaimer banner at top of main content and inside the Disclaimer subsection: "DormPortalUniversal v4 is currently under active development and testing. Features may be incomplete and unknown bugs may exist." (2,349 → 2,368 lines)
 
 ## Completed improvements (2026-06-06, sessions 37–38 — DormDB Audit + Semester Lifecycle)
 

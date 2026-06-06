@@ -460,7 +460,7 @@ function printArchive() {
   const semFilter  = (document.getElementById('archFilterSemester')?.value) || '';
   let entries = history.filter(h => {
     const reason = (h.moveOutReason + (h.offCampusType ? ' — ' + h.offCampusType : '')).toLowerCase();
-    const matchSearch = !term || (h.name || '').toLowerCase().includes(term) || (h.room || '').toLowerCase().includes(term);
+    const matchSearch = !term || (h.name || '').toLowerCase().includes(term) || (h.room || '').toLowerCase().includes(term) || (h.studentId || '').toLowerCase().includes(term);
     const matchType = !typeFilter || (typeFilter === 'storage' ? (h.storageRental && !h.storageResolved) : reason.toLowerCase().includes(typeFilter.toLowerCase()));
     const matchSem = !semFilter || (h.semesterLabel || '') === semFilter;
     return matchSearch && matchType && matchSem;
@@ -501,8 +501,13 @@ function renderAway() {
     return { ...s, _returnD: returnD, _daysLeft: daysLeft };
   });
   entries = [...entries].sort((a, b) => {
+    if (_awaySortCol === 'awayReturnDate') {
+      if (!a._returnD && !b._returnD) return 0;
+      if (!a._returnD) return 1;
+      if (!b._returnD) return -1;
+      return (a._returnD - b._returnD) * _awaySortDir;
+    }
     let av = a[_awaySortCol] || '', bv = b[_awaySortCol] || '';
-    if (_awaySortCol === 'awayReturnDate') { av = a._returnD || 0; bv = b._returnD || 0; }
     return (av < bv ? -1 : av > bv ? 1 : 0) * _awaySortDir;
   });
   const ath = (col, label) => {
@@ -540,8 +545,13 @@ function printAway() {
     const returnD = s.awayReturnDate ? new Date(s.awayReturnDate) : null;
     return { ...s, _returnD: returnD, _daysLeft: returnD ? Math.ceil((returnD - today) / 86400000) : null };
   }).sort((a,b) => {
+    if (_awaySortCol === 'awayReturnDate') {
+      if (!a._returnD && !b._returnD) return 0;
+      if (!a._returnD) return 1;
+      if (!b._returnD) return -1;
+      return (a._returnD - b._returnD) * _awaySortDir;
+    }
     let av = a[_awaySortCol] || '', bv = b[_awaySortCol] || '';
-    if (_awaySortCol === 'awayReturnDate') { av = a._returnD || 0; bv = b._returnD || 0; }
     return (av < bv ? -1 : av > bv ? 1 : 0) * _awaySortDir;
   });
   const dormName = DormDB.getDormName();
@@ -1537,6 +1547,7 @@ DormDB.on('dormBedding',       () => { if(_isActive('tab-bedding'))    renderBed
 DormDB.on('dormBeddingStock',  () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
 DormDB.on('dormBeddingCount',  () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
 DormDB.on('dormBeddingCfg',    () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
+DormDB.on(DormDB.KEYS.SEMESTER_CFG, _seedSemesterFilter);
 
 // Initial render
 _seedSemesterFilter();
