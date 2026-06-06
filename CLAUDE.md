@@ -93,6 +93,31 @@ Active code files: `index.html`, `dorm-db.js`, `modules/*.html`.
 
 ---
 
+## Report generation rules
+
+When generating any institutional document (scholarly report, proposal, activity summary):
+
+1. **Verify before writing** — run `wc -l` on all files and count K constants in `dorm-db.js` before stating any statistic. Numbers from memory or prior summaries are not reliable — always re-measure.
+2. **No fabricated citations** — only cite sources that genuinely exist and were consulted. Do not invent references to fill out a bibliography.
+3. **Estimates need labels** — any time-saving or performance claim must be clearly labelled "practitioner estimate, not a controlled measurement."
+4. **Deliver to `/tmp/`, not repo** — institutional documents (proposals, faculty reports) go to `/tmp/` and are delivered via `SendUserFile`. Never commit them to the codebase.
+5. **Terminology check** — use project-specific terms verbatim: "quality gate" (not "L99"), "DormPortalUniversal" (not "DormSystem"), "Known Pitfalls" (not "bug log").
+6. **Pre-generation fact sheet** — before writing any document, extract and record: total line counts, DormDB key count, module count, known-pitfall count. Write the document from that verified baseline.
+
+---
+
+## Module expansion planning
+
+Before proposing or building any new module:
+
+1. **Audit SARRA2 overlap first** — read `SARRA2_INTEGRATION.md` and the Cross-module dependency map. Features listed as "SARRA2 territory" (SWP hours, Citizenship Points, Program Attendance, Campus Leave) must not be duplicated here.
+2. **Audit existing keys** — `grep -n "^\s*[A-Z_]*:" dorm-db.js`. A key existing means the feature was planned; a getter/setter pair means it is already implemented.
+3. **Audit existing modules** — read the "Current modules" list above. Never reimplement something already listed.
+4. **Define integration seams** — if the new module reads another module's DormDB key, add it to the Cross-module dependency map before writing a single line of code.
+5. **Roadmap against a verified baseline** — always build the baseline (steps 1–3 above) before drafting a roadmap. Never propose features from memory alone.
+
+---
+
 ## New module checklist (for Staff Scheduling, Maintenance)
 
 When building any of the five remaining modules, follow this order exactly:
@@ -560,7 +585,7 @@ All keys managed through `DormDB` constants in `dorm-db.js`.
 ## Completed improvements (2026-06-02, session 26)
 
 - [x] **Backend — domain rename:** `sarra2.apiu.ac.th` → `sarra2.apiu.edu` across all backend config files (`Makefile`, `config.py`, `.env.example`, `docker-compose.yml`, `BACKEND_DOCS.md`, `ABSORPTION_GUIDE.md`). Email addresses (`dorm@apiu.ac.th`, `mail.apiu.ac.th`) correctly left unchanged.
-- [x] **CLAUDE.md — quality infrastructure:** Added Ultrathink triggers table (11 scenarios), L99 quality gate checklist (6 categories), cross-module dependency map (14 DormDB keys), Known Pitfalls table (10 documented bugs), Manual Smoke Tests section (4 scenarios), and Autocompact rules. Session workflow updated with steps 4 (ultrathink check), 6 (L99 gate), 8 (autocompact signal).
+- [x] **CLAUDE.md — quality infrastructure:** Added Ultrathink triggers table (11 scenarios), quality gate checklist (6 categories), cross-module dependency map (14 DormDB keys), Known Pitfalls table (10 documented bugs), Manual Smoke Tests section (4 scenarios), and Autocompact rules. Session workflow updated with steps 4 (ultrathink check), 6 (quality gate), 8 (autocompact signal).
 
 ## Completed improvements (2026-06-02, session 25)
 
@@ -779,12 +804,13 @@ All rooms default to 2 beds. Max occupants configurable via dropdown (1–4). Cu
 3. Run `grep -n "TODO\|FIXME\|PENDING"` on the relevant file to check inline notes
 4. **Check Ultrathink Triggers table** — if the task matches, apply maximum reasoning depth before writing a single line
 5. Plan change → confirm → apply via targeted str_replace
-6. **Run L99 quality gate** — tick every applicable checkbox before marking the task done
+6. **Run quality gate** — tick every applicable checkbox before marking the task done
 7. Run verification: `wc -l <file>`
 8. **Check autocompact signal** — suggest `/compact` if context is long or a major phase just completed
 9. **After every session — sync all MD files** (see rule below)
 10. **Run pre-push code review** (see rule below) — fix all CONFIRMED findings before pushing
 11. **Commit and push directly to `main`** — this is a solo project; no PRs needed
+12. **If generating an institutional document** — run the Report generation rules checklist first; deliver via `SendUserFile` to `/tmp/`, never commit to repo
 
 ### Git workflow (solo project)
 
@@ -875,9 +901,9 @@ When a task matches any row below, apply maximum reasoning depth — think throu
 
 ---
 
-## L99 quality gate — pre-ship checklist
+## Quality gate — pre-ship checklist
 
-"L99" = zero known bugs shipped. Run every applicable item before calling a task done.
+Zero known bugs shipped. Run every applicable item before calling a task done.
 
 ### Data model integrity
 - [ ] New field → added to `emptyStudent()`/`emptyProfile()`/`emptyKey()` **AND** `ensureStudent()` **AND** `saveToExcel()` column list **AND** `loadFromInput()` reader
@@ -1010,3 +1036,98 @@ These bugs have been fixed before. Check this list when working in the affected 
 
 ### Never compact mid-edit
 Complete the current edit, run `wc -l`, confirm the change is correct — then compact. Never compact while a str_replace sequence is in progress.
+
+---
+
+## Self-improving agent patterns
+
+These patterns reduce recurring mistakes and make each session more reliable than the last.
+
+### 1 — Verification subagent (before generating reports)
+
+Before writing any statistic in an administrative or scholarly document, spawn a quick Explore subagent to measure the codebase directly:
+
+```
+Agent({
+  subagent_type: 'Explore',
+  description: 'Verify codebase stats for report',
+  prompt: 'Run: wc -l index.html dorm-db.js modules/*.html  AND  grep -c "^\s*[A-Z_]*:.*dormD" dorm-db.js  AND  grep -c "Pitfall\|Pitfalls\|- Area" CLAUDE.md. Return raw numbers only — no interpretation.'
+})
+```
+
+Use the returned numbers verbatim. Never use a memorised count.
+
+### 2 — Merge+sync routine (after merging feature branches)
+
+Run these steps as one atomic unit — if any step fails, fix before proceeding to the next:
+
+```
+1. git fetch origin <feature-branch>
+2. git merge origin/<feature-branch>
+3. # Resolve all conflict markers (<<<<<<< / ======= / >>>>>>>)
+4. wc -l index.html dorm-db.js modules/*.html
+5. # Compare each count against CLAUDE.md File Stats → edit any that differ
+6. git add index.html dorm-db.js modules/*.html CLAUDE.md
+7. git commit -m "merge: <feature-branch> + sync CLAUDE.md stats"
+8. git push -u origin <target-branch>
+```
+
+Never commit with unresolved conflict markers. Never push with stale CLAUDE.md line counts.
+
+### 3 — BF-016 abstraction guard (after editing module HTML)
+
+After writing or editing any module HTML file, run this check before committing:
+
+```bash
+grep -n "localStorage\.\(setItem\|getItem\)" modules/*.html | grep "dorm"
+```
+
+Any hit on a `dorm*` key that is not routed through DormDB is a BF-016 violation. Fix it — add the key to `dorm-db.js` K constants with getter/setter and route access through DormDB.
+
+Known deferred violation: `room-inspection.html` uses `localStorage('dormInspSemester')` directly — this is tracked in Pending items.
+
+### 4 — Context-aware planning (before proposing new features)
+
+Before writing any roadmap or expansion plan, build a verified index of what already exists:
+
+```
+1. Read CLAUDE.md "Current modules" list (all 16 modules)
+2. Read SARRA2_INTEGRATION.md seams table for overlap
+3. grep -c "^\s*[A-Z_]*:" dorm-db.js   ← count existing K constants
+4. grep -n "emptyStudent\|emptyProfile\|emptyKey\|emptyBedding\|emptyWorker" modules/*.html ← data model inventory
+```
+
+Propose new features only against this verified baseline. "I think there are about X modules" is not acceptable — measure first.
+
+### 5 — Document scope enforcement
+
+Institutional documents (proposals, faculty reports, activity summaries) follow this pipeline:
+
+```
+Generate → store at /tmp/<name>.html → SendUserFile → done
+                                                       ↓
+                                         NEVER git add / git commit
+```
+
+If a document was accidentally committed:
+```bash
+git rm --cached <file>
+git commit -m "fix: remove institutional document from repo"
+git push
+```
+
+Documents belong with the user, not in version control. The codebase is the product; documents about the product are ephemera.
+
+### 6 — Pre-ship fact sheet (sessions touching 3+ files)
+
+When a session modifies three or more files, generate an internal fact sheet before writing CLAUDE.md:
+
+```
+Files changed: <list with wc -l before/after>
+New DormDB keys: <list or "none">
+New functions: <list or "none">
+Bugs fixed: <file:line citations or "none">
+Breaking changes: <list or "none">
+```
+
+Write the CLAUDE.md "Completed improvements" entry from this fact sheet, not from memory. This prevents line count errors and omitted fixes in the session log.
