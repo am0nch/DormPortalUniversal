@@ -92,27 +92,28 @@ body{background:#f0f4f8;min-height:100vh}
   </div>
 
   <div class="toolbar">
-    <button class="btn btn-green" onclick="openInspectionForm()">＋ New Inspection</button>
+    <button class="btn btn-green" onclick="openInspectionForm(undefined,_activeInspType())">＋ New Inspection</button>
     <select id="filterRoom" onchange="renderList()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.8rem">
       <option value="">All Rooms</option>
-    </select>
-    <select id="filterType" onchange="renderList()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:.8rem">
-      <option value="">All Types</option>
-      <option value="move-in">Move-In</option>
-      <option value="move-out">Move-Out</option>
     </select>
     <button class="btn btn-gray" onclick="window.print()">🖨️ Print</button>
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('inspections')">📋 Inspections</button>
+    <button class="tab-btn active" data-type="move-in" onclick="switchTab('checkin')">📥 Check-In</button>
+    <button class="tab-btn" data-type="move-out" onclick="switchTab('checkout')">📤 Check-Out</button>
     <button class="tab-btn" onclick="switchTab('charges')">💰 Charges</button>
     <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
 
-  <!-- Inspections Tab -->
-  <div class="tab-panel active" id="tab-inspections">
-    <div id="inspList"></div>
+  <!-- Check-In Tab -->
+  <div class="tab-panel active" id="tab-checkin">
+    <div id="checkInList"></div>
+  </div>
+
+  <!-- Check-Out Tab -->
+  <div class="tab-panel" id="tab-checkout">
+    <div id="checkOutList"></div>
   </div>
 
   <!-- Charges Tab -->
@@ -331,7 +332,9 @@ function switchTab(name){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelector(`.tab-btn[onclick*="'${name}'"]`).classList.add('active');
   document.getElementById('tab-'+name).classList.add('active');
-  if(name==='charges')renderCharges();
+  if(name==='checkin')renderCheckIn();
+  else if(name==='checkout')renderCheckOut();
+  else if(name==='charges')renderCharges();
 }
 
 // ══ Room dropdowns ═════════════════════════════════════════════════════════
@@ -348,15 +351,9 @@ function populateRoomDropdowns(){
 }
 
 // ══ Inspections list ═══════════════════════════════════════════════════════
-function renderList(){
-  const container=document.getElementById('inspList');
-  const filterRoom=document.getElementById('filterRoom').value;
-  const filterType=document.getElementById('filterType').value;
-  let list=[...inspections];
-  if(filterRoom)list=list.filter(r=>r.room===filterRoom);
-  if(filterType)list=list.filter(r=>r.type===filterType);
+function _buildInspRows(list,container,emptyMsg){
   list.sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt));
-  if(!list.length){container.innerHTML='<div class="empty-msg">No inspections recorded yet. Click "+ New Inspection" to start.</div>';return;}
+  if(!list.length){container.innerHTML=`<div class="empty-msg">${emptyMsg}</div>`;return;}
   container.innerHTML='';
   list.forEach(rec=>{
     const chargeTotal=calcChargeTotal(rec);
@@ -376,6 +373,23 @@ function renderList(){
       </div>`;
     container.appendChild(div);
   });
+}
+function renderCheckIn(){
+  const filterRoom=document.getElementById('filterRoom').value;
+  let list=[...inspections].filter(r=>r.type==='move-in');
+  if(filterRoom)list=list.filter(r=>r.room===filterRoom);
+  _buildInspRows(list,document.getElementById('checkInList'),'No check-in inspections recorded yet. Click "+ New Inspection" to start.');
+}
+function renderCheckOut(){
+  const filterRoom=document.getElementById('filterRoom').value;
+  let list=[...inspections].filter(r=>r.type==='move-out');
+  if(filterRoom)list=list.filter(r=>r.room===filterRoom);
+  _buildInspRows(list,document.getElementById('checkOutList'),'No check-out inspections recorded yet. Click "+ New Inspection" to start.');
+}
+function renderList(){renderCheckIn();renderCheckOut();}
+function _activeInspType(){
+  const active=document.querySelector('.tab-btn.active');
+  return active?active.dataset.type||'':'';
 }
 
 function calcChargeTotal(rec){
@@ -707,7 +721,9 @@ function saveInspection(){
   };
   inspections.unshift(rec);
   DormDB.saveInspections(inspections);
-  if (type === 'move-in') _writeKeyIssuanceFromInspection(rec);
+  _syncInventoryConditions(room,sideA,sideB,shared);
+  if(type==='move-in'){_writeKeyIssuanceFromInspection(rec);}
+  else{_writeChargesBackToStudents(rec);}
   closeModal('inspModal');
   renderList();
   showToast(`✅ ${type==='move-in'?'Move-In':'Move-Out'} inspection saved for Room ${room}`);
@@ -782,6 +798,93 @@ function _writeKeyIssuanceFromInspection(rec) {
     DormDB.saveProfiles(profiles);
     showToast(`🔑 Key records saved for ${keysUpdated} student${keysUpdated !== 1 ? 's' : ''}`);
   }
+}
+
+// ══ Inventory condition sync ════════════════════════════════════════════════
+const INSP_TO_INV={
+  bedSheet:['bed sheet'],mattress:['mattress','sealy'],mattressPad:['decker','mattress pad','bed pad'],
+  bed:['wooden bed','bed frame'],desk:['study table','desk'],chair:['chair'],stool:['stool'],
+  bookShelf:['book shelf','bookshelf','shelf'],closet:['closet','wardrobe'],
+  closetKey:['closet key'],drawerKey:['drawer key'],
+  fan:['ceiling fan',' fan'],roomKey:['room key'],window:['window'],
+  mosquitoScreen:['mosquito screen','screen'],acUnit:['air conditioner','ac unit'],
+};
+const COND_MAP={good:'Good',average:'Fair',poor:'Poor',missing:'Missing'};
+
+function _syncInventoryConditions(room,sideA,sideB,shared){
+  const inv=DormDB.getInventory();
+  // Pre-collect indices (not references) so spread-replace doesn't create stale refs
+  const roomIdxs=inv.reduce((acc,item,i)=>{if(item.location===room)acc.push(i);return acc;},[]);
+  if(!roomIdxs.length)return;
+  let changed=false;
+  const allItems=[...Object.entries(sideA||{}),...Object.entries(sideB||{}),...Object.entries(shared||{})];
+  allItems.forEach(([key,data])=>{
+    if(!data||!data.condition||data.condition==='n/a')return;
+    const newCond=COND_MAP[data.condition];if(!newCond)return;
+    const keywords=INSP_TO_INV[key]||[];if(!keywords.length)return;
+    roomIdxs.forEach(globalIdx=>{
+      const nameLow=(inv[globalIdx].name||'').toLowerCase();
+      if(!keywords.some(kw=>nameLow.includes(kw)))return;
+      if(inv[globalIdx].condition===newCond)return;
+      inv[globalIdx]={...inv[globalIdx],condition:newCond,
+        lastChecked:new Date().toISOString().split('T')[0],
+        maintenanceFlag:(newCond==='Poor'||newCond==='Missing')?true:inv[globalIdx].maintenanceFlag};
+      changed=true;
+    });
+  });
+  if(changed){DormDB.saveInventory(inv);showToast('📦 Inventory conditions updated from inspection');}
+}
+
+// ══ Proactive clearance write-back ══════════════════════════════════════════
+function _writeChargesBackToStudents(rec){
+  if(rec.type!=='move-out'||!rec.charges)return;
+  const totalAmt=[...(rec.charges.sideA||[]),...(rec.charges.sideB||[]),...(rec.charges.shared||[]),...(rec.charges.bathroom||[])]
+    .reduce((a,c)=>a+c.amount,0);
+  if(totalAmt===0)return;
+  const rooms=DormDB.getRooms();
+  let changed=false;
+  const occupants=rec.occupants||[];
+  const occupantCount=occupants.length||2;
+  const KEY_ITEMS=new Set(['closetKey','roomKey']);
+  occupants.forEach(occ=>{
+    if(!occ.name&&!occ.studentId)return;
+    const idx=rooms.findIndex(r=>r.room===rec.room&&
+      ((occ.studentId&&r.studentId===occ.studentId)||
+       r.name.trim().toLowerCase()===(occ.name||'').trim().toLowerCase()));
+    if(idx===-1)return;
+    const s=rooms[idx];
+    if(!s.clearance)s.clearance={formCompleted:false,leaveDate:'',elecIn:0,elecOut:0,hotIn:0,hotOut:0,
+      studentId:'',mobile:'',email:'',toDorm:'',toRoom:'',formNo:'',remarks:'',
+      fees:{movingFee:false,movingFeeAmt:0,cleaningFee:false,cleaningFeeAmt:0,
+            keyFee:false,keyFeeAmt:0,drawerFee:false,drawerFeeAmt:0,
+            chairFee:false,chairFeeAmt:0,stoolFee:false,stoolFeeAmt:0,
+            otherFee:false,otherFeeAmt:0,otherFeeDesc:''}};
+    if(!s.clearance.fees)s.clearance.fees={};
+    const f=s.clearance.fees;
+    if(Object.values(f).some(v=>v===true))return;
+    const sideKey=occ.side?`side${occ.side}`:null;
+    const sideCharges=sideKey?(rec.charges[sideKey]||[]):[];
+    let keyAmt=0,drawerAmt=0,chairAmt=0,stoolAmt=0,cleaningAmt=0,otherAmt=0;
+    sideCharges.forEach(c=>{
+      if(KEY_ITEMS.has(c.item))keyAmt+=c.amount;
+      else if(c.item==='drawerKey')drawerAmt+=c.amount;
+      else if(c.item==='chair')chairAmt+=c.amount;
+      else if(c.item==='stool')stoolAmt+=c.amount;
+      else otherAmt+=c.amount;
+    });
+    (rec.charges.shared||[]).forEach(c=>{otherAmt+=Math.round(c.amount/(c.splitBy||occupantCount));});
+    (rec.charges.bathroom||[]).forEach(c=>{cleaningAmt+=Math.round(c.amount/(c.splitBy||(rec.bathroom&&rec.bathroom.sharedOccupants)||occupantCount));});
+    if(keyAmt>0){f.keyFee=true;f.keyFeeAmt=keyAmt;}
+    if(drawerAmt>0){f.drawerFee=true;f.drawerFeeAmt=drawerAmt;}
+    if(chairAmt>0){f.chairFee=true;f.chairFeeAmt=chairAmt;}
+    if(stoolAmt>0){f.stoolFee=true;f.stoolFeeAmt=stoolAmt;}
+    if(cleaningAmt>0){f.cleaningFee=true;f.cleaningFeeAmt=cleaningAmt;}
+    if(otherAmt>0){f.otherFee=true;f.otherFeeAmt=otherAmt;f.otherFeeDesc='Room inspection damage';}
+    s.clearance._inspectionId=rec.id;
+    rooms[idx]=s;changed=true;
+  });
+  if(changed){DormDB.saveRooms(rooms);showToast('💳 Inspection charges written to student clearance records — reload any open clearance forms');}
+  else if(totalAmt>0)showToast('⚠️ Charges calculated but no matching active student found — check archive','warning');
 }
 
 function pushMaintenanceStubs(room,sideA,sideB,shared,bathCond){

@@ -963,30 +963,64 @@ function loadClearanceData(s) {
   document.getElementById('clRptOtherDesc').value = f.otherFeeDesc || '';
   document.getElementById('clRptRemarks').value  = c.remarks || '';
   document.getElementById('clRptFormNo').value   = c.formNo  || '';
-  if (!f.otherFee) {
-    const ic = _getInspChargesRpt(s.room, s.side || '');
-    if (ic && ic.total > 0) {
-      document.getElementById('clRptFee7').checked = true;
-      document.getElementById('clRptAmt7').disabled = false;
-      document.getElementById('clRptAmt7').value = ic.total;
-      document.getElementById('clRptOtherDesc').value = 'Room inspection damage — see inspection report';
+  if (!Object.values(f).some(v => v === true)) {
+    const ic = _getInspChargesRpt(s.room, s.side || '', s.studentId || '', s.name || '');
+    const mapped = _mapInspChargesRpt(ic);
+    if (mapped) {
+      const fdata = [['movingFee','movingFeeAmt'],['cleaningFee','cleaningFeeAmt'],['keyFee','keyFeeAmt'],
+                     ['drawerFee','drawerFeeAmt'],['chairFee','chairFeeAmt'],['stoolFee','stoolFeeAmt'],['otherFee','otherFeeAmt']];
+      const amounts = [0, mapped.cleaningFee, mapped.keyFee, mapped.drawerFee, mapped.chairFee, mapped.stoolFee, mapped.otherFee];
+      fdata.forEach(([,], i) => {
+        if (amounts[i] > 0) {
+          document.getElementById('clRptFee'+(i+1)).checked = true;
+          document.getElementById('clRptAmt'+(i+1)).disabled = false;
+          document.getElementById('clRptAmt'+(i+1)).value = amounts[i];
+        }
+      });
+      if (mapped.otherFee > 0) document.getElementById('clRptOtherDesc').value = 'Room inspection damage — see inspection report';
     }
   }
   clRptRecalc();
 }
 
-function _getInspChargesRpt(room, side) {
+function _getInspChargesRpt(room, side, studentId, fallbackName) {
   const insp = DormDB.getInspections() || [];
   const rec = insp.filter(r => r.room === room && r.type === 'move-out')
                    .sort((a,b) => b.recordedAt.localeCompare(a.recordedAt))[0];
   if (!rec || !rec.charges) return null;
+  // Resolve side from occupants when not supplied — match by ID first, then by name
+  if (!side && ((studentId||'').trim() || (fallbackName||'').trim())) {
+    const occ = (rec.occupants || []).find(o =>
+      (o.studentId && studentId && o.studentId === studentId) ||
+      (fallbackName && (o.name||'').trim().toLowerCase() === fallbackName.trim().toLowerCase()));
+    if (occ && occ.side) side = occ.side;
+  }
   const occupants = (rec.occupants || []).length || 2;
   const sideKey = side ? `side${side}` : null;
-  const sideAmt   = sideKey ? (rec.charges[sideKey]||[]).reduce((a,c)=>a+c.amount,0) : 0;
-  const sharedAmt = (rec.charges.shared||[]).reduce((a,c)=>a+c.amount,0) / occupants;
-  const bathAmt   = (rec.charges.bathroom||[]).reduce((a,c)=>a+c.amount,0) / ((rec.bathroom&&rec.bathroom.sharedOccupants)||occupants);
+  const sideCharges = sideKey ? (rec.charges[sideKey]||[]) : [];
+  const sharedCharges = rec.charges.shared || [];
+  const bathCharges = rec.charges.bathroom || [];
+  const sideAmt   = sideCharges.reduce((a,c)=>a+c.amount,0);
+  const sharedAmt = sharedCharges.reduce((a,c)=>a+c.amount,0) / occupants;
+  const bathAmt   = bathCharges.reduce((a,c)=>a+c.amount,0) / ((rec.bathroom&&rec.bathroom.sharedOccupants)||occupants);
   const total = Math.round(sideAmt + sharedAmt + bathAmt);
-  return total > 0 ? { total } : null;
+  return total > 0 ? { total, sideCharges, sharedCharges, bathCharges, rec } : null;
+}
+function _mapInspChargesRpt(ic) {
+  if (!ic) return null;
+  const KEY_ITEMS = new Set(['closetKey','roomKey']);
+  const mapped = { keyFee:0, drawerFee:0, chairFee:0, stoolFee:0, cleaningFee:0, otherFee:0 };
+  const occupants = (ic.rec.occupants || []).length || 2;
+  (ic.sideCharges||[]).forEach(c => {
+    if (KEY_ITEMS.has(c.item))       mapped.keyFee    += c.amount;
+    else if (c.item === 'drawerKey') mapped.drawerFee += c.amount;
+    else if (c.item === 'chair')     mapped.chairFee  += c.amount;
+    else if (c.item === 'stool')     mapped.stoolFee  += c.amount;
+    else                             mapped.otherFee  += c.amount;
+  });
+  (ic.sharedCharges||[]).forEach(c => { mapped.otherFee += Math.round(c.amount / (c.splitBy || occupants)); });
+  (ic.bathCharges||[]).forEach(c => { mapped.cleaningFee += Math.round(c.amount / (c.splitBy || (ic.rec.bathroom&&ic.rec.bathroom.sharedOccupants) || occupants)); });
+  return mapped;
 }
 
 function clRptFeeToggle(n) {
@@ -1054,7 +1088,7 @@ function printClearanceForm() {
       let feeRows = fkeys.map(([ck,ak],i) => [!!(f[ck]), f[ak]||0, fLabels[i][0], fLabels[i][1]]);
       let total = 0; feeRows.forEach(([ch,amt]) => { if(ch) total+=amt; });
       if (!f.otherFee) {
-        const ic = _getInspChargesRpt(s.room, s.side||'');
+        const ic = _getInspChargesRpt(s.room, s.side||'', s.studentId||'', s.name||'');
         if (ic && ic.total > 0) { feeRows[6]=[true,ic.total,'Other fees: Room inspection damage — see inspection report','']; total+=ic.total; }
       }
       const d = {name:s.name,studentId:s.studentId||c.studentId||'',studentType:s.studentType||'regular',mobile:c.mobile||'',email:c.email||'',fromDorm:dormName,fromRoom:s.room,toDorm:c.toDorm||'',toRoom:c.toRoom||'',elecIn:c.elecIn||0,elecOut:c.elecOut||0,hotIn:c.hotIn||0,hotOut:c.hotOut||0,leaveDate:c.leaveDate||'',feeRows,total,remarks:c.remarks||'',formNo:c.formNo||''};
