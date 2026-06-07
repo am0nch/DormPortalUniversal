@@ -460,10 +460,13 @@ function init() {
   const back = params.get('back');
   if (back) {
     const el = document.getElementById('backLink');
-    const labels = { 'room-reservations': '← Room Reservations', 'floor-plan': '← Floor Plan' };
+    const labels = { 'room-reservations': '← Room Reservations', 'floor-plan': '← Floor Plan', 'monitor-portal': '← Monitor Portal', 'ra-portal': '← RA Portal' };
     el.textContent = labels[back] || '← Menu';
     el.href = '../' + (back === 'room-reservations' ? 'modules/room-reservations.html' : back + '.html');
   }
+  const tabParam = params.get('tab');
+  const VALID_TABS = ['dashboard','assigned','borrow','inventory','settings','agreement'];
+  if (tabParam && VALID_TABS.includes(tabParam)) switchTab(tabParam);
   document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
   document.getElementById('userSpan').textContent = DormDB.getCurrentUser();
 

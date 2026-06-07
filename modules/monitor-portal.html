@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Monitor Portal — DormPortalUniversal</title>
+  <script src="../dorm-db.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin:0; font-family: 'Segoe UI', system-ui, sans-serif; background:#f0f4f8; min-height:100vh; }
+
+    /* Header */
+    .rp-header { background:#4a148c; color:#fff; padding:14px 16px 12px; }
+    .rp-header-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+    .rp-dorm { font-size:1.1rem; font-weight:700; line-height:1.2; }
+    .rp-user-chip { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:.8rem; padding:4px 12px; border-radius:20px; cursor:pointer; white-space:nowrap; margin-top:2px; }
+    .rp-user-chip:hover { background:rgba(255,255,255,.28); }
+    .rp-meta { font-size:.78rem; opacity:.75; margin-top:4px; }
+
+    /* Main grid */
+    .rp-grid { padding:14px 12px 24px; display:flex; flex-direction:column; gap:12px; max-width:480px; margin:0 auto; }
+
+    /* Cards */
+    .rp-card { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.09); padding:16px; }
+    .rp-card-title { font-size:1rem; font-weight:700; color:#4a148c; display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+    .rp-card-title .icon { font-size:1.25rem; }
+
+    /* Buttons */
+    .rp-btn { display:block; padding:14px 16px; border-radius:10px; text-decoration:none; font-size:.97rem; font-weight:600; text-align:center; border:none; cursor:pointer; width:100%; margin-bottom:8px; transition:opacity .15s; }
+    .rp-btn:last-child { margin-bottom:0; }
+    .rp-btn:active { opacity:.8; }
+    .rp-btn-purple { background:#6a1b9a; color:#fff; }
+    .rp-btn-navy   { background:#1e3a5f; color:#fff; }
+    .rp-btn-ghost  { background:#f0f4f8; color:#4a148c; }
+    .rp-btn-amber  { background:#e65100; color:#fff; }
+
+    /* Footer */
+    .rp-footer { text-align:center; padding:8px 0 20px; }
+    .rp-footer a { color:#90a4ae; font-size:.78rem; text-decoration:none; }
+
+    /* Identity modal */
+    .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9000; align-items:center; justify-content:center; }
+    .modal-backdrop.open { display:flex; }
+    .modal-box { background:#fff; border-radius:14px; width:min(360px,92vw); padding:0; overflow:hidden; }
+    .modal-head { background:#4a148c; color:#fff; padding:14px 18px; font-weight:700; font-size:.95rem; }
+    .modal-body { padding:18px; }
+    .modal-body label { font-size:.8rem; font-weight:700; color:#555; display:block; margin-bottom:6px; }
+    .modal-body select { width:100%; font-size:.9rem; padding:8px 10px; border:1px solid #ccc; border-radius:8px; margin-bottom:14px; }
+    .modal-body .name-input { width:100%; font-size:.9rem; padding:8px 10px; border:1px solid #ccc; border-radius:8px; margin-bottom:14px; display:none; }
+    .modal-save { width:100%; padding:12px; background:#4a148c; color:#fff; border:none; border-radius:8px; font-size:.95rem; font-weight:700; cursor:pointer; }
+
+    @media (prefers-color-scheme: dark) {
+      body { background:#121c2b; }
+      .rp-card { background:#1a2535; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+      .rp-card-title { color:#ce93d8; }
+      .rp-btn-ghost { background:#243044; color:#ce93d8; }
+      .rp-footer a { color:#546e7a; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="rp-header">
+  <div class="rp-header-top">
+    <div>
+      <div class="rp-dorm" id="mpDorm">Monitor Portal</div>
+      <div class="rp-meta" id="mpArea"></div>
+    </div>
+    <button class="rp-user-chip" id="mpUserChip" onclick="openIdentityModal()">👤 …</button>
+  </div>
+</div>
+
+<!-- Main grid -->
+<div class="rp-grid">
+
+  <!-- Incident Reports -->
+  <div class="rp-card">
+    <div class="rp-card-title"><span class="icon">🚨</span> Incident Reports</div>
+    <a class="rp-btn rp-btn-purple" href="incidents.html?back=monitor-portal">New Incident Report</a>
+    <a class="rp-btn rp-btn-ghost" href="incidents.html?back=monitor-portal">View All Incidents</a>
+  </div>
+
+  <!-- Key Borrowing Log -->
+  <div class="rp-card">
+    <div class="rp-card-title"><span class="icon">🔑</span> Key Borrowing Log</div>
+    <a class="rp-btn rp-btn-navy" href="key-inventory.html?back=monitor-portal&tab=borrow">Check Out / Return Key</a>
+    <a class="rp-btn rp-btn-ghost" href="key-inventory.html?back=monitor-portal&tab=borrow">View Borrow Log</a>
+  </div>
+
+  <!-- Cloud Sync -->
+  <div class="rp-card">
+    <div class="rp-card-title"><span class="icon">☁️</span> Cloud Sync</div>
+    <div id="mpM365Status" style="font-size:.82rem;color:#666;margin-bottom:10px">Not configured</div>
+    <button class="rp-btn rp-btn-navy" id="mpM365SignInBtn" onclick="mpSignIn()" style="display:none">Sign in with Microsoft 365</button>
+    <button class="rp-btn rp-btn-ghost" id="mpM365SignOutBtn" onclick="mpSignOut()" style="display:none">Sign out</button>
+    <div style="font-size:.72rem;color:#90a4ae;margin-top:6px">When signed in, backups upload automatically every 10 min to OneDrive.</div>
+  </div>
+
+  <!-- Data backup -->
+  <div class="rp-card">
+    <div class="rp-card-title"><span class="icon">💾</span> Data Backup</div>
+    <button class="rp-btn rp-btn-amber" onclick="mpExport()">💾 Export My Backup</button>
+    <input type="file" id="mpMergeInput" accept=".json" style="display:none" onchange="mpMerge(this)">
+    <button class="rp-btn rp-btn-ghost" onclick="document.getElementById('mpMergeInput').click()">🔀 Merge a Backup</button>
+  </div>
+
+</div>
+
+<div class="rp-footer">
+  <a href="../index.html">← Full Dean Menu</a>
+</div>
+
+<!-- Identity modal -->
+<div class="modal-backdrop" id="identityModal">
+  <div class="modal-box">
+    <div class="modal-head">👤 Who are you?</div>
+    <div class="modal-body">
+      <label for="mpMonitorSelect">Select your name from the Monitor list</label>
+      <select id="mpMonitorSelect" onchange="onMonitorSelectChange()">
+        <option value="">— Select —</option>
+      </select>
+      <input class="name-input" id="mpMonitorCustom" type="text" placeholder="Type your name">
+      <button class="modal-save" onclick="saveIdentity()">✅ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Microsoft 365 sign-in (PKCE) ─────────────────────────────────────────
+async function _mpGenChallenge() {
+  const arr = crypto.getRandomValues(new Uint8Array(32));
+  const enc = a => btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const verifier = enc(arr.buffer);
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: enc(hash) };
+}
+
+async function mpSignIn() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (!cfg.clientId) return alert('Cloud Sync is not configured. Ask the dean to set up the Microsoft 365 Client ID in Cloud Sync settings on the main menu.');
+  const { verifier, challenge } = await _mpGenChallenge();
+  localStorage.setItem('dormM365Verifier_mp', verifier);
+  const params = new URLSearchParams({
+    client_id: cfg.clientId, response_type: 'code',
+    redirect_uri: location.origin + location.pathname,
+    scope: 'Files.ReadWrite offline_access',
+    code_challenge: challenge, code_challenge_method: 'S256', state: 'm365auth_mp'
+  });
+  location.href = `https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/authorize?` + params;
+}
+
+function mpSignOut() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  cfg.accessToken = ''; cfg.refreshToken = ''; cfg.tokenExpiry = 0; cfg.userEmail = '';
+  DormDB.saveM365Cfg(cfg);
+  localStorage.removeItem('dormM365Verifier_mp');
+  _mpUpdateM365Status();
+  showToast('Signed out of Microsoft 365', '#546e7a');
+}
+
+async function _mpRefreshToken(cfg) {
+  if (!cfg.refreshToken || !cfg.clientId) return null;
+  try {
+    const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', refresh_token:cfg.refreshToken, grant_type:'refresh_token' });
+    const resp = await fetch(`https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/token`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const data = await resp.json();
+    if (data.access_token) {
+      cfg.accessToken = data.access_token; if (data.refresh_token) cfg.refreshToken = data.refresh_token;
+      cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000; DormDB.saveM365Cfg(cfg); return cfg.accessToken;
+    }
+  } catch(e) { console.warn('M365 token refresh failed:', e); }
+  return null;
+}
+
+async function _mpEnsureToken() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (cfg.accessToken && cfg.tokenExpiry > Date.now() + 60000) return cfg.accessToken;
+  return _mpRefreshToken(cfg);
+}
+
+function _mpUpdateM365Status() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const statusEl  = document.getElementById('mpM365Status');
+  const signInBtn = document.getElementById('mpM365SignInBtn');
+  const signOutBtn= document.getElementById('mpM365SignOutBtn');
+  if (!cfg.clientId) {
+    statusEl.textContent = 'Not configured — dean must set up Cloud Sync first'; statusEl.style.color = '#999';
+    signInBtn.style.display = 'none'; signOutBtn.style.display = 'none';
+  } else if (cfg.accessToken && cfg.tokenExpiry > Date.now()) {
+    statusEl.innerHTML = `✅ Signed in as <strong>${escapeHtml(cfg.userEmail||'your account')}</strong>`; statusEl.style.color = '#2e7d32';
+    signInBtn.style.display = 'none'; signOutBtn.style.display = '';
+  } else {
+    statusEl.textContent = cfg.accessToken ? '⚠️ Session expired — sign in again' : 'Not signed in'; statusEl.style.color = '#666';
+    signInBtn.style.display = ''; signOutBtn.style.display = 'none';
+  }
+}
+
+async function _mpHandleRedirect() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('state') !== 'm365auth_mp' || !params.get('code')) return;
+  history.replaceState({}, '', location.pathname);
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const verifier = localStorage.getItem('dormM365Verifier_mp');
+  if (!verifier || !cfg.clientId) return;
+  try {
+    const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', code:params.get('code'), redirect_uri:location.origin+location.pathname, grant_type:'authorization_code', code_verifier:verifier });
+    const resp = await fetch(`https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/token`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const data = await resp.json();
+    if (data.access_token) {
+      cfg.accessToken = data.access_token; cfg.refreshToken = data.refresh_token || '';
+      cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000;
+      const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers:{ Authorization:'Bearer '+cfg.accessToken } }).then(r=>r.json()).catch(()=>({}));
+      cfg.userEmail = me.userPrincipalName || me.mail || '';
+      DormDB.saveM365Cfg(cfg); localStorage.removeItem('dormM365Verifier_mp');
+      showToast('☁️ Signed in as ' + (cfg.userEmail || 'your Microsoft account'));
+    } else { alert('Microsoft sign-in failed: ' + (data.error_description || JSON.stringify(data))); }
+  } catch(e) { alert('Microsoft sign-in error: ' + e.message); }
+}
+
+async function _mpAutoUpload() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (!cfg.enabled || !cfg.clientId || !cfg.accessToken) return;
+  try {
+    const token = await _mpEnsureToken(); if (!token) return;
+    const dump = await DormDB.exportAll(); delete dump._photosFailed;
+    const user = (DormDB.getCurrentUser() || 'Monitor').replace(/\s+/g,'_');
+    const filename = 'Monitor_Backup_' + user + '_' + new Date().toISOString().slice(0,10) + '.json';
+    const blob = new Blob([JSON.stringify(dump,null,2)], {type:'application/json'});
+    const folder = encodeURIComponent(cfg.folderPath || 'Nightly Checking');
+    const r = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
+    if (r.ok) showToast('☁️ Auto-backed up to OneDrive');
+  } catch(e) { /* silent on auto-upload failure */ }
+}
+
+function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Identity ──────────────────────────────────────────────────────────────
+async function mpInit() {
+  await _mpHandleRedirect();
+  document.getElementById('mpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
+
+  // Populate identity dropdown with Monitor workers
+  const workers = (DormDB.getWorkers ? DormDB.getWorkers() : [])
+    .filter(w => w.category === 'Monitor');
+  const sel = document.getElementById('mpMonitorSelect');
+  workers.forEach(w => {
+    const opt = document.createElement('option');
+    opt.value = w.name;
+    opt.textContent = w.name + (w.assignedArea ? ' — ' + w.assignedArea : '');
+    sel.appendChild(opt);
+  });
+  const other = document.createElement('option');
+  other.value = '__other__'; other.textContent = 'Other (type name below)';
+  sel.appendChild(other);
+
+  // Restore saved identity
+  const saved = DormDB.getCurrentUser();
+  if (saved) {
+    const opt = [...sel.options].find(o => o.value === saved);
+    if (opt) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('mpMonitorCustom').value = saved; document.getElementById('mpMonitorCustom').style.display = 'block'; }
+    applyIdentity(saved, workers);
+  } else {
+    openIdentityModal();
+  }
+
+  _mpUpdateM365Status();
+  setInterval(_mpAutoUpload, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) _mpAutoUpload(); });
+}
+
+function applyIdentity(name, workers) {
+  workers = workers || (DormDB.getWorkers ? DormDB.getWorkers() : []).filter(w => w.category === 'Monitor');
+  document.getElementById('mpUserChip').textContent = '👤 ' + (name || 'Set identity');
+  const me = workers.find(w => w.name === name);
+  const areaEl = document.getElementById('mpArea');
+  const area = me ? (me.assignedArea || me.floor || '') : '';
+  areaEl.textContent = area ? 'Your area: ' + area : '';
+}
+
+function onMonitorSelectChange() {
+  const val = document.getElementById('mpMonitorSelect').value;
+  document.getElementById('mpMonitorCustom').style.display = val === '__other__' ? 'block' : 'none';
+}
+
+function openIdentityModal() {
+  document.getElementById('identityModal').classList.add('open');
+}
+
+function saveIdentity() {
+  const sel = document.getElementById('mpMonitorSelect');
+  const name = sel.value === '__other__'
+    ? document.getElementById('mpMonitorCustom').value.trim()
+    : sel.value;
+  if (!name) return alert('Please select or enter your name.');
+  DormDB.saveCurrentUser(name);
+  applyIdentity(name);
+  document.getElementById('identityModal').classList.remove('open');
+}
+
+// ── Export / Merge ────────────────────────────────────────────────────────
+async function mpExport() {
+  try {
+    const dump = await DormDB.exportAll();
+    const failed = dump._photosFailed || 0;
+    delete dump._photosFailed;
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    const user = (DormDB.getCurrentUser() || 'Monitor').replace(/\s+/g, '_');
+    const filename = 'Monitor_Backup_' + user + '_' + new Date().toISOString().slice(0, 10) + '.json';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    if (failed > 0) alert(failed + ' photo(s) could not be exported.');
+    // Try M365 upload with token refresh
+    const m365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+    if (m365.enabled && m365.clientId && m365.accessToken) {
+      try {
+        const token = await _mpEnsureToken();
+        if (token) {
+          const folder = encodeURIComponent(m365.folderPath || 'Nightly Checking');
+          const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`;
+          const r = await fetch(url, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
+          if (r.ok) showToast('☁️ Uploaded to OneDrive — ' + (m365.folderPath || 'Nightly Checking'));
+          else showToast('⚠️ OneDrive upload failed', '#c62828');
+        }
+      } catch(e) { showToast('⚠️ OneDrive error: ' + e.message, '#c62828'); }
+    }
+  } catch(e) { alert('Export failed: ' + e.message); }
+}
+
+async function mpMerge(input) {
+  const file = input.files[0]; if (!file) return; input.value = '';
+  let dump;
+  try { dump = JSON.parse(await file.text()); }
+  catch { return alert('Invalid backup file — could not parse JSON.'); }
+  if (!confirm('Merge this backup into current data? Only new records will be added — nothing will be overwritten.')) return;
+  const result = await DormDB.mergeAll(dump);
+  alert(result.totalAdded === 0
+    ? '✅ Merge complete — no new records found (all already present).'
+    : '✅ Merged ' + result.totalAdded + ' new record' + (result.totalAdded !== 1 ? 's' : '') + '.');
+}
+
+function showToast(msg, color) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, { position:'fixed', bottom:'20px', right:'16px', background:color||'#6a1b9a', color:'#fff', padding:'10px 16px', borderRadius:'10px', fontSize:'.85rem', boxShadow:'0 2px 8px rgba(0,0,0,.25)', zIndex:9999, maxWidth:'85vw' });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+mpInit();
+</script>
+</body>
+</html>
