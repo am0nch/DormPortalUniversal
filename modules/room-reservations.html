@@ -1150,12 +1150,18 @@ function renderTable(){
     // 13: Clearance — Graduating + Leaving Dorm
     const td13=document.createElement('td');
     const needsClearance=s.graduating&&s.moveOutReason;
+    const hasPendingFees=s.clearance&&s.clearance.fees&&Object.values(s.clearance.fees).some(v=>v===true);
     if(needsClearance){
       const bc=document.createElement('button');
       const needsFees=s.moveOutReason==='Graduating'||s.moveOutReason==='Internship'||(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm');
       bc.className=s.clearance.formCompleted?'btn-sm green':'btn-sm orange';
       bc.textContent=s.clearance.formCompleted?'✅ Done':(needsFees?'📋 Clearance':'📦 Archive');
       bc.onclick=()=>openClearanceModal(s);td13.appendChild(bc);
+    }else if(hasPendingFees){
+      const badge=document.createElement('span');
+      badge.title='Inspection charges pending — open clearance when ready';
+      badge.style.cursor='default';badge.textContent='💳';
+      td13.appendChild(badge);
     }else{td13.textContent='—';td13.style.cssText='text-align:center;color:#aaa';}
     row.appendChild(td13);
 
@@ -1380,18 +1386,44 @@ function saveStorage(){
 let currentClearanceStudent=null;
 function clFeeToggle(i){const cb=document.getElementById('cl_fee'+i),amt=document.getElementById('cl_amt'+i);amt.disabled=!cb.checked;if(!cb.checked)amt.value='';clRecalc();}
 function clRecalc(){let total=0;for(let i=1;i<=7;i++){const cb=document.getElementById('cl_fee'+i),a=document.getElementById('cl_amt'+i);if(cb&&cb.checked&&a&&a.value)total+=parseFloat(a.value)||0;}document.getElementById('cl_total').textContent=total.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function _getInspectionCharges(room,studentId,side){
+function _getInspectionCharges(room,studentId,side,fallbackName){
   const insp=DormDB.getInspections();
   const rec=insp.filter(r=>r.room===room&&r.type==='move-out')
                .sort((a,b)=>b.recordedAt.localeCompare(a.recordedAt))[0];
   if(!rec||!rec.charges)return null;
+  // Resolve side from occupants — match by ID first, then by name (separate params avoid ID-vs-name confusion)
+  if(!side&&((studentId||'').trim()||(fallbackName||'').trim())){
+    const occ=(rec.occupants||[]).find(o=>
+      (o.studentId&&studentId&&o.studentId===studentId)||
+      (fallbackName&&(o.name||'').trim().toLowerCase()===fallbackName.trim().toLowerCase()));
+    if(occ&&occ.side)side=occ.side;
+  }
   const occupants=(rec.occupants||[]).length||2;
   const sideKey=side?`side${side}`:null;
-  const sideAmt=sideKey?(rec.charges[sideKey]||[]).reduce((a,c)=>a+c.amount,0):0;
-  const sharedAmt=(rec.charges.shared||[]).reduce((a,c)=>a+c.amount,0)/occupants;
-  const bathAmt=(rec.charges.bathroom||[]).reduce((a,c)=>a+c.amount,0)/((rec.bathroom&&rec.bathroom.sharedOccupants)||occupants);
+  const sideCharges=sideKey?(rec.charges[sideKey]||[]):[];
+  const sideAmt=sideCharges.reduce((a,c)=>a+c.amount,0);
+  const sharedCharges=rec.charges.shared||[];
+  const sharedAmt=sharedCharges.reduce((a,c)=>a+c.amount,0)/occupants;
+  const bathCharges=rec.charges.bathroom||[];
+  const bathAmt=bathCharges.reduce((a,c)=>a+c.amount,0)/((rec.bathroom&&rec.bathroom.sharedOccupants)||occupants);
   const total=Math.round(sideAmt+sharedAmt+bathAmt);
-  return total>0?{total}:null;
+  return total>0?{total,sideCharges,sharedCharges,bathCharges,rec}:null;
+}
+function _mapInspectionFees(ic){
+  if(!ic)return null;
+  const KEY_ITEMS=new Set(['closetKey','roomKey']);
+  const mapped={keyFee:0,drawerFee:0,chairFee:0,stoolFee:0,cleaningFee:0,otherFee:0};
+  const occupants=(ic.rec.occupants||[]).length||2;
+  (ic.sideCharges||[]).forEach(c=>{
+    if(KEY_ITEMS.has(c.item))mapped.keyFee+=c.amount;
+    else if(c.item==='drawerKey')mapped.drawerFee+=c.amount;
+    else if(c.item==='chair')mapped.chairFee+=c.amount;
+    else if(c.item==='stool')mapped.stoolFee+=c.amount;
+    else mapped.otherFee+=c.amount;
+  });
+  (ic.sharedCharges||[]).forEach(c=>{mapped.otherFee+=Math.round(c.amount/(c.splitBy||occupants));});
+  (ic.bathCharges||[]).forEach(c=>{mapped.cleaningFee+=Math.round(c.amount/(c.splitBy||(ic.rec.bathroom&&ic.rec.bathroom.sharedOccupants)||occupants));});
+  return mapped;
 }
 function openClearanceModal(s){
   currentClearanceStudent=s;
@@ -1417,8 +1449,24 @@ function openClearanceModal(s){
   document.getElementById('cl_remarks').value=c.remarks||'';
   document.getElementById('cl_formNo').value=c.formNo||'';
   document.getElementById('cl_formCompleted').checked=!!c.formCompleted;
-  // Pre-fill Other fee from room inspection charges if not already set
-  if(!f.otherFee){const ic=_getInspectionCharges(s.room,s.studentId||s.name,s.side);if(ic&&ic.total>0){document.getElementById('cl_fee7').checked=true;document.getElementById('cl_amt7').disabled=false;document.getElementById('cl_amt7').value=ic.total;document.getElementById('cl_otherDesc').value='Room inspection damage — see inspection report';}}
+  // Pre-fill inspection charges (granular) if no fees are manually set
+  if(!Object.values(f).some(v=>v===true)){
+    const ic=_getInspectionCharges(s.room,s.studentId,s.side,s.name);
+    const mapped=_mapInspectionFees(ic);
+    if(mapped){
+      const fdata=[['movingFee','movingFeeAmt'],['cleaningFee','cleaningFeeAmt'],['keyFee','keyFeeAmt'],
+                   ['drawerFee','drawerFeeAmt'],['chairFee','chairFeeAmt'],['stoolFee','stoolFeeAmt'],['otherFee','otherFeeAmt']];
+      const amounts=[0,mapped.cleaningFee,mapped.keyFee,mapped.drawerFee,mapped.chairFee,mapped.stoolFee,mapped.otherFee];
+      fdata.forEach(([,],i)=>{
+        if(amounts[i]>0){
+          document.getElementById('cl_fee'+(i+1)).checked=true;
+          document.getElementById('cl_amt'+(i+1)).disabled=false;
+          document.getElementById('cl_amt'+(i+1)).value=amounts[i];
+        }
+      });
+      if(mapped.otherFee>0)document.getElementById('cl_otherDesc').value='Room inspection damage — see inspection report';
+    }
+  }
   clRecalc();
   openModal('clearanceModal');
 }
@@ -1522,9 +1570,12 @@ function moveStudentToRoom(s){
     const targetIdx=fullData.findIndex(x=>x.room===targetRoom&&(!x.name||!x.name.trim()));
     const srcIdx=fullData.findIndex(x=>x===s);
     if(targetIdx===-1||srcIdx===-1)return;
+    const originalRoom=s.room,originalStudentId=s.studentId,originalName=s.name,originalSide=s.side;
     fullData[targetIdx]={...s,room:targetRoom,requestedRoom:'',requestStatus:'Confirmed',manualStatus:false};
     fullData[srcIdx]=emptyStudent(s.room);
     recalcWaiting();applyFilter();pushState();recordUpdate();
+    const ic=_getInspectionCharges(originalRoom,originalStudentId,originalSide,originalName);
+    if(ic&&ic.total>0)showToast(`⚠️ Inspection charges (฿${ic.total.toLocaleString()}) on file for ${originalName} — review clearance fees`,'warning');
   });
 }
 
