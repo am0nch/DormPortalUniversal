@@ -300,6 +300,22 @@ const MODULES = [
       ];
     }
   },
+  {
+    section: 'Staff & Facilities',
+    icon: '🖥️',
+    title: 'Monitor Portal',
+    desc: 'Mobile-first launcher for Monitors — incident reports and key borrowing log with Microsoft 365 sign-in and automatic OneDrive backup.',
+    file: 'modules/monitor-portal.html',
+    ready: true,
+    getStats() {
+      const workers = DormDB.getWorkers ? DormDB.getWorkers() : [];
+      const cnt = workers.filter(w => w.category === 'Monitor').length;
+      return [
+        { label: cnt + ' Monitor' + (cnt !== 1 ? 's' : ''), cls: 'blue' },
+        { label: 'Mobile-first', cls: 'green' }
+      ];
+    }
+  },
   // ── REFERENCE ──────────────────────────────────────────────────────────────
   {
     section: 'Reference',

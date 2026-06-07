@@ -109,6 +109,15 @@
     <button class="rp-btn rp-btn-ghost" onclick="document.getElementById('rpMergeInput').click()">🔀 Merge a Backup</button>
   </div>
 
+  <!-- Cloud Sync -->
+  <div class="rp-card">
+    <div class="rp-card-title"><span class="icon">☁️</span> Cloud Sync</div>
+    <div id="rpM365Status" style="font-size:.82rem;color:#666;margin-bottom:10px">Not configured</div>
+    <button class="rp-btn rp-btn-navy" id="rpM365SignInBtn" onclick="rpSignIn()" style="display:none">Sign in with Microsoft 365</button>
+    <button class="rp-btn rp-btn-ghost" id="rpM365SignOutBtn" onclick="rpSignOut()" style="display:none">Sign out</button>
+    <div style="font-size:.72rem;color:#90a4ae;margin-top:6px">When signed in, backups upload automatically every 10 min to OneDrive.</div>
+  </div>
+
 </div>
 
 <div class="rp-footer">
@@ -133,7 +142,8 @@
 <script>
 const KNOWN_CATEGORIES = ['RA', 'Monitor'];
 
-function rpInit() {
+async function rpInit() {
+  await _rpHandleRedirect();
   document.getElementById('rpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — RA Portal';
 
   // Populate identity dropdown
@@ -173,6 +183,10 @@ function rpInit() {
     document.getElementById('rpCurfewBanner').style.display = 'flex';
     document.getElementById('rpCurfewText').textContent = 'Tonight\'s curfew: ' + curfewTime + (cfg.graceMinutes ? ' (grace: ' + cfg.graceMinutes + ' min)' : '');
   }
+
+  _rpUpdateM365Status();
+  setInterval(_rpAutoUpload, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) _rpAutoUpload(); });
 }
 
 function applyIdentity(name, workers) {
@@ -181,7 +195,8 @@ function applyIdentity(name, workers) {
   const me = workers.find(w => w.name === name);
   const floorEl = document.getElementById('rpFloors');
   const area = me ? (me.floor || me.assignedArea || '') : '';
-  floorEl.textContent = area ? 'Your area: Floor ' + area : '';
+  const FLOOR_LABELS = { '1': 'Floors 1 & 2', '3': '3rd Floor', '4': '4th Floor' };
+  floorEl.textContent = area ? 'Your area: ' + (FLOOR_LABELS[area] || 'Floor ' + area) : '';
 }
 
 function onRaSelectChange() {
@@ -220,12 +235,17 @@ async function rpExport() {
     if (failed > 0) alert(failed + ' photo(s) could not be exported.');
     // Try M365 upload if configured
     const m365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-    if (m365.enabled && m365.clientId && m365.accessToken && m365.tokenExpiry > Date.now()) {
-      const folder = encodeURIComponent(m365.folderPath || 'Nightly Checking');
-      const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`;
-      fetch(url, { method:'PUT', headers:{ Authorization:'Bearer '+m365.accessToken, 'Content-Type':'application/octet-stream' }, body: blob })
-        .then(r => { if (r.ok) showToast('☁️ Uploaded to OneDrive — ' + (m365.folderPath || 'Nightly Checking')); else showToast('⚠️ OneDrive upload failed', '#c62828'); })
-        .catch(e => showToast('⚠️ OneDrive error: ' + e.message, '#c62828'));
+    if (m365.enabled && m365.clientId && m365.accessToken) {
+      try {
+        const token = await _rpEnsureToken();
+        if (token) {
+          const folder = encodeURIComponent(m365.folderPath || 'Nightly Checking');
+          const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`;
+          const r = await fetch(url, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
+          if (r.ok) showToast('☁️ Uploaded to OneDrive — ' + (m365.folderPath || 'Nightly Checking'));
+          else showToast('⚠️ OneDrive upload failed', '#c62828');
+        }
+      } catch(e) { showToast('⚠️ OneDrive error: ' + e.message, '#c62828'); }
     }
   } catch(e) { alert('Export failed: ' + e.message); }
 }
@@ -241,6 +261,113 @@ async function rpMerge(input) {
     ? '✅ Merge complete — no new records found (all already present).'
     : '✅ Merged ' + result.totalAdded + ' new record' + (result.totalAdded !== 1 ? 's' : '') + '.');
 }
+
+// ── Microsoft 365 sign-in (PKCE) ─────────────────────────────────────────
+async function _rpGenChallenge() {
+  const arr = crypto.getRandomValues(new Uint8Array(32));
+  const enc = a => btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const verifier = enc(arr.buffer);
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: enc(hash) };
+}
+
+async function rpSignIn() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (!cfg.clientId) return alert('Cloud Sync is not configured. Ask the dean to set up the Microsoft 365 Client ID in Cloud Sync settings on the main menu.');
+  const { verifier, challenge } = await _rpGenChallenge();
+  localStorage.setItem('dormM365Verifier_ra', verifier);
+  const params = new URLSearchParams({
+    client_id: cfg.clientId, response_type: 'code',
+    redirect_uri: location.origin + location.pathname,
+    scope: 'Files.ReadWrite offline_access',
+    code_challenge: challenge, code_challenge_method: 'S256', state: 'm365auth_ra'
+  });
+  location.href = `https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/authorize?` + params;
+}
+
+function rpSignOut() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  cfg.accessToken = ''; cfg.refreshToken = ''; cfg.tokenExpiry = 0; cfg.userEmail = '';
+  DormDB.saveM365Cfg(cfg);
+  localStorage.removeItem('dormM365Verifier_ra');
+  _rpUpdateM365Status();
+  showToast('Signed out of Microsoft 365', '#546e7a');
+}
+
+async function _rpRefreshToken(cfg) {
+  if (!cfg.refreshToken || !cfg.clientId) return null;
+  try {
+    const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', refresh_token:cfg.refreshToken, grant_type:'refresh_token' });
+    const resp = await fetch(`https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/token`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const data = await resp.json();
+    if (data.access_token) {
+      cfg.accessToken = data.access_token; if (data.refresh_token) cfg.refreshToken = data.refresh_token;
+      cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000; DormDB.saveM365Cfg(cfg); return cfg.accessToken;
+    }
+  } catch(e) { console.warn('M365 token refresh failed:', e); }
+  return null;
+}
+
+async function _rpEnsureToken() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (cfg.accessToken && cfg.tokenExpiry > Date.now() + 60000) return cfg.accessToken;
+  return _rpRefreshToken(cfg);
+}
+
+function _rpUpdateM365Status() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const statusEl  = document.getElementById('rpM365Status');
+  const signInBtn = document.getElementById('rpM365SignInBtn');
+  const signOutBtn= document.getElementById('rpM365SignOutBtn');
+  if (!cfg.clientId) {
+    statusEl.textContent = 'Not configured — dean must set up Cloud Sync first'; statusEl.style.color = '#999';
+    signInBtn.style.display = 'none'; signOutBtn.style.display = 'none';
+  } else if (cfg.accessToken && cfg.tokenExpiry > Date.now()) {
+    statusEl.innerHTML = `✅ Signed in as <strong>${escapeHtml(cfg.userEmail||'your account')}</strong>`; statusEl.style.color = '#2e7d32';
+    signInBtn.style.display = 'none'; signOutBtn.style.display = '';
+  } else {
+    statusEl.textContent = cfg.accessToken ? '⚠️ Session expired — sign in again' : 'Not signed in'; statusEl.style.color = '#666';
+    signInBtn.style.display = ''; signOutBtn.style.display = 'none';
+  }
+}
+
+async function _rpHandleRedirect() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('state') !== 'm365auth_ra' || !params.get('code')) return;
+  history.replaceState({}, '', location.pathname);
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const verifier = localStorage.getItem('dormM365Verifier_ra');
+  if (!verifier || !cfg.clientId) return;
+  try {
+    const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', code:params.get('code'), redirect_uri:location.origin+location.pathname, grant_type:'authorization_code', code_verifier:verifier });
+    const resp = await fetch(`https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/token`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const data = await resp.json();
+    if (data.access_token) {
+      cfg.accessToken = data.access_token; cfg.refreshToken = data.refresh_token || '';
+      cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000;
+      const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers:{ Authorization:'Bearer '+cfg.accessToken } }).then(r=>r.json()).catch(()=>({}));
+      cfg.userEmail = me.userPrincipalName || me.mail || '';
+      DormDB.saveM365Cfg(cfg); localStorage.removeItem('dormM365Verifier_ra');
+    } else { alert('Microsoft sign-in failed: ' + (data.error_description || JSON.stringify(data))); }
+  } catch(e) { alert('Microsoft sign-in error: ' + e.message); }
+}
+
+async function _rpAutoUpload() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (!cfg.enabled || !cfg.clientId || !cfg.accessToken) return;
+  try {
+    const token = await _rpEnsureToken(); if (!token) return;
+    const dump = await DormDB.exportAll(); delete dump._photosFailed;
+    const user = (DormDB.getCurrentUser() || 'RA').replace(/\s+/g,'_');
+    const filename = 'RA_Backup_' + user + '_' + new Date().toISOString().slice(0,10) + '.json';
+    const blob = new Blob([JSON.stringify(dump,null,2)], {type:'application/json'});
+    const folder = encodeURIComponent(cfg.folderPath || 'Nightly Checking');
+    const r = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
+    if (r.ok) showToast('☁️ Auto-backed up to OneDrive');
+  } catch(e) { /* silent — don't interrupt user on auto-upload failure */ }
+}
+
+function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function showToast(msg, color) {
   const t = document.createElement('div');
