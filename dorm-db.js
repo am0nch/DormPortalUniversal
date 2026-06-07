@@ -55,6 +55,7 @@ const DormDB = (() => {
     BEDDING_CFG:   'dormBeddingCfg',
     // Shared semester registry
     SEMESTER_CFG:  'dormSemesterCfg',
+    M365_CFG:      'dormM365Cfg',
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
@@ -255,6 +256,14 @@ const DormDB = (() => {
     getCurrentSemester() {
       return _r(K.SEMESTER_CFG, { current: '1st Semester 2026' }).current || '1st Semester 2026';
     },
+    getM365Cfg() {
+      return _r(K.M365_CFG, {
+        enabled: false, clientId: '', tenantId: 'common',
+        folderPath: 'Nightly Checking', accessToken: '',
+        refreshToken: '', tokenExpiry: 0, userEmail: ''
+      });
+    },
+    saveM365Cfg: (d) => _w(K.M365_CFG, d),
     getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
     saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
     getUtilities:    ()  => _r(K.UTILITIES, []),
@@ -461,6 +470,44 @@ const DormDB = (() => {
           localStorage.setItem(K.PHOTOS_MIGRATED, 'true');
         } catch(e) { console.warn('Photo restore failed:', e); }
       }
+    },
+
+    async mergeAll(dump) {
+      const MERGE_KEYS = new Set([
+        K.INSPECTIONS, K.ATTENDANCE, K.ATT_ARCHIVE,
+        K.INCIDENTS, K.KEYS_ASSIGNED, K.HISTORY, K.MAINTENANCE
+      ]);
+      const summary = []; let totalAdded = 0;
+      for (const key of MERGE_KEYS) {
+        if (!(key in dump)) continue;
+        const incoming = Array.isArray(dump[key]) ? dump[key] : [];
+        if (!incoming.length) continue;
+        const existing = _r(key, []);
+        // dormHistory has no id field — use archivedAt as the unique key instead
+        const uq = key === K.HISTORY ? 'archivedAt' : 'id';
+        const seen = new Set(existing.map(e => e[uq]).filter(Boolean));
+        const toAdd = incoming.filter(item => item[uq] && !seen.has(item[uq]));
+        if (toAdd.length) {
+          _w(key, [...existing, ...toAdd]);
+          summary.push({ key, added: toAdd.length });
+          totalAdded += toAdd.length;
+        }
+      }
+      // Photos: add new entries without clearing existing
+      if (dump._photos) {
+        try {
+          const db = await _openIDB();
+          const existingKeys = await new Promise((res, rej) => {
+            const req = db.transaction('photos','readonly').objectStore('photos').getAllKeys();
+            req.onsuccess = () => res(new Set(req.result));
+            req.onerror = () => rej(req.error);
+          });
+          for (const [id, dataURL] of Object.entries(dump._photos)) {
+            if (!existingKeys.has(id)) await this.savePhoto(id, _dataURLtoBlob(dataURL));
+          }
+        } catch(e) { console.warn('Photo merge failed:', e); }
+      }
+      return { totalAdded, summary };
     },
 
     // Expose key constants for modules that need them
