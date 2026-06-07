@@ -81,7 +81,10 @@ body{background:#f0f4f8;min-height:100vh}
   <div class="menu-footer">
     <span>DormPortalUniversal v4 &nbsp;·&nbsp; Developed using <a href="https://claude.ai/code" target="_blank">Claude Code</a> by <strong style="color:#888">Richmond Ilao</strong></span>
     <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreAll(this)">
+    <input type="file" id="mergeInput" accept=".json" style="display:none" onchange="mergeBackup(this)">
     <button class="btn-export" onclick="document.getElementById('restoreInput').click()">📂 Restore Backup</button>
+    <button class="btn-export" onclick="document.getElementById('mergeInput').click()">🔀 Merge Backup</button>
+    <button class="btn-export" onclick="openM365Modal()">☁️ Cloud Sync</button>
     <button class="btn-export" onclick="exportAll()">💾 Export All Data</button>
   </div>
 </div>
@@ -281,6 +284,22 @@ const MODULES = [
       return pills;
     }
   },
+  {
+    section: 'Staff & Facilities',
+    icon: '📱',
+    title: 'RA Portal',
+    desc: 'Mobile-first launcher for Resident Assistants — nightly attendance, room inspection, and incident reports. Each RA identified by name with their floor assignment shown.',
+    file: 'modules/ra-portal.html',
+    ready: true,
+    getStats() {
+      const workers = DormDB.getWorkers ? DormDB.getWorkers() : [];
+      const raCount = workers.filter(w => w.category === 'RA').length;
+      return [
+        { label: raCount + ' RA' + (raCount !== 1 ? 's' : ''), cls: 'blue' },
+        { label: 'Mobile-first', cls: 'green' }
+      ];
+    }
+  },
   // ── REFERENCE ──────────────────────────────────────────────────────────────
   {
     section: 'Reference',
@@ -394,23 +413,35 @@ async function exportAll() {
     const failed = dump._photosFailed || 0;
     delete dump._photosFailed;
     const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    const filename = 'DormManager_Backup_' + new Date().toISOString().slice(0, 10) + '.json';
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'DormManager_Backup_' + new Date().toISOString().slice(0, 10) + '.json';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
     if (failed > 0) alert(`⚠️ ${failed} photo(s) could not be exported. Check browser storage or try again.`);
+    // Optional M365 upload if enabled and signed in
+    const m365 = DormDB.getM365Cfg();
+    if (m365.enabled && m365.clientId) {
+      m365UploadNow(blob, filename).then(() => {
+        _toast('☁️ Backup also uploaded to OneDrive — ' + (m365.folderPath || 'Nightly Checking'));
+      }).catch(e => {
+        _toast('⚠️ OneDrive upload failed: ' + e.message, '#c62828');
+      });
+    }
   } catch(e) {
     alert('Export failed: ' + e.message);
   }
 }
 
 // Init
-updateHeader();
-refreshStats();
-const _sn = localStorage.getItem('dormNameSelect');
+(async () => {
+  await _m365HandleRedirect(); // handle OAuth callback before rendering
+  updateHeader();
+  refreshStats();
+  const _sn = localStorage.getItem('dormNameSelect');
 const _sc = localStorage.getItem('dormNameCustom');
 if (_sn) {
   document.getElementById('menuDormSelect').value = _sn;
@@ -435,6 +466,7 @@ DormDB.on('dormIncidents',    refreshStats);
 DormDB.on('dormOffCampusReq', refreshStats);
 DormDB.on('dormWorkers',      refreshStats);
 DormDB.on('dormBedding',      refreshStats);
+})();
 
 function refreshSemesterHeader() {
   const el = document.getElementById('headerSemester');
@@ -559,6 +591,202 @@ function startSemesterRollover() {
 }
 
 function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── Toast helper ────────────────────────────────────────────────────────────
+function _toast(msg, color) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'24px', right:'24px', background: color||'#388e3c',
+    color:'#fff', padding:'10px 18px', borderRadius:'8px', fontSize:'.9rem',
+    boxShadow:'0 2px 8px rgba(0,0,0,.3)', zIndex:9999, maxWidth:'340px', lineHeight:'1.4'
+  });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── Merge Backup ─────────────────────────────────────────────────────────────
+let _pendingMergeDump = null;
+
+async function mergeBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  let dump;
+  try { dump = JSON.parse(await file.text()); }
+  catch { return alert('Invalid backup file — could not parse JSON.'); }
+  openMergePreview(dump);
+}
+
+function openMergePreview(dump) {
+  _pendingMergeDump = dump;
+  const KEY_LABELS = {
+    dormInspections:       'Room Inspections',
+    dormAttendance:        'Attendance Sessions',
+    dormAttendanceArchive: 'Archived Attendance',
+    dormIncidents:         'Incident Reports',
+    dormKeysAssigned:      'Assigned Keys',
+    dormHistory:           'Vacate History',
+    dormMaintenance:       'Maintenance Requests'
+  };
+  let rows = '';
+  for (const [k, label] of Object.entries(KEY_LABELS)) {
+    const arr = Array.isArray(dump[k]) ? dump[k] : [];
+    rows += `<tr style="border-bottom:1px solid #eee">
+      <td style="padding:7px 10px">${label}</td>
+      <td style="padding:7px 10px;text-align:right;color:${arr.length>0?'#1565c0':'#999'}">${arr.length} record${arr.length!==1?'s':''}</td>
+    </tr>`;
+  }
+  const photos = dump._photos ? Object.keys(dump._photos).length : 0;
+  rows += `<tr><td style="padding:7px 10px">Profile Photos</td>
+    <td style="padding:7px 10px;text-align:right;color:${photos>0?'#1565c0':'#999'}">${photos} photo${photos!==1?'s':''}</td></tr>`;
+  document.getElementById('mergePreviewBody').innerHTML = rows;
+  document.getElementById('mergeModal').style.display = 'flex';
+}
+
+function closeMergeModal() {
+  document.getElementById('mergeModal').style.display = 'none';
+  _pendingMergeDump = null;
+}
+
+async function confirmMerge() {
+  const dump = _pendingMergeDump;
+  closeMergeModal();
+  if (!dump) return;
+  const result = await DormDB.mergeAll(dump);
+  refreshStats();
+  if (result.totalAdded === 0) {
+    _toast('✅ Merge complete — no new records (all already present)', '#546e7a');
+  } else {
+    _toast('✅ Merged ' + result.totalAdded + ' new record' + (result.totalAdded !== 1 ? 's' : ''));
+  }
+}
+
+// ── Microsoft 365 Cloud Sync ──────────────────────────────────────────────
+function openM365Modal() {
+  _m365UpdateStatus();
+  document.getElementById('m365Modal').style.display = 'flex';
+}
+function closeM365Modal() { document.getElementById('m365Modal').style.display = 'none'; }
+
+function saveM365Settings() {
+  const cfg = DormDB.getM365Cfg();
+  cfg.enabled    = document.getElementById('m365Enabled').checked;
+  cfg.clientId   = document.getElementById('m365ClientId').value.trim();
+  cfg.tenantId   = document.getElementById('m365TenantId').value.trim() || 'common';
+  cfg.folderPath = document.getElementById('m365Folder').value.trim() || 'Nightly Checking';
+  DormDB.saveM365Cfg(cfg);
+  _m365UpdateStatus();
+  _toast('☁️ Cloud Sync settings saved');
+}
+
+function _m365UpdateStatus() {
+  const cfg = DormDB.getM365Cfg();
+  document.getElementById('m365Enabled').checked   = cfg.enabled;
+  document.getElementById('m365ClientId').value    = cfg.clientId  || '';
+  document.getElementById('m365TenantId').value    = cfg.tenantId  || 'common';
+  document.getElementById('m365Folder').value      = cfg.folderPath|| 'Nightly Checking';
+  const statusEl  = document.getElementById('m365Status');
+  const signInBtn = document.getElementById('m365SignInBtn');
+  if (cfg.accessToken && cfg.tokenExpiry > Date.now()) {
+    statusEl.innerHTML = `<span style="color:#2e7d32">✅ Signed in as <strong>${escapeHtml(cfg.userEmail||'your account')}</strong></span> &nbsp;<button onclick="m365SignOut()" style="font-size:.75rem;padding:2px 8px;border:1px solid #c62828;background:none;color:#c62828;border-radius:4px;cursor:pointer">Sign out</button>`;
+    signInBtn.style.display = 'none';
+  } else {
+    statusEl.textContent = cfg.accessToken ? '⚠️ Session expired — sign in again' : 'Not signed in';
+    signInBtn.style.display = '';
+  }
+}
+
+async function _m365GenChallenge() {
+  const arr = crypto.getRandomValues(new Uint8Array(32));
+  const enc = a => btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const verifier = enc(arr.buffer);
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return { verifier, challenge: enc(hash) };
+}
+
+async function m365SignIn() {
+  const cfg = DormDB.getM365Cfg();
+  if (!cfg.clientId) return alert('Enter a Client ID first, then save settings.');
+  const { verifier, challenge } = await _m365GenChallenge();
+  sessionStorage.setItem('dormM365Verifier', verifier);
+  const params = new URLSearchParams({
+    client_id: cfg.clientId, response_type: 'code',
+    redirect_uri: location.origin + location.pathname,
+    scope: 'Files.ReadWrite offline_access',
+    code_challenge: challenge, code_challenge_method: 'S256', state: 'm365auth'
+  });
+  location.href = `https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/authorize?` + params;
+}
+
+function m365SignOut() {
+  const cfg = DormDB.getM365Cfg();
+  cfg.accessToken = ''; cfg.refreshToken = ''; cfg.tokenExpiry = 0; cfg.userEmail = '';
+  DormDB.saveM365Cfg(cfg);
+  _m365UpdateStatus();
+  sessionStorage.removeItem('dormM365Verifier');
+  _toast('Signed out of Microsoft 365', '#546e7a');
+}
+
+async function _m365RefreshToken(cfg) {
+  if (!cfg.refreshToken || !cfg.clientId) return null;
+  try {
+    const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', refresh_token:cfg.refreshToken, grant_type:'refresh_token' });
+    const resp = await fetch(`https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/token`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const data = await resp.json();
+    if (data.access_token) {
+      cfg.accessToken = data.access_token;
+      if (data.refresh_token) cfg.refreshToken = data.refresh_token;
+      cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000;
+      DormDB.saveM365Cfg(cfg);
+      return cfg.accessToken;
+    }
+  } catch(e) { console.warn('M365 token refresh failed:', e); }
+  return null;
+}
+
+async function _m365EnsureToken() {
+  const cfg = DormDB.getM365Cfg();
+  if (cfg.accessToken && cfg.tokenExpiry > Date.now() + 60000) return cfg.accessToken;
+  return _m365RefreshToken(cfg);
+}
+
+async function m365UploadNow(blob, filename) {
+  const token = await _m365EnsureToken();
+  if (!token) return null;
+  const cfg = DormDB.getM365Cfg();
+  const folder = encodeURIComponent(cfg.folderPath || 'Nightly Checking');
+  const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`;
+  const resp = await fetch(url, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
+  if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message||resp.status); }
+  return resp.json();
+}
+
+async function _m365HandleRedirect() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('state') !== 'm365auth' || !params.get('code')) return;
+  history.replaceState({}, '', location.pathname);
+  const cfg = DormDB.getM365Cfg();
+  const verifier = sessionStorage.getItem('dormM365Verifier');
+  if (!verifier || !cfg.clientId) return;
+  try {
+    const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', code:params.get('code'), redirect_uri:location.origin+location.pathname, grant_type:'authorization_code', code_verifier:verifier });
+    const resp = await fetch(`https://login.microsoftonline.com/${cfg.tenantId||'common'}/oauth2/v2.0/token`, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const data = await resp.json();
+    if (data.access_token) {
+      cfg.accessToken = data.access_token;
+      cfg.refreshToken = data.refresh_token || '';
+      cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000;
+      const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers:{ Authorization:'Bearer '+cfg.accessToken } }).then(r=>r.json()).catch(()=>({}));
+      cfg.userEmail = me.userPrincipalName || me.mail || '';
+      DormDB.saveM365Cfg(cfg);
+      sessionStorage.removeItem('dormM365Verifier');
+      _toast('☁️ Signed in as ' + (cfg.userEmail || 'your Microsoft account'));
+    } else {
+      alert('Microsoft sign-in failed: ' + (data.error_description || JSON.stringify(data)));
+    }
+  } catch(e) { alert('Microsoft sign-in error: ' + e.message); }
+}
 </script>
 
 <!-- Semester Management Modal -->
@@ -634,6 +862,84 @@ function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'
           <button id="rolloverBtn" onclick="startSemesterRollover()" disabled style="padding:5px 14px;background:#e65100;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap;opacity:.6">🔄 Start Rollover</button>
         </div>
         <div id="rolloverMsg" style="font-size:.75rem;margin-top:6px;min-height:1.5em"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Merge Backup Preview Modal -->
+<div id="mergeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:min(480px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="background:#1e3a5f;color:#fff;padding:16px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:1rem">🔀 Merge Backup Preview</strong>
+      <button onclick="closeMergeModal()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div style="padding:20px">
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:12px 14px;font-size:.8rem;color:#5d4037;margin-bottom:16px">
+        <strong>Safe merge — master data is protected.</strong><br>
+        Your room roster, queue, settings, and student profiles are never changed. Only field-collected records (inspections, attendance, incidents, maintenance) are added.
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:18px">
+        <thead>
+          <tr style="background:#f0f4f8">
+            <th style="padding:7px 10px;text-align:left;border-bottom:2px solid #d9e6f5">Data type</th>
+            <th style="padding:7px 10px;text-align:right;border-bottom:2px solid #d9e6f5">In this backup</th>
+          </tr>
+        </thead>
+        <tbody id="mergePreviewBody"></tbody>
+      </table>
+      <p style="font-size:.78rem;color:#777;margin:0 0 16px">Only records not already in your database will be added. Re-merging the same backup is safe.</p>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeMergeModal()" style="padding:8px 18px;border:1px solid #ccc;background:#fff;border-radius:6px;cursor:pointer;font-size:.85rem">✕ Cancel</button>
+        <button onclick="confirmMerge()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:700">✅ Confirm Merge</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Microsoft 365 Cloud Sync Modal -->
+<div id="m365Modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:min(520px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="background:#1e3a5f;color:#fff;padding:16px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between">
+      <strong style="font-size:1rem">☁️ Microsoft 365 Cloud Sync</strong>
+      <button onclick="closeM365Modal()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div style="padding:20px">
+      <!-- Enable toggle -->
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer">
+        <input type="checkbox" id="m365Enabled" style="width:16px;height:16px">
+        <span style="font-size:.9rem;font-weight:700;color:#1e3a5f">Enable automatic OneDrive upload on export</span>
+      </label>
+      <div style="background:#e3f2fd;border:1px solid #90caf9;border-radius:8px;padding:12px 14px;font-size:.78rem;color:#1565c0;margin-bottom:16px">
+        <strong>One-time IT setup required:</strong> Register an Azure AD app in your university tenant with Platform = Single-page application, Redirect URI = this page's URL, API Permission = Files.ReadWrite (Delegated). Copy the Application (Client) ID below.
+      </div>
+      <!-- Settings fields -->
+      <div style="display:grid;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Application (Client) ID</label>
+          <input id="m365ClientId" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            style="width:100%;font-size:.82rem;padding:6px 10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Tenant ID <span style="font-weight:400;color:#999">(leave "common" for any Microsoft 365 account)</span></label>
+          <input id="m365TenantId" type="text" placeholder="common"
+            style="width:100%;font-size:.82rem;padding:6px 10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">OneDrive folder name</label>
+          <input id="m365Folder" type="text" placeholder="Nightly Checking"
+            style="width:100%;font-size:.82rem;padding:6px 10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">
+        </div>
+      </div>
+      <button onclick="saveM365Settings()" style="padding:7px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;margin-bottom:16px">💾 Save Settings</button>
+      <!-- Sign-in status -->
+      <div style="border-top:1px solid #e0e0e0;padding-top:14px">
+        <div style="font-size:.75rem;font-weight:700;color:#555;margin-bottom:8px">Sign-in Status</div>
+        <div id="m365Status" style="font-size:.82rem;color:#666;margin-bottom:10px">Not signed in</div>
+        <button id="m365SignInBtn" onclick="m365SignIn()" style="padding:8px 18px;background:#0078d4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🔑 Sign in with Microsoft</button>
+      </div>
+      <div style="font-size:.72rem;color:#999;margin-top:14px;border-top:1px solid #eee;padding-top:10px">
+        Tokens are stored in your browser's localStorage. Each device (dean laptop, RA phones) must sign in separately. The dean's OneDrive "Nightly Checking" folder should be shared with all RA accounts.
       </div>
     </div>
   </div>

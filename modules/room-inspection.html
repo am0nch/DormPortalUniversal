@@ -312,6 +312,7 @@ function init(){
   const params=new URLSearchParams(location.search);
   const back=params.get('back');
   if(back==='room-reservations')document.getElementById('backLink').href='room-reservations.html';
+  if(back==='ra-portal')document.getElementById('backLink').href='ra-portal.html';
   document.getElementById('dormNameSpan').textContent=DormDB.getDormName();
   document.getElementById('userSpan').textContent=DormDB.getCurrentUser();
   document.getElementById('insp_date').value=new Date().toISOString().slice(0,10);
@@ -324,6 +325,9 @@ function init(){
   DormDB.on(DormDB.KEYS.ROOMS,()=>{loadData();populateRoomDropdowns();});
   DormDB.on(DormDB.KEYS.INSPECTIONS,()=>{loadData();renderList();renderCharges();});
   DormDB.on(DormDB.KEYS.PROFILES,()=>{populateRoomDropdowns();});
+  // Deep-link tab from RA Portal (?tab=checkin or ?tab=checkout)
+  const tab=params.get('tab');
+  if(tab && ['checkin','checkout','charges','settings'].includes(tab)) switchTab(tab);
 }
 
 // ══ Tabs ═══════════════════════════════════════════════════════════════════
