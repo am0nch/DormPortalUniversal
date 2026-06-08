@@ -128,7 +128,7 @@
 </div>
 
 <div class="rp-footer">
-  <a href="../index.html">← Full Dean Menu</a>
+  <span style="color:#90a4ae;font-size:.78rem" id="rpFooterDorm"></span>
 </div>
 
 <!-- Identity modal -->
@@ -140,7 +140,7 @@
       <select id="rpRaSelect" onchange="onRaSelectChange()">
         <option value="">— Select —</option>
       </select>
-      <input class="name-input" id="rpRaCustom" type="text" placeholder="Type your name" id="rpRaCustom">
+      <input class="name-input" id="rpRaCustom" type="text" placeholder="Type your name">
       <button class="modal-save" onclick="saveIdentity()">✅ Confirm</button>
     </div>
   </div>
@@ -148,6 +148,7 @@
 
 <script>
 const KNOWN_CATEGORIES = ['RA', 'Monitor'];
+let _rpUploadInterval;
 
 async function rpInit() {
   await _rpHandleRedirect();
@@ -185,14 +186,17 @@ async function rpInit() {
   const cfg = DormDB.getCurfewCfg ? DormDB.getCurfewCfg() : {};
   const today = new Date().getDay(); // 0=Sun,6=Sat
   const isWeekend = today === 0 || today === 5 || today === 6;
-  const curfewTime = isWeekend ? (cfg.weekendCurfew || cfg.weekendCurfew) : cfg.weekdayCurfew;
+  const curfewTime = isWeekend ? (cfg.weekendCurfew || cfg.weekdayCurfew) : cfg.weekdayCurfew;
   if (curfewTime) {
     document.getElementById('rpCurfewBanner').style.display = 'flex';
     document.getElementById('rpCurfewText').textContent = 'Tonight\'s curfew: ' + curfewTime + (cfg.graceMinutes ? ' (grace: ' + cfg.graceMinutes + ' min)' : '');
   }
 
   _rpUpdateM365Status();
-  setInterval(_rpAutoUpload, 10 * 60 * 1000);
+  const rpFooter = document.getElementById('rpFooterDorm');
+  if (rpFooter) rpFooter.textContent = (DormDB.getDormName() || 'Dorm') + ' — RA Portal';
+  clearInterval(_rpUploadInterval);
+  _rpUploadInterval = setInterval(_rpAutoUpload, 10 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) _rpAutoUpload(); });
 }
 

@@ -378,6 +378,11 @@ const DormDB = (() => {
 
     // Password helpers
     hashPwd,
+    async verifyPwd(pwd) {
+      const stored = localStorage.getItem(K.PWD);
+      if (!stored) return true;
+      return (await hashPwd(pwd)) === stored;
+    },
     getPwdHash:  ()  => localStorage.getItem(K.PWD),
     savePwdHash: (h) => {
       if (h) localStorage.setItem(K.PWD, h);

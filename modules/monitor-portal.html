@@ -108,7 +108,7 @@
 </div>
 
 <div class="rp-footer">
-  <a href="../index.html">← Full Dean Menu</a>
+  <span style="color:#90a4ae;font-size:.78rem" id="mpFooterDorm"></span>
 </div>
 
 <!-- Identity modal -->
@@ -127,6 +127,8 @@
 </div>
 
 <script>
+let _mpUploadInterval;
+
 // ── Microsoft 365 sign-in (PKCE) ─────────────────────────────────────────
 async function _mpGenChallenge() {
   const arr = crypto.getRandomValues(new Uint8Array(32));
@@ -265,7 +267,10 @@ async function mpInit() {
   }
 
   _mpUpdateM365Status();
-  setInterval(_mpAutoUpload, 10 * 60 * 1000);
+  const mpFooter = document.getElementById('mpFooterDorm');
+  if (mpFooter) mpFooter.textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
+  clearInterval(_mpUploadInterval);
+  _mpUploadInterval = setInterval(_mpAutoUpload, 10 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) _mpAutoUpload(); });
 }
 
