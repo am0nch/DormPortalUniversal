@@ -121,6 +121,10 @@
         <option value="">— Select —</option>
       </select>
       <input class="name-input" id="mpMonitorCustom" type="text" placeholder="Type your name">
+      <div id="mpPinRow" style="display:none;margin-top:10px">
+        <label for="mpPinInput" style="display:block;margin-bottom:4px">Portal PIN</label>
+        <input type="password" id="mpPinInput" class="name-input" placeholder="Enter Monitor Portal PIN" autocomplete="current-password">
+      </div>
       <button class="modal-save" onclick="saveIdentity()">✅ Confirm</button>
     </div>
   </div>
@@ -128,6 +132,17 @@
 
 <script>
 let _mpUploadInterval;
+
+async function mpCheckAuth() {
+  if (sessionStorage.getItem('mpSession') === 'valid') return;
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  if (!pins.monPortalHash) return; // no PIN set — open access
+  document.getElementById('mpPinRow').style.display = 'block';
+  // Disable __other__ option when PIN is set (must select from registered Monitor list)
+  const sel = document.getElementById('mpMonitorSelect');
+  const otherOpt = [...sel.options].find(o => o.value === '__other__');
+  if (otherOpt) otherOpt.disabled = true;
+}
 
 // ── Microsoft 365 sign-in (PKCE) ─────────────────────────────────────────
 async function _mpGenChallenge() {
@@ -256,11 +271,16 @@ async function mpInit() {
   other.value = '__other__'; other.textContent = 'Other (type name below)';
   sel.appendChild(other);
 
+  // Set up PIN gate (shows PIN field, disables __other__ if PIN configured)
+  await mpCheckAuth();
+
   // Restore saved identity
   const saved = DormDB.getCurrentUser();
-  if (saved) {
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  const hasSession = !pins.monPortalHash || sessionStorage.getItem('mpSession') === 'valid';
+  if (saved && hasSession) {
     const opt = [...sel.options].find(o => o.value === saved);
-    if (opt) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('mpMonitorCustom').value = saved; document.getElementById('mpMonitorCustom').style.display = 'block'; }
+    if (opt && !opt.disabled) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('mpMonitorCustom').value = saved; document.getElementById('mpMonitorCustom').style.display = 'block'; }
     applyIdentity(saved, workers);
   } else {
     openIdentityModal();
@@ -292,12 +312,26 @@ function openIdentityModal() {
   document.getElementById('identityModal').classList.add('open');
 }
 
-function saveIdentity() {
+async function saveIdentity() {
   const sel = document.getElementById('mpMonitorSelect');
   const name = sel.value === '__other__'
     ? document.getElementById('mpMonitorCustom').value.trim()
     : sel.value;
   if (!name) return alert('Please select or enter your name.');
+
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  if (pins.monPortalHash) {
+    if (sel.value === '__other__') return alert('Custom name entry is disabled when a portal PIN is set. Select your name from the list.');
+    const pin = (document.getElementById('mpPinInput').value || '').trim();
+    if (!pin) return alert('Enter the Monitor Portal PIN.');
+    const hash = await DormDB.hashPwd(pin);
+    if (hash !== pins.monPortalHash) {
+      document.getElementById('mpPinInput').value = '';
+      return alert('Incorrect PIN — try again.');
+    }
+    sessionStorage.setItem('mpSession', 'valid');
+  }
+
   DormDB.saveCurrentUser(name);
   applyIdentity(name);
   document.getElementById('identityModal').classList.remove('open');

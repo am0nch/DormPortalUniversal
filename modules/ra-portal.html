@@ -141,14 +141,29 @@
         <option value="">— Select —</option>
       </select>
       <input class="name-input" id="rpRaCustom" type="text" placeholder="Type your name">
+      <div id="rpPinRow" style="display:none;margin-top:10px">
+        <label for="rpPinInput" style="display:block;margin-bottom:4px">Portal PIN</label>
+        <input type="password" id="rpPinInput" class="name-input" placeholder="Enter RA Portal PIN" autocomplete="current-password">
+      </div>
       <button class="modal-save" onclick="saveIdentity()">✅ Confirm</button>
     </div>
   </div>
 </div>
 
 <script>
-const KNOWN_CATEGORIES = ['RA', 'Monitor'];
+const KNOWN_CATEGORIES = ['RA'];
 let _rpUploadInterval;
+
+async function rpCheckAuth() {
+  if (sessionStorage.getItem('rpSession') === 'valid') return;
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  if (!pins.raPortalHash) return; // no PIN set — open access
+  document.getElementById('rpPinRow').style.display = 'block';
+  // Disable __other__ option when PIN is set (must select from registered RA list)
+  const sel = document.getElementById('rpRaSelect');
+  const otherOpt = [...sel.options].find(o => o.value === '__other__');
+  if (otherOpt) otherOpt.disabled = true;
+}
 
 async function rpInit() {
   await _rpHandleRedirect();
@@ -171,12 +186,17 @@ async function rpInit() {
   other.textContent = 'Other (type name below)';
   sel.appendChild(other);
 
+  // Set up PIN gate (shows PIN field, disables __other__ if PIN configured)
+  await rpCheckAuth();
+
   // Restore saved identity
   const saved = DormDB.getCurrentUser();
-  if (saved) {
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  const hasSession = !pins.raPortalHash || sessionStorage.getItem('rpSession') === 'valid';
+  if (saved && hasSession) {
     // Try to pre-select
     const opt = [...sel.options].find(o => o.value === saved);
-    if (opt) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('rpRaCustom').value = saved; document.getElementById('rpRaCustom').style.display = 'block'; }
+    if (opt && !opt.disabled) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('rpRaCustom').value = saved; document.getElementById('rpRaCustom').style.display = 'block'; }
     applyIdentity(saved, workers);
   } else {
     openIdentityModal();
@@ -219,12 +239,26 @@ function openIdentityModal() {
   document.getElementById('identityModal').classList.add('open');
 }
 
-function saveIdentity() {
+async function saveIdentity() {
   const sel = document.getElementById('rpRaSelect');
   const name = sel.value === '__other__'
     ? document.getElementById('rpRaCustom').value.trim()
     : sel.value;
   if (!name) return alert('Please select or enter your name.');
+
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  if (pins.raPortalHash) {
+    if (sel.value === '__other__') return alert('Custom name entry is disabled when a portal PIN is set. Select your name from the list.');
+    const pin = (document.getElementById('rpPinInput').value || '').trim();
+    if (!pin) return alert('Enter the RA Portal PIN.');
+    const hash = await DormDB.hashPwd(pin);
+    if (hash !== pins.raPortalHash) {
+      document.getElementById('rpPinInput').value = '';
+      return alert('Incorrect PIN — try again.');
+    }
+    sessionStorage.setItem('rpSession', 'valid');
+  }
+
   DormDB.saveCurrentUser(name);
   applyIdentity(name);
   document.getElementById('identityModal').classList.remove('open');

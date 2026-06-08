@@ -89,6 +89,8 @@ body{background:#f0f4f8;min-height:100vh}
           style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">✏️ Manage</button>
         <button onclick="openPwdModal()"
           style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">🔐 Password</button>
+        <button onclick="openPortalModal()"
+          style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">🔑 Portal Access</button>
       </div>
     </div>
   </div>
@@ -588,6 +590,40 @@ async function removePwd() {
   closePwdModal();
 }
 
+// Portal Access PIN management modal
+function openPortalModal() {
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
+  document.getElementById('paRaCurrent').textContent  = pins.raPortalHash  ? '✅ RA Portal PIN is set'     : '⚠️ No PIN set — portal is open';
+  document.getElementById('paMonCurrent').textContent = pins.monPortalHash ? '✅ Monitor Portal PIN is set' : '⚠️ No PIN set — portal is open';
+  ['paRaNew','paRaConfirm','paMonNew','paMonConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('paError').style.display = 'none';
+  document.getElementById('portalModal').style.display = 'flex';
+}
+function closePortalModal() { document.getElementById('portalModal').style.display = 'none'; }
+
+async function savePortalAccess() {
+  const errEl = document.getElementById('paError');
+  errEl.style.display = 'none';
+  const raNew   = document.getElementById('paRaNew').value.trim();
+  const raConf  = document.getElementById('paRaConfirm').value.trim();
+  const monNew  = document.getElementById('paMonNew').value.trim();
+  const monConf = document.getElementById('paMonConfirm').value.trim();
+  if (raNew  && raNew  !== raConf)  { errEl.textContent = 'RA Portal PINs do not match.';      errEl.style.display = 'block'; return; }
+  if (monNew && monNew !== monConf) { errEl.textContent = 'Monitor Portal PINs do not match.'; errEl.style.display = 'block'; return; }
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
+  if (raNew)  pins.raPortalHash  = await DormDB.hashPwd(raNew);
+  if (monNew) pins.monPortalHash = await DormDB.hashPwd(monNew);
+  DormDB.savePortalPins(pins);
+  _toast('✅ Portal PINs saved');
+  closePortalModal();
+}
+
+function removePortalPins() {
+  if (DormDB.savePortalPins) DormDB.savePortalPins({ raPortalHash: '', monPortalHash: '' });
+  _toast('🔓 All portal PINs removed');
+  closePortalModal();
+}
+
 // Init
 (async () => {
   await _m365HandleRedirect(); // handle OAuth callback before rendering
@@ -1068,6 +1104,35 @@ async function _m365HandleRedirect() {
       <div style="font-size:.72rem;color:#999;margin-top:14px;border-top:1px solid #eee;padding-top:10px">
         Tokens are stored in your browser's localStorage. Each device (dean laptop, RA phones) must sign in separately. The dean's OneDrive "Nightly Checking" folder should be shared with all RA accounts.
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Portal Access PIN modal -->
+<div id="portalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:380px;max-width:95vw;padding:26px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔑 Portal Access PINs</div>
+    <div style="font-size:.78rem;color:#888;margin-bottom:18px">Set a PIN for each staff portal. RAs/Monitors must select their registered name and enter the PIN to gain access. Leave blank = portal is open (no PIN required).</div>
+
+    <div style="font-size:.8rem;font-weight:700;color:#555;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:4px">RA Portal PIN</div>
+    <div id="paRaCurrent" style="font-size:.75rem;color:#2e7d32;margin-bottom:6px"></div>
+    <input type="password" id="paRaNew" placeholder="New RA Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:6px">
+    <input type="password" id="paRaConfirm" placeholder="Confirm RA Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:8px">
+
+    <div style="font-size:.8rem;font-weight:700;color:#555;margin:10px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px">Monitor Portal PIN</div>
+    <div id="paMonCurrent" style="font-size:.75rem;color:#2e7d32;margin-bottom:6px"></div>
+    <input type="password" id="paMonNew" placeholder="New Monitor Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:6px">
+    <input type="password" id="paMonConfirm" placeholder="Confirm Monitor Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:8px">
+
+    <div id="paError" style="color:#c0392b;font-size:.78rem;margin-bottom:8px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button onclick="removePortalPins()" style="padding:7px 12px;background:#fff;color:#c0392b;border:1px solid #c0392b;border-radius:6px;cursor:pointer;font-size:.8rem">🗑️ Remove All PINs</button>
+      <button onclick="closePortalModal()" style="padding:7px 12px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.8rem">Cancel</button>
+      <button onclick="savePortalAccess()" style="padding:7px 16px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:700">💾 Save</button>
     </div>
   </div>
 </div>
