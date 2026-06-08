@@ -59,6 +59,7 @@ const DormDB = (() => {
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
+    MAINTENANCE_IMPORTS: 'dormMaintenanceImports',
   };
 
   // ── Generic read / write ───────────────────────────────────────────────────
@@ -201,8 +202,10 @@ const DormDB = (() => {
     saveSchedule:    (d) => _w(K.SCHEDULE, d),
     getMaintenance:    ()  => _r(K.MAINTENANCE, []),
     saveMaintenance:   (d) => _w(K.MAINTENANCE, d),
-    getMaintenanceCfg()    { return _r(K.MAINTENANCE_CFG, { defaultAssignee: '' }); },
+    getMaintenanceCfg()    { return _r(K.MAINTENANCE_CFG, { defaultAssignee: '', msFormsFile: '' }); },
     saveMaintenanceCfg:(d) => _w(K.MAINTENANCE_CFG, d),
+    getMaintenanceImports: ()  => _r(K.MAINTENANCE_IMPORTS, []),
+    saveMaintenanceImports:(d) => _w(K.MAINTENANCE_IMPORTS, d),
     getLeavesImport:  ()  => _r(K.LEAVES_IMPORT, {}),
     saveLeavesImport: (d) => _w(K.LEAVES_IMPORT, d),
     getAttendance:    ()  => _r(K.ATTENDANCE, []),

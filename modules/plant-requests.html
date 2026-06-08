@@ -127,6 +127,8 @@ body{background:#f0f4f8;min-height:100vh}
   <div id="tab-requests" class="tab-panel">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
       <button class="btn btn-primary" onclick="openReqModal()">+ New Request</button>
+      <input type="file" id="msFormsInput" accept=".csv" style="display:none" onchange="importStudentReports(this)">
+      <button class="btn" onclick="document.getElementById('msFormsInput').click()" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-weight:600" title="Import student-submitted requests from an MS Forms CSV export">📋 Import Student Reports</button>
       <select id="statusFilter" onchange="renderRequests()" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.82rem;font-weight:600">
         <option value="">Open Requests</option>
         <option value="all">All Statuses</option>
@@ -169,6 +171,14 @@ body{background:#f0f4f8;min-height:100vh}
       <div class="fg">
         <label>Default Assignee (Plant Service contact)</label>
         <input type="text" id="cfg_assignee" placeholder="e.g. Plant Services Office">
+      </div>
+      <div class="fg">
+        <label>Student MS Forms URL <span style="font-weight:400;color:#888;font-size:.8rem">(share with students as QR code)</span></label>
+        <input type="url" id="cfg_msFormsUrl" placeholder="https://forms.office.com/…">
+      </div>
+      <div style="background:#e8f5e9;border-radius:7px;padding:12px;font-size:.8rem;color:#2e7d32;margin-bottom:10px">
+        <strong>📋 Student self-reporting flow:</strong>
+        Students fill out the MS Forms link above (no login required). From MS Forms dashboard, export responses as CSV → import here with the "Import Student Reports" button on the Requests tab.
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" onclick="saveSettings()">Save</button>
@@ -543,10 +553,12 @@ function clearHistFilter() {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function loadSettings() {
-  document.getElementById('cfg_assignee').value = cfg.defaultAssignee || '';
+  document.getElementById('cfg_assignee').value  = cfg.defaultAssignee || '';
+  document.getElementById('cfg_msFormsUrl').value = cfg.msFormsFile || '';
 }
 function saveSettings() {
   cfg.defaultAssignee = document.getElementById('cfg_assignee').value.trim();
+  cfg.msFormsFile     = document.getElementById('cfg_msFormsUrl').value.trim();
   DormDB.saveMaintenanceCfg(cfg);
   showToast('✅ Settings saved');
 }
@@ -559,6 +571,89 @@ function askConfirm(msg, fn) {
   document.getElementById('confirmYes').onclick = () => { closeModal('confirmModal'); fn(); };
   openModal('confirmModal');
 }
+// ── MS Forms Student Report Import ────────────────────────────────────────────
+function parseStudentReportCSV(text) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+  function col(rx) { return headers.findIndex(h => rx.test(h)); }
+  const C = {
+    name:     col(/student.?name|your.?name|name/i),
+    room:     col(/room.?no|room.?number|room/i),
+    floor:    col(/floor/i),
+    location: col(/location|area|where/i),
+    category: col(/category|type|kind/i),
+    desc:     col(/describe|description|issue|problem|detail/i),
+    urgency:  col(/urgent|urgency|priority/i),
+    ts:       col(/completion.?time|start.?time|timestamp|submitted/i),
+  };
+  const URGENCY_MAP = { low:'Low', normal:'Normal', high:'High', emergency:'Emergency' };
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const cells = [];
+    let inQ = false, cur = '';
+    for (let j = 0; j < line.length; j++) {
+      if (line[j] === '"') { inQ = !inQ; continue; }
+      if (line[j] === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else cur += line[j];
+    }
+    cells.push(cur.trim());
+    const g = idx => (idx >= 0 ? (cells[idx] || '').trim() : '');
+    rows.push({
+      name: g(C.name), room: g(C.room), floor: g(C.floor),
+      location: g(C.location), category: g(C.category),
+      desc: g(C.desc),
+      urgency: URGENCY_MAP[(g(C.urgency) || '').toLowerCase()] || 'Normal',
+      ts: g(C.ts) || (i + '_' + Date.now()),
+    });
+  }
+  return rows.filter(r => r.name || r.room || r.desc);
+}
+
+function importStudentReports(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = parseStudentReportCSV(e.target.result);
+    if (!rows.length) { showToast('No valid rows found in CSV'); return; }
+
+    const imported = new Set(DormDB.getMaintenanceImports());
+    let added = 0;
+    const now = new Date().toISOString();
+    const newReqs = [...requests];
+
+    rows.forEach(r => {
+      const dedupeKey = [r.ts, r.room, r.name].join('|').toLowerCase();
+      if (imported.has(dedupeKey)) return;
+      const req = emptyRequest();
+      req.id          = Date.now() + added;
+      req.reportedBy  = r.name;
+      req.room        = r.room;
+      req.floor       = r.floor || (r.room ? r.room.charAt(0) : '');
+      req.location    = r.location;
+      req.category    = r.category;
+      req.description = r.desc;
+      req.urgency     = r.urgency;
+      req.createdAt   = now;
+      newReqs.unshift(req);
+      imported.add(dedupeKey);
+      added++;
+    });
+
+    if (!added) { showToast('No new records — all rows already imported'); return; }
+    DormDB.saveMaintenance(newReqs);
+    DormDB.saveMaintenanceImports([...imported]);
+    requests = newReqs;
+    renderRequests();
+    showToast(`📋 Imported ${added} student report${added !== 1 ? 's' : ''} from MS Forms`);
+  };
+  reader.readAsText(file);
+}
+
 let _toastTimer;
 function showToast(msg, dur=3200) {
   const t = document.getElementById('toast');
@@ -579,11 +674,15 @@ window.addEventListener('scroll', ()=>{
 function init() {
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
+  const BACK_LABELS = { 'ra-portal': '← RA Portal', 'monitor-portal': '← Monitor Portal' };
   if (back) {
     const el = document.getElementById('backLink');
     el.href        = back + '.html';
-    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    el.textContent = BACK_LABELS[back] || ('← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
   }
+  const VALID_TABS = ['dashboard','requests','history','settings'];
+  const tabParam = params.get('tab');
+  if (tabParam && VALID_TABS.includes(tabParam)) switchTab(tabParam);
   document.getElementById('navDorm').textContent = DormDB.getDormName();
   document.getElementById('navUser').textContent = DormDB.getCurrentUser();
 
