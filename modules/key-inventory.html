@@ -462,7 +462,7 @@ function init() {
     const el = document.getElementById('backLink');
     const labels = { 'room-reservations': '← Room Reservations', 'floor-plan': '← Floor Plan', 'monitor-portal': '← Monitor Portal', 'ra-portal': '← RA Portal' };
     el.textContent = labels[back] || '← Menu';
-    el.href = '../' + (back === 'room-reservations' ? 'modules/room-reservations.html' : back + '.html');
+    el.href = back + '.html';
   }
   const tabParam = params.get('tab');
   const VALID_TABS = ['dashboard','assigned','borrow','inventory','settings','agreement'];
