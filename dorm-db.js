@@ -61,6 +61,7 @@ const DormDB = (() => {
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
     MAINTENANCE_IMPORTS: 'dormMaintenanceImports',
     PORTAL_PINS:         'dormPortalPins',
+    LAST_ROSTER_PULL:    'dormLastRosterPull',
   };
 
   // ── Generic read / write ───────────────────────────────────────────────────
@@ -270,6 +271,8 @@ const DormDB = (() => {
     saveM365Cfg: (d) => _w(K.M365_CFG, d),
     getPortalPins() { return _r(K.PORTAL_PINS, { raPortalHash: '', monPortalHash: '' }); },
     savePortalPins: (d) => _w(K.PORTAL_PINS, d),
+    getLastRosterPull: () => _r(K.LAST_ROSTER_PULL, ''),
+    saveLastRosterPull: (ts) => _w(K.LAST_ROSTER_PULL, ts),
     getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
     saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
     getUtilities:    ()  => _r(K.UTILITIES, []),

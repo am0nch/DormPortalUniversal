@@ -925,6 +925,38 @@ async function m365UploadNow(blob, filename) {
   return resp.json();
 }
 
+async function pushRosterToStaff() {
+  const statusEl = document.getElementById('rosterPushStatus');
+  statusEl.textContent = '⏳ Uploading…';
+  const token = await _m365EnsureToken();
+  if (!token) {
+    statusEl.textContent = '❌ Not signed in — use "Sign in with Microsoft" first.';
+    return;
+  }
+  const pushedAt = new Date().toISOString();
+  const roster = {
+    _rosterPushedAt: pushedAt,
+    dormData:        DormDB.getRooms(),
+    dormWorkers:     DormDB.getWorkers ? DormDB.getWorkers() : [],
+    dormCurfewConfig: DormDB.getCurfewCfg ? DormDB.getCurfewCfg() : {},
+    dormSemesterCfg:  DormDB.getSemesterCfg ? DormDB.getSemesterCfg() : {},
+    dormMaxOccupants: DormDB.getMaxOcc ? DormDB.getMaxOcc() : 2,
+    dormNameSelect:   localStorage.getItem('dormNameSelect') || 'Elijah Hall',
+    dormNameCustom:   localStorage.getItem('dormNameCustom') || '',
+  };
+  const ts = pushedAt.replace(/:/g, '-').slice(0, 19); // 2026-06-08T22-15-00
+  const filename = 'Dean_Roster_' + ts + '.json';
+  const blob = new Blob([JSON.stringify(roster, null, 2)], { type: 'application/json' });
+  try {
+    await m365UploadNow(blob, filename);
+    const stuCount = roster.dormData.filter(s => s.name).length;
+    statusEl.innerHTML = `✅ Pushed at ${new Date(pushedAt).toLocaleTimeString()} &nbsp;·&nbsp; ${stuCount} students &nbsp;·&nbsp; ${roster.dormWorkers.length} workers`;
+    _toast('📤 Roster pushed — staff portals will offer update on next open');
+  } catch(e) {
+    statusEl.textContent = '❌ Upload failed: ' + e.message;
+  }
+}
+
 async function _m365HandleRedirect() {
   const params = new URLSearchParams(location.search);
   if (params.get('state') !== 'm365auth' || !params.get('code')) return;
@@ -1100,6 +1132,13 @@ async function _m365HandleRedirect() {
         <div style="font-size:.75rem;font-weight:700;color:#555;margin-bottom:8px">Sign-in Status</div>
         <div id="m365Status" style="font-size:.82rem;color:#666;margin-bottom:10px">Not signed in</div>
         <button id="m365SignInBtn" onclick="m365SignIn()" style="padding:8px 18px;background:#0078d4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🔑 Sign in with Microsoft</button>
+      </div>
+      <!-- Push Roster to Staff -->
+      <div style="border-top:1px solid #e0e0e0;padding-top:14px;margin-top:14px">
+        <div style="font-size:.75rem;font-weight:700;color:#555;margin-bottom:4px">📤 Push Roster to Staff Portals</div>
+        <div style="font-size:.74rem;color:#777;margin-bottom:10px">Uploads the current room roster, worker list, and curfew settings to OneDrive. RA and Monitor portals will offer an update banner on their next open.</div>
+        <button onclick="pushRosterToStaff()" style="padding:7px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">📤 Push Roster Now</button>
+        <div id="rosterPushStatus" style="font-size:.72rem;color:#555;margin-top:8px;min-height:1em"></div>
       </div>
       <div style="font-size:.72rem;color:#999;margin-top:14px;border-top:1px solid #eee;padding-top:10px">
         Tokens are stored in your browser's localStorage. Each device (dean laptop, RA phones) must sign in separately. The dean's OneDrive "Nightly Checking" folder should be shared with all RA accounts.
