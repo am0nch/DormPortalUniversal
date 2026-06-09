@@ -1583,9 +1583,8 @@ DormDB.on('dormBeddingCount',  () => { if(_isActive('tab-bedding'))    renderBed
 DormDB.on('dormBeddingCfg',    () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
 DormDB.on(DormDB.KEYS.SEMESTER_CFG, _seedSemesterFilter);
 
-// Initial render
-_seedSemesterFilter();
-renderArchive();
+// Initial render (deferred until IDB cache is ready)
+DormDB.ready.then(() => { _seedSemesterFilter(); renderArchive(); });
 </script>
 <script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>
 </body>

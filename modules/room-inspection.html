@@ -308,7 +308,8 @@ function loadData(){
   inspections=DormDB.getInspections();
 }
 
-function init(){
+async function init(){
+  await DormDB.ready;
   const params=new URLSearchParams(location.search);
   const back=params.get('back');
   if(back==='room-reservations')document.getElementById('backLink').href='room-reservations.html';

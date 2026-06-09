@@ -2044,10 +2044,11 @@ function resetAllEdits(){
 }
 
 // ═══ INIT ═══
-function _runInit(){
-  const sn=localStorage.getItem('dormNameSelect'),sc=localStorage.getItem('dormNameCustom'),sm=localStorage.getItem('dormMaxOccupants');
+async function _runInit(){
+  await DormDB.ready;
+  const sn=DormDB.getDormNameSel(),sc=DormDB.getDormNameCust(),sm=DormDB.getMaxOcc();
   if(sn){document.getElementById('dormSelect').value=sn;if(sn==='Other'&&sc)document.getElementById('customDormName').value=sc;updateDormName();}
-  if(sm){document.getElementById('maxOccupantsSelect').value=sm;setMaxOccupants();}
+  if(sm){document.getElementById('maxOccupantsSelect').value=String(sm);setMaxOccupants();}
   const sf=DormDB.getFloor()||'all';currentFloor=sf;document.getElementById('floorFilter').value=sf;
   if(loadFromLS()){document.getElementById('loadStatus').innerText='✓ Restored from browser storage';setTimeout(()=>document.getElementById('loadStatus').innerText='',4000);recalcWaiting();}
   else{fullData=JSON.parse(JSON.stringify(masterList));}

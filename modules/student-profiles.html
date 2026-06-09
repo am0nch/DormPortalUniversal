@@ -449,6 +449,7 @@ async function migratePhotosToIDB() {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
+  await DormDB.ready;
   document.getElementById('navDorm').textContent = DormDB.getDormName();
   profiles = DormDB.getProfiles();
   await migratePhotosToIDB();

@@ -455,7 +455,8 @@ let cfg          = {};
 let _currentFineKeyId = null;
 
 // ── Init ───────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+  await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back = params.get('back');
   if (back) {

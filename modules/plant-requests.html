@@ -671,7 +671,8 @@ window.addEventListener('scroll', ()=>{
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+  await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
   const BACK_LABELS = { 'ra-portal': '← RA Portal', 'monitor-portal': '← Monitor Portal' };

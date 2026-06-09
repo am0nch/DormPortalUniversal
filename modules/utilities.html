@@ -229,7 +229,8 @@ let elecRows = [];         // working rows for current period — electricity
 let hwRows = [];           // working rows for current period — hot water
 
 // ── Init ──────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+  await DormDB.ready;
   document.getElementById('navDorm').textContent = DormDB.getDormName();
   // Default to current month
   const now = new Date();

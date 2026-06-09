@@ -2102,15 +2102,17 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
 })();
 
 // ── Header subtitle ───────────────────────────────────────────────────────────
-try {
-  const dn = DormDB.getDormName();
-  if (dn) {
-    document.getElementById('heroSub').textContent =
-      'DormPortalUniversal v4 · ' + dn + ' · Asia-Pacific International University';
-    const nd = document.getElementById('navDorm');
-    if (nd) nd.textContent = dn;
-  }
-} catch(e) {}
+DormDB.ready.then(() => {
+  try {
+    const dn = DormDB.getDormName();
+    if (dn) {
+      document.getElementById('heroSub').textContent =
+        'DormPortalUniversal v4 · ' + dn + ' · Asia-Pacific International University';
+      const nd = document.getElementById('navDorm');
+      if (nd) nd.textContent = dn;
+    }
+  } catch(e) {}
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TOC data

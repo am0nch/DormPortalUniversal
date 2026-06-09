@@ -174,7 +174,8 @@ let floorPlan = { bathroomPairs: [], soloPairs: [] };
 let editingPairIndex = null;
 
 // ── Init ──────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+  await DormDB.ready;
   document.getElementById('navDorm').textContent = DormDB.getDormName();
   rooms = DormDB.getRooms();
   floorPlan = DormDB.getFloorPlan();

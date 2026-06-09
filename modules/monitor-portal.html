@@ -344,6 +344,7 @@ function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g
 
 // ── Identity ──────────────────────────────────────────────────────────────
 async function mpInit() {
+  await DormDB.ready;
   await _mpHandleRedirect();
   document.getElementById('mpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
 

@@ -403,8 +403,7 @@ function updateMenuDorm() {
   const sel = document.getElementById('menuDormSelect');
   const ci  = document.getElementById('menuCustomDorm');
   ci.style.display = sel.value === 'Other' ? 'inline-block' : 'none';
-  localStorage.setItem('dormNameSelect', sel.value);
-  if (sel.value === 'Other') localStorage.setItem('dormNameCustom', ci.value);
+  DormDB.saveDormName(sel.value, ci.value || '');
   updateHeader();
 }
 
@@ -421,10 +420,9 @@ async function restoreAll(input) {
   await DormDB.importAll(dump);
   refreshStats();
   updateHeader();
-  // Re-sync dorm selector dropdown to the restored value; without this the
-  // dropdown still shows the pre-restore selection and would overwrite on next change.
-  const _rs = localStorage.getItem('dormNameSelect');
-  const _rc = localStorage.getItem('dormNameCustom');
+  // Re-sync dorm selector dropdown to the restored value
+  const _rs = DormDB.getDormNameSel();
+  const _rc = DormDB.getDormNameCust();
   if (_rs) {
     document.getElementById('menuDormSelect').value = _rs;
     const _ci = document.getElementById('menuCustomDorm');
@@ -511,8 +509,8 @@ async function submitAuth() {
 function _initAfterAuth() {
   updateHeader();
   refreshStats();
-  const _sn = localStorage.getItem('dormNameSelect');
-  const _sc = localStorage.getItem('dormNameCustom');
+  const _sn = DormDB.getDormNameSel();
+  const _sc = DormDB.getDormNameCust();
   if (_sn) {
     document.getElementById('menuDormSelect').value = _sn;
     if (_sn === 'Other' && _sc) {
@@ -626,6 +624,7 @@ function removePortalPins() {
 
 // Init
 (async () => {
+  await DormDB.ready;
   await _m365HandleRedirect(); // handle OAuth callback before rendering
   const authed = await checkAuth();
   if (authed) _initAfterAuth();
@@ -941,8 +940,8 @@ async function pushRosterToStaff() {
     dormCurfewConfig: DormDB.getCurfewCfg ? DormDB.getCurfewCfg() : {},
     dormSemesterCfg:  DormDB.getSemesterCfg ? DormDB.getSemesterCfg() : {},
     dormMaxOccupants: DormDB.getMaxOcc ? DormDB.getMaxOcc() : 2,
-    dormNameSelect:   localStorage.getItem('dormNameSelect') || 'Elijah Hall',
-    dormNameCustom:   localStorage.getItem('dormNameCustom') || '',
+    dormNameSelect:   DormDB.getDormNameSel(),
+    dormNameCustom:   DormDB.getDormNameCust(),
   };
   const ts = pushedAt.replace(/:/g, '-').slice(0, 19); // 2026-06-08T22-15-00
   const filename = 'Dean_Roster_' + ts + '.json';

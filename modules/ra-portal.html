@@ -181,6 +181,7 @@ async function rpCheckAuth() {
 }
 
 async function rpInit() {
+  await DormDB.ready;
   await _rpHandleRedirect();
   document.getElementById('rpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — RA Portal';
 
