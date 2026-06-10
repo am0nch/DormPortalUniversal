@@ -47,6 +47,15 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
 .fee-rg input[type=number]{text-align:right;width:100%}
 
 #scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:#1e3a5f;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}#scrollTopBtn:hover{background:#2d5282;}@media print{#scrollTopBtn{display:none}}
+@media(max-width:768px){
+  body{font-size:15px}
+  input,select,textarea{font-size:16px!important}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  .container{padding:10px}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;display:block}
+  .tab-btn{white-space:nowrap;display:inline-block}
+  .report-grid,.cl-g2,.cl-g3,.cl-g4,.cl-g5{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -332,7 +341,7 @@ function matchesFloor(room,f){return f==='all'||getFloor(room)===f;}
 function isHoldActive(s){return!!(s.roomHold&&s.roomHold.active&&(s.summer||s.firstSem)&&s.moveOutReason!=='Graduating'&&!(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm'));}
 
 // ── Init ───────────────────────────────────────────────────────────────────
-document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
+// dormNameSpan set inside ready.then() so IDB cache is populated first.
 
 function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -1583,9 +1592,12 @@ DormDB.on('dormBeddingCount',  () => { if(_isActive('tab-bedding'))    renderBed
 DormDB.on('dormBeddingCfg',    () => { if(_isActive('tab-bedding'))    renderBeddingReport(); });
 DormDB.on(DormDB.KEYS.SEMESTER_CFG, _seedSemesterFilter);
 
-// Initial render
-_seedSemesterFilter();
-renderArchive();
+// Initial render (deferred until IDB cache is ready)
+DormDB.ready.then(() => {
+  document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
+  _seedSemesterFilter();
+  renderArchive();
+});
 </script>
 <script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>
 </body>

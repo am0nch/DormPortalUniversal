@@ -1,13 +1,19 @@
 /**
- * DormDB — Central data API for Dorm Manager
- * All modules read/write through this file. localStorage is the current backend;
- * swap _r/_w internals to IndexedDB when data grows past ~5 MB.
+ * DormDB — Central data API for DormPortalUniversal
+ *
+ * Storage backend: IndexedDB (write-through synchronous cache)
+ *   - Reads are synchronous via in-memory _cache.
+ *   - Writes update _cache immediately + persist to IDB async (fire-and-forget).
+ *   - On startup, _cache is populated from IDB; first-ever load migrates from localStorage.
+ *   - BroadcastChannel carries the new value in each message so cross-tab cache stays live.
+ *
+ * Every module's init() must begin with: await DormDB.ready
  */
 const DormDB = (() => {
 
   // ── Storage key constants ──────────────────────────────────────────────────
   const K = {
-    // Room reservations (existing keys — must not change)
+    // Room reservations
     ROOMS:       'dormData',
     QUEUE:       'dormQueue',
     HISTORY:     'dormHistory',
@@ -59,67 +65,155 @@ const DormDB = (() => {
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
+    MAINTENANCE_IMPORTS: 'dormMaintenanceImports',
+    PORTAL_PINS:         'dormPortalPins',
+    LAST_ROSTER_PULL:    'dormLastRosterPull',
   };
 
-  // ── Generic read / write ───────────────────────────────────────────────────
-  function _r(key, def) {
-    try {
-      const v = localStorage.getItem(key);
-      return v !== null ? JSON.parse(v) : def;
-    } catch(e) {
-      console.error('DormDB read error:', key, e);
-      return def;
-    }
-  }
+  // ── In-memory cache ───────────────────────────────────────────────────────
+  const _cache = Object.create(null);
 
-  function _w(key, val) {
-    try {
-      localStorage.setItem(key, JSON.stringify(val));
-      _broadcast(key);
-    } catch(e) {
-      console.error('DormDB write error:', key, e);
-      throw e;
-    }
-  }
+  // ── Ready promise — resolves when _cache is populated from IDB ────────────
+  let _resolveReady;
+  const _readyPromise = new Promise(r => { _resolveReady = r; });
 
-  // ── IndexedDB — photo storage ─────────────────────────────────────────────
-  let _idbReady = null;
+  // ── IndexedDB ─────────────────────────────────────────────────────────────
+  // Re-use the existing 'DormManagerDB' database (already holds 'photos').
+  // Version bumped from 1 → 2 to add the 'dormkv' key-value store.
+  const IDB_NAME    = 'DormManagerDB';
+  const IDB_VERSION = 2;
+  const IDB_KV      = 'dormkv';   // store for all DormDB key-value data
+  const IDB_PHOTOS  = 'photos';
+
+  let _dbPromise = null;
   function _openIDB() {
-    if (_idbReady) return _idbReady;
-    _idbReady = new Promise((resolve, reject) => {
-      const req = indexedDB.open('DormManagerDB', 1);
-      req.onupgradeneeded = e => e.target.result.createObjectStore('photos', { keyPath: 'id' });
-      req.onsuccess  = e => resolve(e.target.result);
-      req.onerror    = e => reject(e.target.error);
+    if (_dbPromise) return _dbPromise;
+    _dbPromise = new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_PHOTOS)) db.createObjectStore(IDB_PHOTOS, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(IDB_KV))     db.createObjectStore(IDB_KV);
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror   = ()  => { _dbPromise = null; reject(req.error); };
     });
-    return _idbReady;
+    return _dbPromise;
   }
 
-  function _dataURLtoBlob(dataURL) {
-    const [header, b64] = dataURL.split(',');
-    const mime = header.match(/:(.*?);/)[1];
-    const bytes = atob(b64);
-    const arr = new Uint8Array(bytes.length);
-    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-    return new Blob([arr], { type: mime });
+  // Fire-and-forget write to dormkv store
+  function _idbSet(key, val) {
+    _openIDB().then(db => {
+      db.transaction(IDB_KV, 'readwrite').objectStore(IDB_KV).put(val, key);
+    }).catch(e => console.warn('IDB write failed:', key, e));
+  }
+
+  // Fire-and-forget delete from dormkv store
+  function _idbDel(key) {
+    _openIDB().then(db => {
+      db.transaction(IDB_KV, 'readwrite').objectStore(IDB_KV).delete(key);
+    }).catch(e => console.warn('IDB delete failed:', key, e));
+  }
+
+  // Read all entries from dormkv store
+  function _idbReadAll(db) {
+    return new Promise((resolve, reject) => {
+      const result = Object.create(null);
+      const req = db.transaction(IDB_KV, 'readonly').objectStore(IDB_KV).openCursor();
+      req.onsuccess = e => {
+        const cur = e.target.result;
+        if (cur) { result[cur.key] = cur.value; cur.continue(); }
+        else resolve(result);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // ── Generic read / write (synchronous via cache) ──────────────────────────
+  function _r(key, def) {
+    return key in _cache ? _cache[key] : def;
+  }
+
+  // Update cache + persist to IDB + notify subscribers / other tabs
+  function _w(key, val) {
+    _cache[key] = val;
+    _idbSet(key, val);
+    _broadcast(key);
+  }
+
+  // Remove from cache + IDB + notify
+  function _del(key) {
+    delete _cache[key];
+    _idbDel(key);
+    _broadcast(key);
   }
 
   // ── BroadcastChannel — cross-tab sync ─────────────────────────────────────
+  // The new value is included in every message so the receiving tab updates
+  // its cache directly without a round-trip back to IDB.
+  const _DELETED = '__DORMDB_DELETED__'; // sentinel for deletions
   let _channel = null;
   const _subs = {};
 
-  try { _channel = new BroadcastChannel('dorm-sync'); } catch(e) { /* private mode */ }
+  try { _channel = new BroadcastChannel('dorm-sync'); } catch(e) { /* private/unsupported */ }
 
   function _broadcast(key) {
-    if (_channel) _channel.postMessage({ key, ts: Date.now() });
+    const val = key in _cache ? _cache[key] : _DELETED;
+    if (_channel) _channel.postMessage({ key, val, ts: Date.now() });
     (_subs[key] || []).forEach(fn => { try { fn(); } catch(e) {} });
   }
 
   if (_channel) {
-    _channel.onmessage = (e) => {
-      (_subs[e.data.key] || []).forEach(fn => { try { fn(); } catch(e) {} });
+    _channel.onmessage = ({ data: { key, val } }) => {
+      if (val === _DELETED) delete _cache[key];
+      else _cache[key] = val;
+      (_subs[key] || []).forEach(fn => { try { fn(); } catch(e) {} });
     };
   }
+
+  // ── Startup: populate cache from IDB, migrate from localStorage if empty ──
+  async function _init() {
+    try {
+      const db  = await _openIDB();
+      const idb = await _idbReadAll(db);
+
+      if (Object.keys(idb).length > 0) {
+        // Subsequent load — use IDB as source of truth
+        Object.assign(_cache, idb);
+        // Pick up any K-keys absent from IDB (new constants added after first migration)
+        for (const key of Object.values(K)) {
+          if (key in _cache) continue;
+          const raw = localStorage.getItem(key);
+          if (raw === null) continue;
+          let val;
+          try { val = JSON.parse(raw); } catch { val = raw; }
+          _cache[key] = val;
+          _idbSet(key, val);
+        }
+      } else {
+        // First load — migrate every managed key from localStorage
+        for (const key of Object.values(K)) {
+          const raw = localStorage.getItem(key);
+          if (raw === null) continue;
+          let val;
+          try { val = JSON.parse(raw); } catch { val = raw; } // handle plain strings
+          _cache[key] = val;
+          _idbSet(key, val);
+        }
+      }
+    } catch(e) {
+      // IDB unavailable — fall back to localStorage for this session
+      console.warn('DormDB: IDB unavailable, falling back to localStorage.', e);
+      for (const key of Object.values(K)) {
+        const raw = localStorage.getItem(key);
+        if (raw === null) continue;
+        try { _cache[key] = JSON.parse(raw); } catch { _cache[key] = raw; }
+      }
+    }
+    _resolveReady();
+  }
+
+  _init(); // start immediately when dorm-db.js loads
 
   // ── Password — PBKDF2 / SHA-256 ───────────────────────────────────────────
   async function hashPwd(pwd) {
@@ -134,8 +228,21 @@ const DormDB = (() => {
     return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  function _dataURLtoBlob(dataURL) {
+    const [header, b64] = dataURL.split(',');
+    const mime = header.match(/:(.*?);/)[1];
+    const bytes = atob(b64);
+    const arr = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  }
+
   // ── Public API ─────────────────────────────────────────────────────────────
   return {
+
+    // Promise that resolves when the cache is populated from IDB.
+    // Every module init() must begin with: await DormDB.ready
+    get ready() { return _readyPromise; },
 
     // Room reservations
     getRooms:       ()  => _r(K.ROOMS, []),
@@ -147,36 +254,40 @@ const DormDB = (() => {
     getAway:        ()  => _r(K.AWAY, []),
     saveAway:       (d) => _w(K.AWAY, d),
 
-    // Shared settings — getters
+    // Shared settings
     getDormName() {
-      const sel = localStorage.getItem(K.NAME_SEL) || 'Elijah Hall';
-      return sel === 'Other'
-        ? (localStorage.getItem(K.NAME_CUSTOM) || 'Custom Dorm')
-        : sel;
+      const sel = _r(K.NAME_SEL, 'Elijah Hall');
+      return sel === 'Other' ? (_r(K.NAME_CUSTOM, '') || 'Custom Dorm') : sel;
     },
-    getMaxOcc:      ()  => _r(K.MAX_OCC, 2),
-    getCurrentUser: ()  => localStorage.getItem(K.USER) || 'Unknown',
-
-    // Shared settings — setters (route all writes here for BroadcastChannel sync)
+    getDormNameSel:  () => _r(K.NAME_SEL, 'Elijah Hall'),
+    getDormNameCust: () => _r(K.NAME_CUSTOM, ''),
     saveDormName(sel, custom) {
-      localStorage.setItem(K.NAME_SEL, sel);
-      localStorage.setItem(K.NAME_CUSTOM, custom || '');
+      // Write both keys before broadcasting so any NAME_SEL subscriber
+      // that calls getDormName() sees the updated custom name too.
+      _cache[K.NAME_SEL] = sel;
+      _cache[K.NAME_CUSTOM] = custom || '';
+      _idbSet(K.NAME_SEL, sel);
+      _idbSet(K.NAME_CUSTOM, custom || '');
       _broadcast(K.NAME_SEL);
     },
+    getMaxOcc:       ()     => _r(K.MAX_OCC, 2),
     saveMaxOcc:      (v)    => _w(K.MAX_OCC, v),
-    saveCurrentUser: (name) => { localStorage.setItem(K.USER, name); _broadcast(K.USER); },
+    getCurrentUser:  ()     => _r(K.USER, '') || 'Unknown',
+    saveCurrentUser: (name) => _w(K.USER, name),
     saveLastSave(ts, user) {
-      localStorage.setItem(K.LAST_UPDATE, ts);
-      localStorage.setItem(K.LAST_USER, user);
+      _cache[K.LAST_UPDATE] = ts;
+      _cache[K.LAST_USER] = user;
+      _idbSet(K.LAST_UPDATE, ts);
+      _idbSet(K.LAST_USER, user);
       _broadcast(K.LAST_UPDATE);
     },
-    getLastSave: () => ({ ts: localStorage.getItem(K.LAST_UPDATE)||'', user: localStorage.getItem(K.LAST_USER)||'' }),
-    getFloor:    ()    => localStorage.getItem(K.FLOOR) || '',
-    saveFloor:   (v)   => { localStorage.setItem(K.FLOOR, v || ''); _broadcast(K.FLOOR); },
-    getCols()          { try { return JSON.parse(localStorage.getItem(K.COLS) || '[]'); } catch { return []; } },
-    saveCols:    (arr) => { localStorage.setItem(K.COLS, JSON.stringify(arr)); _broadcast(K.COLS); },
-    getPhotosFlag: ()  => localStorage.getItem(K.PHOTOS_MIGRATED),
-    setPhotosFlag: (v) => localStorage.setItem(K.PHOTOS_MIGRATED, v),
+    getLastSave: () => ({ ts: _r(K.LAST_UPDATE, ''), user: _r(K.LAST_USER, '') }),
+    getFloor:    ()    => _r(K.FLOOR, '') || '',
+    saveFloor:   (v)   => _w(K.FLOOR, v || ''),
+    getCols:     ()    => _r(K.COLS, []),
+    saveCols:    (arr) => _w(K.COLS, arr),
+    getPhotosFlag: ()  => _r(K.PHOTOS_MIGRATED, null),
+    setPhotosFlag: (v) => _w(K.PHOTOS_MIGRATED, v),
 
     // New module data
     getProfiles:     ()  => _r(K.PROFILES, []),
@@ -201,8 +312,10 @@ const DormDB = (() => {
     saveSchedule:    (d) => _w(K.SCHEDULE, d),
     getMaintenance:    ()  => _r(K.MAINTENANCE, []),
     saveMaintenance:   (d) => _w(K.MAINTENANCE, d),
-    getMaintenanceCfg()    { return _r(K.MAINTENANCE_CFG, { defaultAssignee: '' }); },
+    getMaintenanceCfg()    { return _r(K.MAINTENANCE_CFG, { defaultAssignee: '', msFormsFile: '' }); },
     saveMaintenanceCfg:(d) => _w(K.MAINTENANCE_CFG, d),
+    getMaintenanceImports: ()  => _r(K.MAINTENANCE_IMPORTS, []),
+    saveMaintenanceImports:(d) => _w(K.MAINTENANCE_IMPORTS, d),
     getLeavesImport:  ()  => _r(K.LEAVES_IMPORT, {}),
     saveLeavesImport: (d) => _w(K.LEAVES_IMPORT, d),
     getAttendance:    ()  => _r(K.ATTENDANCE, []),
@@ -263,11 +376,15 @@ const DormDB = (() => {
         refreshToken: '', tokenExpiry: 0, userEmail: ''
       });
     },
-    saveM365Cfg: (d) => _w(K.M365_CFG, d),
-    getFloorPlan:    ()  => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
-    saveFloorPlan:   (d) => _w(K.FLOOR_PLAN, d),
-    getUtilities:    ()  => _r(K.UTILITIES, []),
-    saveUtilities:   (d) => _w(K.UTILITIES, d),
+    saveM365Cfg:         (d)  => _w(K.M365_CFG, d),
+    getPortalPins()           { return _r(K.PORTAL_PINS, { raPortalHash: '', monPortalHash: '' }); },
+    savePortalPins:      (d)  => _w(K.PORTAL_PINS, d),
+    getLastRosterPull:   ()   => _r(K.LAST_ROSTER_PULL, ''),
+    saveLastRosterPull:  (ts) => _w(K.LAST_ROSTER_PULL, ts),
+    getFloorPlan:        ()   => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
+    saveFloorPlan:       (d)  => _w(K.FLOOR_PLAN, d),
+    getUtilities:        ()   => _r(K.UTILITIES, []),
+    saveUtilities:       (d)  => _w(K.UTILITIES, d),
 
     // Cross-module stats for the main menu dashboard
     getMenuStats() {
@@ -317,7 +434,7 @@ const DormDB = (() => {
       };
     },
 
-    // Semester rollover — resets semester-specific flags for continuing students
+    // Semester rollover
     rolloverToSemester(newLabel) {
       const rooms = _r(K.ROOMS, []);
       let rolled = 0, skipped = 0;
@@ -375,17 +492,19 @@ const DormDB = (() => {
 
     // Password helpers
     hashPwd,
-    getPwdHash:  ()  => localStorage.getItem(K.PWD),
-    savePwdHash: (h) => {
-      if (h) localStorage.setItem(K.PWD, h);
-      else   localStorage.removeItem(K.PWD);
+    async verifyPwd(pwd) {
+      const stored = _r(K.PWD, null);
+      if (!stored) return true;
+      return (await hashPwd(pwd)) === stored;
     },
+    getPwdHash:  ()  => _r(K.PWD, null),
+    savePwdHash: (h) => { if (h) _w(K.PWD, h); else _del(K.PWD); },
 
-    // Photo storage — IndexedDB (async)
+    // Photo storage — IndexedDB 'photos' store (async, unchanged)
     async getPhoto(id) {
       const db = await _openIDB();
       return new Promise((res, rej) => {
-        const req = db.transaction('photos', 'readonly').objectStore('photos').get(id);
+        const req = db.transaction(IDB_PHOTOS, 'readonly').objectStore(IDB_PHOTOS).get(id);
         req.onsuccess = () => res(req.result || null);
         req.onerror   = () => rej(req.error);
       });
@@ -393,7 +512,7 @@ const DormDB = (() => {
     async savePhoto(id, blob) {
       const db = await _openIDB();
       return new Promise((res, rej) => {
-        const req = db.transaction('photos', 'readwrite').objectStore('photos').put({ id, blob });
+        const req = db.transaction(IDB_PHOTOS, 'readwrite').objectStore(IDB_PHOTOS).put({ id, blob });
         req.onsuccess = () => res();
         req.onerror   = () => rej(req.error);
       });
@@ -401,73 +520,69 @@ const DormDB = (() => {
     async deletePhoto(id) {
       const db = await _openIDB();
       return new Promise((res, rej) => {
-        const req = db.transaction('photos', 'readwrite').objectStore('photos').delete(id);
+        const req = db.transaction(IDB_PHOTOS, 'readwrite').objectStore(IDB_PHOTOS).delete(id);
         req.onsuccess = () => res();
         req.onerror   = () => rej(req.error);
       });
     },
 
-    // Full backup — export / import all managed keys (async: includes IDB photos)
+    // Full backup — export all managed keys + photos
     async exportAll() {
       const dump = {};
-      for (const v of Object.values(K)) {
-        const val = localStorage.getItem(v);
-        if (val !== null) {
-          try { dump[v] = JSON.parse(val); }
-          catch { dump[v] = val; }
-        }
+      // Read from in-memory cache (already mirrors IDB)
+      for (const key of Object.values(K)) {
+        if (key in _cache) dump[key] = _cache[key];
       }
+      // Photos from IDB
       try {
         const db = await _openIDB();
         const photos = {};
         await new Promise((res, rej) => {
-          const tx = db.transaction('photos', 'readonly');
-          const req = tx.objectStore('photos').openCursor();
+          const tx  = db.transaction(IDB_PHOTOS, 'readonly');
+          const req = tx.objectStore(IDB_PHOTOS).openCursor();
           const pending = [];
           req.onsuccess = e => {
-            const cursor = e.target.result;
-            if (cursor) {
+            const cur = e.target.result;
+            if (cur) {
               pending.push(new Promise(r => {
                 const reader = new FileReader();
-                reader.onloadend = () => { photos[cursor.value.id] = reader.result; r(); };
-                reader.readAsDataURL(cursor.value.blob);
+                reader.onloadend = () => { photos[cur.value.id] = reader.result; r(); };
+                reader.readAsDataURL(cur.value.blob);
               }));
-              cursor.continue();
+              cur.continue();
             } else {
               Promise.all(pending).then(() => { dump._photos = photos; res(); });
             }
           };
           req.onerror = () => rej(req.error);
         });
-      } catch(e) { dump._photosFailed = (dump._photosFailed||0)+1; console.warn('Photo export skipped:', e); }
+      } catch(e) { dump._photosFailed = (dump._photosFailed || 0) + 1; console.warn('Photo export skipped:', e); }
       return dump;
     },
+
     async importAll(dump) {
       const valid = new Set(Object.values(K));
-      // Clear any managed key absent from the backup so restore is a true
-      // point-in-time snapshot, not an overlay on top of current state.
-      for (const v of Object.values(K)) {
-        if (!(v in dump)) { localStorage.removeItem(v); _broadcast(v); }
+      // Clear managed keys absent from the backup
+      for (const key of Object.values(K)) {
+        if (!(key in dump)) _del(key);
       }
+      // Restore present keys
       for (const [k, v] of Object.entries(dump)) {
         if (k === '_photos') continue;
-        if (valid.has(k) && v !== null) {
-          if (typeof v === 'string') localStorage.setItem(k, v);
-          else _w(k, v);
-        }
+        if (valid.has(k) && v !== null) _w(k, v);
       }
+      // Restore photos
       if (dump._photos) {
         try {
           const db = await _openIDB();
-          // Clear IDB before restoring so deleted photos don't persist as orphans
           await new Promise((res, rej) => {
-            const req = db.transaction('photos', 'readwrite').objectStore('photos').clear();
+            const req = db.transaction(IDB_PHOTOS, 'readwrite').objectStore(IDB_PHOTOS).clear();
             req.onsuccess = res; req.onerror = () => rej(req.error);
           });
           for (const [id, dataURL] of Object.entries(dump._photos)) {
             await this.savePhoto(id, _dataURLtoBlob(dataURL));
           }
-          localStorage.setItem(K.PHOTOS_MIGRATED, 'true');
+          _w(K.PHOTOS_MIGRATED, 'true');
         } catch(e) { console.warn('Photo restore failed:', e); }
       }
     },
@@ -498,7 +613,7 @@ const DormDB = (() => {
         try {
           const db = await _openIDB();
           const existingKeys = await new Promise((res, rej) => {
-            const req = db.transaction('photos','readonly').objectStore('photos').getAllKeys();
+            const req = db.transaction(IDB_PHOTOS,'readonly').objectStore(IDB_PHOTOS).getAllKeys();
             req.onsuccess = () => res(new Set(req.result));
             req.onerror = () => rej(req.error);
           });

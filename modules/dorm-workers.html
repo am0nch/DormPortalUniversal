@@ -90,6 +90,15 @@ body{background:#f0f4f8;min-height:100vh}
   .tab-panel{display:block!important}.wc-body{display:block!important}
   @page{size:A4;margin:12mm}
 }
+@media(max-width:768px){
+  body{font-size:15px}
+  input,select,textarea{font-size:16px!important}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  .modal-box{padding:14px;margin:6px auto}
+  .tab-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;display:block}
+  .tab-btn{white-space:nowrap;display:inline-block}
+  .dw-nav{flex-wrap:wrap;gap:6px}
+}
 </style>
 </head>
 <body>
@@ -696,7 +705,8 @@ window.addEventListener('scroll', ()=>{
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+  await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
   if (back) {

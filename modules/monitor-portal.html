@@ -56,6 +56,10 @@
       .rp-btn-ghost { background:#243044; color:#ce93d8; }
       .rp-footer a { color:#546e7a; }
     }
+    @media(max-width:768px){
+      input,select,textarea{font-size:16px!important}
+      table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    }
   </style>
 </head>
 <body>
@@ -68,6 +72,20 @@
       <div class="rp-meta" id="mpArea"></div>
     </div>
     <button class="rp-user-chip" id="mpUserChip" onclick="openIdentityModal()">👤 …</button>
+  </div>
+</div>
+
+<!-- Roster update banner -->
+<div id="mpRosterBanner" style="display:none;padding:10px 12px 0;max-width:480px;margin:0 auto">
+  <div style="background:#e8f5e9;border:1px solid #4caf50;border-radius:8px;padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:#2e7d32">📥 New roster from dean</div>
+      <div id="mpRosterMeta" style="font-size:.75rem;color:#555;margin-top:2px"></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-shrink:0;margin-top:2px">
+      <button onclick="_mpSkipRoster()" style="padding:5px 10px;background:#fff;border:1px solid #ccc;border-radius:5px;font-size:.78rem;cursor:pointer">Skip</button>
+      <button id="mpRosterApplyBtn" onclick="_mpApplyRoster()" style="padding:5px 10px;background:#2e7d32;color:#fff;border:none;border-radius:5px;font-size:.78rem;cursor:pointer;font-weight:700">📥 Update</button>
+    </div>
   </div>
 </div>
 
@@ -108,7 +126,7 @@
 </div>
 
 <div class="rp-footer">
-  <a href="../index.html">← Full Dean Menu</a>
+  <span style="color:#90a4ae;font-size:.78rem" id="mpFooterDorm"></span>
 </div>
 
 <!-- Identity modal -->
@@ -121,12 +139,30 @@
         <option value="">— Select —</option>
       </select>
       <input class="name-input" id="mpMonitorCustom" type="text" placeholder="Type your name">
+      <div id="mpPinRow" style="display:none;margin-top:10px">
+        <label for="mpPinInput" style="display:block;margin-bottom:4px">Portal PIN</label>
+        <input type="password" id="mpPinInput" class="name-input" placeholder="Enter Monitor Portal PIN" autocomplete="current-password">
+      </div>
       <button class="modal-save" onclick="saveIdentity()">✅ Confirm</button>
     </div>
   </div>
 </div>
 
 <script>
+let _mpUploadInterval;
+let _mpPendingRoster = null; // { id, lastModified, token }
+
+async function mpCheckAuth() {
+  if (sessionStorage.getItem('mpSession') === 'valid') return;
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  if (!pins.monPortalHash) return; // no PIN set — open access
+  document.getElementById('mpPinRow').style.display = 'block';
+  // Disable __other__ option when PIN is set (must select from registered Monitor list)
+  const sel = document.getElementById('mpMonitorSelect');
+  const otherOpt = [...sel.options].find(o => o.value === '__other__');
+  if (otherOpt) otherOpt.disabled = true;
+}
+
 // ── Microsoft 365 sign-in (PKCE) ─────────────────────────────────────────
 async function _mpGenChallenge() {
   const arr = crypto.getRandomValues(new Uint8Array(32));
@@ -233,10 +269,86 @@ async function _mpAutoUpload() {
   } catch(e) { /* silent on auto-upload failure */ }
 }
 
+// ── Roster pull (Dean → Monitor sync via OneDrive) ─────────────────────────
+async function _mpCheckForRosterUpdate() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (!cfg.clientId || !cfg.accessToken) return;
+  try {
+    const token = await _mpEnsureToken();
+    if (!token) return;
+    const folder = encodeURIComponent(cfg.folderPath || 'Nightly Checking');
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/root:/${folder}:/children?$select=id,name,lastModifiedDateTime&$top=100`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const files = (data.value || [])
+      .filter(f => f.name.startsWith('Dean_Roster_') && f.name.endsWith('.json'))
+      .sort((a, b) => b.lastModifiedDateTime.localeCompare(a.lastModifiedDateTime));
+    if (!files.length) return;
+    const latest = files[0];
+    const lastPull = DormDB.getLastRosterPull ? DormDB.getLastRosterPull() : '';
+    if (lastPull && latest.lastModifiedDateTime <= lastPull) return;
+    _mpPendingRoster = { id: latest.id, lastModified: latest.lastModifiedDateTime, token };
+    document.getElementById('mpRosterMeta').textContent =
+      'Pushed ' + _mpTimeAgo(latest.lastModifiedDateTime) + ' · rooms, workers & curfew settings';
+    document.getElementById('mpRosterBanner').style.display = 'block';
+  } catch(e) { /* silent — offline or API error */ }
+}
+
+function _mpTimeAgo(iso) {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return m + ' min ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+function _mpSkipRoster() {
+  document.getElementById('mpRosterBanner').style.display = 'none';
+  _mpPendingRoster = null;
+}
+
+async function _mpApplyRoster() {
+  if (!_mpPendingRoster) return;
+  const btn = document.getElementById('mpRosterApplyBtn');
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const token = _mpPendingRoster.token || await _mpEnsureToken();
+    if (!token) throw new Error('Not signed in to Microsoft 365');
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/items/${_mpPendingRoster.id}/content`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const r = await resp.json();
+    if (Array.isArray(r.dormData))             DormDB.saveRooms(r.dormData);
+    if (Array.isArray(r.dormWorkers))           DormDB.saveWorkers(r.dormWorkers);
+    if (r.dormCurfewConfig)                     DormDB.saveCurfewCfg(r.dormCurfewConfig);
+    if (r.dormSemesterCfg)                      DormDB.saveSemesterCfg(r.dormSemesterCfg);
+    if (typeof r.dormMaxOccupants === 'number') DormDB.saveMaxOcc(r.dormMaxOccupants);
+    if (r.dormNameSelect)                       DormDB.saveDormName(r.dormNameSelect, r.dormNameCustom || '');
+    if (DormDB.saveLastRosterPull) DormDB.saveLastRosterPull(_mpPendingRoster.lastModified);
+    const dormName = DormDB.getDormName() || 'Dorm';
+    document.getElementById('mpDorm').textContent = dormName + ' — Monitor Portal';
+    const fe = document.getElementById('mpFooterDorm'); if (fe) fe.textContent = dormName + ' — Monitor Portal';
+    document.getElementById('mpRosterBanner').style.display = 'none';
+    _mpPendingRoster = null;
+    const stuCount = Array.isArray(r.dormData) ? r.dormData.filter(s => s.name).length : 0;
+    showToast('✅ Roster updated · ' + stuCount + ' students, ' + (r.dormWorkers||[]).length + ' workers');
+  } catch(e) {
+    showToast('❌ Update failed: ' + e.message, '#c0392b');
+    btn.disabled = false; btn.textContent = '📥 Update';
+  }
+}
+
 function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ── Identity ──────────────────────────────────────────────────────────────
 async function mpInit() {
+  await DormDB.ready;
   await _mpHandleRedirect();
   document.getElementById('mpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
 
@@ -254,18 +366,27 @@ async function mpInit() {
   other.value = '__other__'; other.textContent = 'Other (type name below)';
   sel.appendChild(other);
 
+  // Set up PIN gate (shows PIN field, disables __other__ if PIN configured)
+  await mpCheckAuth();
+
   // Restore saved identity
   const saved = DormDB.getCurrentUser();
-  if (saved) {
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  const hasSession = !pins.monPortalHash || sessionStorage.getItem('mpSession') === 'valid';
+  if (saved && hasSession) {
     const opt = [...sel.options].find(o => o.value === saved);
-    if (opt) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('mpMonitorCustom').value = saved; document.getElementById('mpMonitorCustom').style.display = 'block'; }
+    if (opt && !opt.disabled) { sel.value = saved; } else { sel.value = '__other__'; document.getElementById('mpMonitorCustom').value = saved; document.getElementById('mpMonitorCustom').style.display = 'block'; }
     applyIdentity(saved, workers);
   } else {
     openIdentityModal();
   }
 
   _mpUpdateM365Status();
-  setInterval(_mpAutoUpload, 10 * 60 * 1000);
+  _mpCheckForRosterUpdate(); // async — shows roster banner if dean pushed a newer version
+  const mpFooter = document.getElementById('mpFooterDorm');
+  if (mpFooter) mpFooter.textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
+  clearInterval(_mpUploadInterval);
+  _mpUploadInterval = setInterval(_mpAutoUpload, 10 * 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) _mpAutoUpload(); });
 }
 
@@ -287,12 +408,26 @@ function openIdentityModal() {
   document.getElementById('identityModal').classList.add('open');
 }
 
-function saveIdentity() {
+async function saveIdentity() {
   const sel = document.getElementById('mpMonitorSelect');
   const name = sel.value === '__other__'
     ? document.getElementById('mpMonitorCustom').value.trim()
     : sel.value;
   if (!name) return alert('Please select or enter your name.');
+
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
+  if (pins.monPortalHash) {
+    if (sel.value === '__other__') return alert('Custom name entry is disabled when a portal PIN is set. Select your name from the list.');
+    const pin = (document.getElementById('mpPinInput').value || '').trim();
+    if (!pin) return alert('Enter the Monitor Portal PIN.');
+    const hash = await DormDB.hashPwd(pin);
+    if (hash !== pins.monPortalHash) {
+      document.getElementById('mpPinInput').value = '';
+      return alert('Incorrect PIN — try again.');
+    }
+    sessionStorage.setItem('mpSession', 'valid');
+  }
+
   DormDB.saveCurrentUser(name);
   applyIdentity(name);
   document.getElementById('identityModal').classList.remove('open');

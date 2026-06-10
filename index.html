@@ -42,9 +42,31 @@ body{background:#f0f4f8;min-height:100vh}
 .menu-footer a{color:#7b61ff;text-decoration:none}
 .btn-export{background:#1e3a5f;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:700}
 .btn-export:hover{opacity:.88}
+@media(max-width:768px){
+  body{font-size:15px}
+  input,select,textarea{font-size:16px!important}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  .menu-wrap{padding:10px}
+  .menu-header{flex-wrap:wrap;gap:6px}
+}
 </style>
 </head>
 <body>
+
+<!-- Admin password gate (shown when dormPwdHash is set and no valid session) -->
+<div id="authOverlay" style="display:none;position:fixed;inset:0;background:#1e3a5f;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:36px 32px;width:340px;max-width:90vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.35)">
+    <div style="font-size:2.2rem;margin-bottom:8px">🏛️</div>
+    <div style="font-weight:700;font-size:1.05rem;color:#1e3a5f;margin-bottom:4px">Dormitory Administration</div>
+    <div id="authDormName" style="font-size:.82rem;color:#888;margin-bottom:20px"></div>
+    <input type="password" id="authPin" placeholder="Admin password" autocomplete="current-password"
+      style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:10px;box-sizing:border-box">
+    <div id="authError" style="color:#c0392b;font-size:.82rem;margin-bottom:8px;display:none">Incorrect password — try again</div>
+    <button id="authBtn" onclick="submitAuth()"
+      style="width:100%;padding:12px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer">🔓 Unlock</button>
+    <div style="font-size:.68rem;color:#ccc;margin-top:18px">DormPortalUniversal v4 · Authorized staff only</div>
+  </div>
+</div>
 
 <div class="menu-wrap">
   <div class="menu-header">
@@ -72,6 +94,10 @@ body{background:#f0f4f8;min-height:100vh}
         <strong id="headerSemester" style="font-size:.75rem;color:#1e3a5f">—</strong>
         <button onclick="openSemesterModal()"
           style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">✏️ Manage</button>
+        <button onclick="openPwdModal()"
+          style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">🔐 Password</button>
+        <button onclick="openPortalModal()"
+          style="font-size:.7rem;padding:1px 8px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">🔑 Portal Access</button>
       </div>
     </div>
   </div>
@@ -384,8 +410,7 @@ function updateMenuDorm() {
   const sel = document.getElementById('menuDormSelect');
   const ci  = document.getElementById('menuCustomDorm');
   ci.style.display = sel.value === 'Other' ? 'inline-block' : 'none';
-  localStorage.setItem('dormNameSelect', sel.value);
-  if (sel.value === 'Other') localStorage.setItem('dormNameCustom', ci.value);
+  DormDB.saveDormName(sel.value, ci.value || '');
   updateHeader();
 }
 
@@ -402,10 +427,9 @@ async function restoreAll(input) {
   await DormDB.importAll(dump);
   refreshStats();
   updateHeader();
-  // Re-sync dorm selector dropdown to the restored value; without this the
-  // dropdown still shows the pre-restore selection and would overwrite on next change.
-  const _rs = localStorage.getItem('dormNameSelect');
-  const _rc = localStorage.getItem('dormNameCustom');
+  // Re-sync dorm selector dropdown to the restored value
+  const _rs = DormDB.getDormNameSel();
+  const _rc = DormDB.getDormNameCust();
   if (_rs) {
     document.getElementById('menuDormSelect').value = _rs;
     const _ci = document.getElementById('menuCustomDorm');
@@ -452,36 +476,165 @@ async function exportAll() {
   }
 }
 
-// Init
-(async () => {
-  await _m365HandleRedirect(); // handle OAuth callback before rendering
+// ── Admin password gate ───────────────────────────────────────────────────
+
+async function checkAuth() {
+  const hash = DormDB.getPwdHash();
+  if (!hash) return true;
+  if (sessionStorage.getItem('dormPortalSession') === hash) return true;
+  const overlay = document.getElementById('authOverlay');
+  overlay.style.display = 'flex';
+  document.getElementById('authDormName').textContent = DormDB.getDormName() || 'Elijah Hall';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('authPin').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAuth();
+  }, { once: true });
+  return false;
+}
+
+async function submitAuth() {
+  const pin = (document.getElementById('authPin').value || '').trim();
+  if (!pin) return;
+  const btn = document.getElementById('authBtn');
+  btn.disabled = true; btn.textContent = 'Checking…';
+  const hash = await DormDB.hashPwd(pin);
+  if (hash === DormDB.getPwdHash()) {
+    sessionStorage.setItem('dormPortalSession', hash);
+    document.getElementById('authOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+    _initAfterAuth();
+  } else {
+    document.getElementById('authError').style.display = 'block';
+    document.getElementById('authPin').value = '';
+    btn.disabled = false; btn.textContent = '🔓 Unlock';
+    document.getElementById('authPin').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAuth();
+    }, { once: true });
+  }
+}
+
+function _initAfterAuth() {
   updateHeader();
   refreshStats();
-  const _sn = localStorage.getItem('dormNameSelect');
-const _sc = localStorage.getItem('dormNameCustom');
-if (_sn) {
-  document.getElementById('menuDormSelect').value = _sn;
-  if (_sn === 'Other' && _sc) {
-    document.getElementById('menuCustomDorm').value = _sc;
-    document.getElementById('menuCustomDorm').style.display = 'inline-block';
+  const _sn = DormDB.getDormNameSel();
+  const _sc = DormDB.getDormNameCust();
+  if (_sn) {
+    document.getElementById('menuDormSelect').value = _sn;
+    if (_sn === 'Other' && _sc) {
+      document.getElementById('menuCustomDorm').value = _sc;
+      document.getElementById('menuCustomDorm').style.display = 'inline-block';
+    }
+    updateHeader();
   }
-  updateHeader();
+  DormDB.on('dormProfiles',    refreshStats);
+  DormDB.on('dormData',        refreshStats);
+  DormDB.on('dormQueue',       refreshStats);
+  DormDB.on('dormHistory',     refreshStats);
+  DormDB.on('dormAway',        refreshStats);
+  DormDB.on('dormKeysInv',      refreshStats);
+  DormDB.on('dormKeysAssigned', refreshStats);
+  DormDB.on('dormMaintenance',  refreshStats);
+  DormDB.on('dormInspections',  refreshStats);
+  DormDB.on('dormInventory',    refreshStats);
+  DormDB.on('dormAttendance',   refreshStats);
+  DormDB.on('dormIncidents',    refreshStats);
+  DormDB.on('dormOffCampusReq', refreshStats);
+  DormDB.on('dormWorkers',      refreshStats);
+  DormDB.on('dormBedding',      refreshStats);
 }
-DormDB.on('dormProfiles',    refreshStats);
-DormDB.on('dormData',        refreshStats);
-DormDB.on('dormQueue',       refreshStats);
-DormDB.on('dormHistory',     refreshStats);
-DormDB.on('dormAway',        refreshStats);
-DormDB.on('dormKeysInv',      refreshStats);
-DormDB.on('dormKeysAssigned', refreshStats);
-DormDB.on('dormMaintenance',  refreshStats);
-DormDB.on('dormInspections',  refreshStats);
-DormDB.on('dormInventory',    refreshStats);
-DormDB.on('dormAttendance',   refreshStats);
-DormDB.on('dormIncidents',    refreshStats);
-DormDB.on('dormOffCampusReq', refreshStats);
-DormDB.on('dormWorkers',      refreshStats);
-DormDB.on('dormBedding',      refreshStats);
+
+// Password management modal
+function openPwdModal() {
+  const hasHash = !!DormDB.getPwdHash();
+  document.getElementById('pwdCurrentRow').style.display = hasHash ? 'block' : 'none';
+  document.getElementById('pwdRemoveBtn').style.display  = hasHash ? 'inline-block' : 'none';
+  document.getElementById('pwdModalDesc').textContent = hasHash
+    ? 'Enter your current password, then choose a new one. Leave "New password" blank to keep the current password.'
+    : 'Set a password to protect the Dean Portal from unauthorized access. Leave blank to disable the gate.';
+  ['pwdCurrent','pwdNew','pwdConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('pwdError').style.display = 'none';
+  document.getElementById('pwdModal').style.display = 'flex';
+}
+function closePwdModal() { document.getElementById('pwdModal').style.display = 'none'; }
+
+async function savePwd() {
+  const errEl = document.getElementById('pwdError');
+  errEl.style.display = 'none';
+  const current = document.getElementById('pwdCurrent').value;
+  const newPwd  = document.getElementById('pwdNew').value.trim();
+  const confirm = document.getElementById('pwdConfirm').value.trim();
+  const hasHash = !!DormDB.getPwdHash();
+
+  if (hasHash) {
+    if (!current) { errEl.textContent = 'Enter your current password.'; errEl.style.display = 'block'; return; }
+    const ok = await DormDB.verifyPwd(current);
+    if (!ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
+  }
+  if (!newPwd && !hasHash) { errEl.textContent = 'Enter a new password.'; errEl.style.display = 'block'; return; }
+  if (newPwd && newPwd !== confirm) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
+
+  if (newPwd) {
+    const hash = await DormDB.hashPwd(newPwd);
+    DormDB.savePwdHash(hash);
+    sessionStorage.setItem('dormPortalSession', hash); // update session to new hash
+    _toast('✅ Admin password saved');
+  }
+  closePwdModal();
+}
+
+async function removePwd() {
+  const errEl = document.getElementById('pwdError');
+  errEl.style.display = 'none';
+  const current = document.getElementById('pwdCurrent').value;
+  if (!current) { errEl.textContent = 'Enter your current password to confirm removal.'; errEl.style.display = 'block'; return; }
+  const ok = await DormDB.verifyPwd(current);
+  if (!ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
+  DormDB.savePwdHash(null);
+  sessionStorage.removeItem('dormPortalSession');
+  _toast('🔓 Admin password removed — portal is now open access');
+  closePwdModal();
+}
+
+// Portal Access PIN management modal
+function openPortalModal() {
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
+  document.getElementById('paRaCurrent').textContent  = pins.raPortalHash  ? '✅ RA Portal PIN is set'     : '⚠️ No PIN set — portal is open';
+  document.getElementById('paMonCurrent').textContent = pins.monPortalHash ? '✅ Monitor Portal PIN is set' : '⚠️ No PIN set — portal is open';
+  ['paRaNew','paRaConfirm','paMonNew','paMonConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('paError').style.display = 'none';
+  document.getElementById('portalModal').style.display = 'flex';
+}
+function closePortalModal() { document.getElementById('portalModal').style.display = 'none'; }
+
+async function savePortalAccess() {
+  const errEl = document.getElementById('paError');
+  errEl.style.display = 'none';
+  const raNew   = document.getElementById('paRaNew').value.trim();
+  const raConf  = document.getElementById('paRaConfirm').value.trim();
+  const monNew  = document.getElementById('paMonNew').value.trim();
+  const monConf = document.getElementById('paMonConfirm').value.trim();
+  if (raNew  && raNew  !== raConf)  { errEl.textContent = 'RA Portal PINs do not match.';      errEl.style.display = 'block'; return; }
+  if (monNew && monNew !== monConf) { errEl.textContent = 'Monitor Portal PINs do not match.'; errEl.style.display = 'block'; return; }
+  const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
+  if (raNew)  pins.raPortalHash  = await DormDB.hashPwd(raNew);
+  if (monNew) pins.monPortalHash = await DormDB.hashPwd(monNew);
+  DormDB.savePortalPins(pins);
+  _toast('✅ Portal PINs saved');
+  closePortalModal();
+}
+
+function removePortalPins() {
+  if (DormDB.savePortalPins) DormDB.savePortalPins({ raPortalHash: '', monPortalHash: '' });
+  _toast('🔓 All portal PINs removed');
+  closePortalModal();
+}
+
+// Init
+(async () => {
+  await DormDB.ready;
+  await _m365HandleRedirect(); // handle OAuth callback before rendering
+  const authed = await checkAuth();
+  if (authed) _initAfterAuth();
 })();
 
 function refreshSemesterHeader() {
@@ -778,6 +931,38 @@ async function m365UploadNow(blob, filename) {
   return resp.json();
 }
 
+async function pushRosterToStaff() {
+  const statusEl = document.getElementById('rosterPushStatus');
+  statusEl.textContent = '⏳ Uploading…';
+  const token = await _m365EnsureToken();
+  if (!token) {
+    statusEl.textContent = '❌ Not signed in — use "Sign in with Microsoft" first.';
+    return;
+  }
+  const pushedAt = new Date().toISOString();
+  const roster = {
+    _rosterPushedAt: pushedAt,
+    dormData:        DormDB.getRooms(),
+    dormWorkers:     DormDB.getWorkers ? DormDB.getWorkers() : [],
+    dormCurfewConfig: DormDB.getCurfewCfg ? DormDB.getCurfewCfg() : {},
+    dormSemesterCfg:  DormDB.getSemesterCfg ? DormDB.getSemesterCfg() : {},
+    dormMaxOccupants: DormDB.getMaxOcc ? DormDB.getMaxOcc() : 2,
+    dormNameSelect:   DormDB.getDormNameSel(),
+    dormNameCustom:   DormDB.getDormNameCust(),
+  };
+  const ts = pushedAt.replace(/:/g, '-').slice(0, 19); // 2026-06-08T22-15-00
+  const filename = 'Dean_Roster_' + ts + '.json';
+  const blob = new Blob([JSON.stringify(roster, null, 2)], { type: 'application/json' });
+  try {
+    await m365UploadNow(blob, filename);
+    const stuCount = roster.dormData.filter(s => s.name).length;
+    statusEl.innerHTML = `✅ Pushed at ${new Date(pushedAt).toLocaleTimeString()} &nbsp;·&nbsp; ${stuCount} students &nbsp;·&nbsp; ${roster.dormWorkers.length} workers`;
+    _toast('📤 Roster pushed — staff portals will offer update on next open');
+  } catch(e) {
+    statusEl.textContent = '❌ Upload failed: ' + e.message;
+  }
+}
+
 async function _m365HandleRedirect() {
   const params = new URLSearchParams(location.search);
   if (params.get('state') !== 'm365auth' || !params.get('code')) return;
@@ -954,9 +1139,74 @@ async function _m365HandleRedirect() {
         <div id="m365Status" style="font-size:.82rem;color:#666;margin-bottom:10px">Not signed in</div>
         <button id="m365SignInBtn" onclick="m365SignIn()" style="padding:8px 18px;background:#0078d4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🔑 Sign in with Microsoft</button>
       </div>
+      <!-- Push Roster to Staff -->
+      <div style="border-top:1px solid #e0e0e0;padding-top:14px;margin-top:14px">
+        <div style="font-size:.75rem;font-weight:700;color:#555;margin-bottom:4px">📤 Push Roster to Staff Portals</div>
+        <div style="font-size:.74rem;color:#777;margin-bottom:10px">Uploads the current room roster, worker list, and curfew settings to OneDrive. RA and Monitor portals will offer an update banner on their next open.</div>
+        <button onclick="pushRosterToStaff()" style="padding:7px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">📤 Push Roster Now</button>
+        <div id="rosterPushStatus" style="font-size:.72rem;color:#555;margin-top:8px;min-height:1em"></div>
+      </div>
       <div style="font-size:.72rem;color:#999;margin-top:14px;border-top:1px solid #eee;padding-top:10px">
         Tokens are stored in your browser's localStorage. Each device (dean laptop, RA phones) must sign in separately. The dean's OneDrive "Nightly Checking" folder should be shared with all RA accounts.
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Portal Access PIN modal -->
+<div id="portalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:380px;max-width:95vw;padding:26px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔑 Portal Access PINs</div>
+    <div style="font-size:.78rem;color:#888;margin-bottom:18px">Set a PIN for each staff portal. RAs/Monitors must select their registered name and enter the PIN to gain access. Leave blank = portal is open (no PIN required).</div>
+
+    <div style="font-size:.8rem;font-weight:700;color:#555;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:4px">RA Portal PIN</div>
+    <div id="paRaCurrent" style="font-size:.75rem;color:#2e7d32;margin-bottom:6px"></div>
+    <input type="password" id="paRaNew" placeholder="New RA Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:6px">
+    <input type="password" id="paRaConfirm" placeholder="Confirm RA Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:8px">
+
+    <div style="font-size:.8rem;font-weight:700;color:#555;margin:10px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px">Monitor Portal PIN</div>
+    <div id="paMonCurrent" style="font-size:.75rem;color:#2e7d32;margin-bottom:6px"></div>
+    <input type="password" id="paMonNew" placeholder="New Monitor Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:6px">
+    <input type="password" id="paMonConfirm" placeholder="Confirm Monitor Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:8px">
+
+    <div id="paError" style="color:#c0392b;font-size:.78rem;margin-bottom:8px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button onclick="removePortalPins()" style="padding:7px 12px;background:#fff;color:#c0392b;border:1px solid #c0392b;border-radius:6px;cursor:pointer;font-size:.8rem">🗑️ Remove All PINs</button>
+      <button onclick="closePortalModal()" style="padding:7px 12px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.8rem">Cancel</button>
+      <button onclick="savePortalAccess()" style="padding:7px 16px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:700">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin password modal -->
+<div id="pwdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:360px;max-width:95vw;padding:28px 26px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔐 Admin Password</div>
+    <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:16px">Set a password to protect the Dean Portal from unauthorized access. Leave blank to disable the gate.</div>
+    <div id="pwdCurrentRow" style="margin-bottom:10px">
+      <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Current password</label>
+      <input type="password" id="pwdCurrent" placeholder="Enter current password"
+        style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">New password</label>
+      <input type="password" id="pwdNew" placeholder="Enter new password"
+        style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Confirm new password</label>
+      <input type="password" id="pwdConfirm" placeholder="Re-enter new password"
+        style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+    </div>
+    <div id="pwdError" style="color:#c0392b;font-size:.78rem;margin-bottom:10px;display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+      <button id="pwdRemoveBtn" onclick="removePwd()" style="padding:8px 14px;background:#fff;color:#c0392b;border:1px solid #c0392b;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🗑️ Remove Password</button>
+      <button onclick="closePwdModal()" style="padding:8px 14px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.82rem">Cancel</button>
+      <button onclick="savePwd()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">💾 Save</button>
     </div>
   </div>
 </div>

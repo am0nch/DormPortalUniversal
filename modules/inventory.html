@@ -89,6 +89,17 @@ table.h-tbl tr:hover td{background:#f7fafc}
 .row-sold td{background:#fff3cd}.row-calc td{background:#e8f5e9;font-weight:700}
 .row-actual td{background:#e3f2fd;font-weight:700}.row-missing td{background:#fdecea;color:#c0392b;font-weight:700}
 .row-revenue td{background:#f3e5f5;font-weight:700}.bdg-ok{color:#27ae60}
+@media(max-width:768px){
+  body{font-size:15px}
+  input,select,textarea{font-size:16px!important}
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  .container{padding:10px}
+  .modal-content{padding:14px;margin:6px auto}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;display:block}
+  .tab-btn{white-space:nowrap;display:inline-block}
+  .toolbar{flex-wrap:wrap;gap:6px;padding:8px 10px}
+  .nav{flex-wrap:wrap;gap:6px}
+}
 </style>
 </head>
 <body>
@@ -1717,7 +1728,8 @@ function printBeddingReport() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-function init() {
+async function init() {
+  await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back = params.get('back');
   if (back) {
