@@ -48,30 +48,30 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-09)
+## File stats (2026-06-11)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,208 |
-| `dorm-db.js` | 630 |
-| `modules/room-reservations.html` | 2,130 |
-| `modules/student-profiles.html` | 1,224 |
-| `modules/floor-plan.html` | 497 |
-| `modules/utilities.html` | 674 |
-| `modules/reports.html` | 1,595 |
-| `modules/room-inspection.html` | 1,255 |
-| `modules/key-inventory.html` | 1,573 |
-| `modules/inventory.html` | 1,772 |
-| `modules/attendance.html` | 1,220 |
-| `modules/incidents.html` | 977 |
-| `modules/student-admin.html` | 1,002 |
-| `modules/dorm-workers.html` | 747 |
-| `modules/staff-scheduling.html` | 624 |
-| `modules/plant-requests.html` | 706 |
-| `modules/ra-portal.html` | 564 |
-| `modules/monitor-portal.html` | 527 |
-| `modules/userguide.html` | 2,439 |
-| `modules/handbook.html` | 1,865 |
+| `index.html` | 1,480 |
+| `dorm-db.js` | 671 |
+| `modules/room-reservations.html` | 2,140 |
+| `modules/student-profiles.html` | 1,233 |
+| `modules/floor-plan.html` | 507 |
+| `modules/utilities.html` | 682 |
+| `modules/reports.html` | 1,604 |
+| `modules/room-inspection.html` | 1,334 |
+| `modules/key-inventory.html` | 1,585 |
+| `modules/inventory.html` | 1,784 |
+| `modules/attendance.html` | 1,230 |
+| `modules/incidents.html` | 987 |
+| `modules/student-admin.html` | 1,012 |
+| `modules/dorm-workers.html` | 757 |
+| `modules/staff-scheduling.html` | 1,265 |
+| `modules/plant-requests.html` | 716 |
+| `modules/ra-portal.html` | 565 |
+| `modules/monitor-portal.html` | 528 |
+| `modules/userguide.html` | 2,447 |
+| `modules/handbook.html` | 1,873 |
 
 ---
 
@@ -145,6 +145,17 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
 - [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
+- [ ] Staff scheduling: `dormSchedule` and `dormWorkersConfig.scheduleCfg.masterSchedule` are not listed in cross-module dependency map — add when next touching CLAUDE.md
+
+## Completed (2026-06-11)
+
+- [x] **dorm-db.js** — Replaced static PBKDF2 salt with random per-user 16-byte salt; `hashPwd()` returns `{hash,salt}`; added `verifyPwd()`, `verifyPin()`, `getPwdHashStr()`; legacy fixed-salt path kept for backwards compat
+- [x] **index.html** — Admin password gate disabled until M365 backup (OneDrive shared folder) is configured; `openPwdModal()` shows warning banner; `checkAuth()` skips gate when M365 not ready; portal PIN save updated to `{hash,salt}` format
+- [x] **ra-portal.html / monitor-portal.html** — PIN verification switched from manual hash compare to `DormDB.verifyPin()`
+- [x] **staff-scheduling.html** — Full rewrite: added Slot View (time-based grid), overnight shift support (end < start), CSV import with preview modal, per-category slot config in Settings, Print Slot Sheet
+- [x] **staff-scheduling.html** — Fixed delete bug (blockId lookup vs workerId+weekStart); fixed filtered-index bug (si was relative to filtered array, not block.shifts); added one-worker-per-slot duplicate guard
+- [x] **staff-scheduling.html** — Added Master Schedule tab (recurring template), Auto-Populate from semester dates, `getWeekStartForDate()` helper, clear-category button; fixed CSV block ID float bug
+- [x] **staff-scheduling.html** — Fixed empty worker dropdown in openMasterModal/openShiftModalSlot: now toasts and returns early when no active workers in category
 
 ---
 
