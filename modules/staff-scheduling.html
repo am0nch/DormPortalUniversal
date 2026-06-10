@@ -670,7 +670,13 @@ function openShiftModal(workerId, day, blockId, shiftIdx) {
 }
 function openShiftModalSlot(day, startTime, endTime) {
   const catWorkers = workers.filter(x => x.status === 'Active' && x.category === slotCatFilter);
-  document.getElementById('sm_worker').innerHTML = catWorkers.map(x => `<option value="${x.id}">${esc(x.name)} (${esc(x.category)})</option>`).join('');
+  if (!catWorkers.length) {
+    showToast(`⚠️ No active ${slotCatFilter} workers found — add them in Dorm Workers first`);
+    return;
+  }
+  document.getElementById('sm_worker').innerHTML =
+    `<option value="">— Select Worker —</option>` +
+    catWorkers.map(x => `<option value="${x.id}">${esc(x.name)} (${esc(x.category)})</option>`).join('');
   document.getElementById('sm_day').value      = day;
   document.getElementById('sm_blockId').value  = '';
   document.getElementById('sm_shiftIdx').value = -1;
@@ -691,10 +697,15 @@ function openMasterModal(day, startTime, endTime, entryIdx) {
   const isEdit = entryIdx >= 0;
   const entry  = isEdit ? masterEntries()[entryIdx] : null;
 
-  document.getElementById('sm_worker').innerHTML = catWorkers
-    .map(x => `<option value="${x.id}" ${entry && x.id === entry.workerId ? 'selected' : ''}>${esc(x.name)} (${esc(x.category)})</option>`).join('');
+  if (!catWorkers.length) {
+    showToast(`⚠️ No active ${masterCatFilter} workers found — add them in Dorm Workers first`);
+    return;
+  }
+  document.getElementById('sm_worker').innerHTML =
+    `<option value="">— Select Worker —</option>` +
+    catWorkers.map(x => `<option value="${x.id}" ${entry && x.id === entry.workerId ? 'selected' : ''}>${esc(x.name)} (${esc(x.category)})</option>`).join('');
   document.getElementById('sm_day').value      = day;
-  document.getElementById('sm_blockId').value  = entryIdx; // reuse to store entry index
+  document.getElementById('sm_blockId').value  = entryIdx;
   document.getElementById('sm_shiftIdx').value = entryIdx;
   document.getElementById('sm_isMaster').value = '1';
   document.getElementById('shiftModalTitle').textContent = isEdit ? '✏️ Edit Master Entry' : '📋 Add Master Entry';
