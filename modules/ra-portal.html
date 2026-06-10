@@ -303,8 +303,8 @@ async function saveIdentity() {
     }
     const pin = (document.getElementById('rpPinInput').value || '').trim();
     if (!pin) return alert('Enter the RA Portal PIN.');
-    const hash = await DormDB.hashPwd(pin);
-    if (hash !== pins.raPortalHash) {
+    const ok = await DormDB.verifyPin(pin, pins.raPortalHash);
+    if (!ok) {
       _rpAttempts++;
       _rpLockedUntil = Date.now() + Math.min(30 * 60 * 1000, 1000 * Math.pow(2, _rpAttempts - 1));
       document.getElementById('rpPinInput').value = '';

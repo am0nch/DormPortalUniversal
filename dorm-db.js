@@ -216,9 +216,29 @@ const DormDB = (() => {
 
   _init(); // start immediately when dorm-db.js loads
 
-  // ── Password — PBKDF2 / SHA-256 ───────────────────────────────────────────
-  async function hashPwd(pwd) {
-    const enc = new TextEncoder();
+  // ── Password — PBKDF2 / SHA-256 with random per-password salt ───────────
+  // Returns { hash, salt } (both lowercase hex strings).
+  // Pass saltHex to reproduce a hash for verification; omit to generate a fresh random salt.
+  async function hashPwd(pwd, saltHex) {
+    const enc       = new TextEncoder();
+    const saltBytes = saltHex
+      ? new Uint8Array(saltHex.match(/.{2}/g).map(b => parseInt(b, 16)))
+      : crypto.getRandomValues(new Uint8Array(16));
+    const base = await crypto.subtle.importKey(
+      'raw', enc.encode(pwd), { name: 'PBKDF2' }, false, ['deriveBits']
+    );
+    const bits = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt: saltBytes, iterations: 100000, hash: 'SHA-256' },
+      base, 256
+    );
+    const hash = Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const salt = Array.from(saltBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return { hash, salt };
+  }
+
+  // Legacy: fixed salt used before random-salt migration — read-only, never write new hashes with this
+  async function _hashLegacy(pwd) {
+    const enc  = new TextEncoder();
     const base = await crypto.subtle.importKey(
       'raw', enc.encode(pwd), { name: 'PBKDF2' }, false, ['deriveBits']
     );
@@ -499,13 +519,25 @@ const DormDB = (() => {
 
     // Password helpers
     hashPwd,
+    // Verify admin password. Handles legacy plain-string (fixed salt) and new {hash,salt} format.
     async verifyPwd(pwd) {
       const stored = _r(K.PWD, null);
-      if (!stored) return true;
-      return (await hashPwd(pwd)) === stored;
+      if (!stored) return false;
+      if (typeof stored === 'string') return (await _hashLegacy(pwd)) === stored;
+      const { hash } = await hashPwd(pwd, stored.salt);
+      return hash === stored.hash;
     },
-    getPwdHash:  ()  => _r(K.PWD, null),
-    savePwdHash: (h) => { if (h) _w(K.PWD, h); else _del(K.PWD); },
+    // Verify a portal PIN against a stored hash value (same dual-format handling as verifyPwd).
+    async verifyPin(pin, stored) {
+      if (!stored) return false;
+      if (typeof stored === 'string') return (await _hashLegacy(pin)) === stored;
+      const { hash } = await hashPwd(pin, stored.salt);
+      return hash === stored.hash;
+    },
+    getPwdHash:    ()  => _r(K.PWD, null),
+    // Returns just the hash string for sessionStorage comparison (works for both formats).
+    getPwdHashStr: ()  => { const s = _r(K.PWD, null); return s ? (typeof s === 'string' ? s : s.hash) : null; },
+    savePwdHash:   (h) => { if (h) _w(K.PWD, h); else _del(K.PWD); },
 
     // Photo storage — IndexedDB 'photos' store (async, unchanged)
     async getPhoto(id) {

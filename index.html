@@ -488,21 +488,25 @@ async function checkAuth() {
   // M365 session always wins
   if (sessionStorage.getItem('dormPortalM365') === 'valid') return true;
 
-  const hash = DormDB.getPwdHash();
-  const m365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-  const m365Active = !!(m365.clientId && m365.enabled);
+  const m365            = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const m365Active      = !!(m365.clientId && m365.enabled);
+  const m365BackupReady = !!(m365.enabled && m365.clientId && m365.sharedFolderItemId);
+  const hashStr         = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
 
   // No password set AND no M365 configured → open access
-  if (!hash && !m365Active) return true;
+  if (!hashStr && !m365Active) return true;
 
   // No password set but M365 is active → show M365-only gate
-  if (!hash && m365Active) {
+  if (!hashStr && m365Active) {
     _showAuthOverlay({ m365Only: true });
     return false;
   }
 
+  // Password set but M365 backup not yet configured → skip password gate (no recovery path)
+  if (hashStr && !m365BackupReady) return true;
+
   // Password set, valid session → pass
-  if (sessionStorage.getItem('dormPortalSession') === hash) return true;
+  if (sessionStorage.getItem('dormPortalSession') === hashStr) return true;
 
   // Password set → show full gate (M365 button + PIN input)
   _showAuthOverlay({ m365Only: false });
@@ -533,9 +537,9 @@ async function submitAuth() {
   if (!pin) return;
   const btn = document.getElementById('authBtn');
   btn.disabled = true; btn.textContent = 'Checking…';
-  const hash = await DormDB.hashPwd(pin);
-  if (hash === DormDB.getPwdHash()) {
-    sessionStorage.setItem('dormPortalSession', hash);
+  const ok = await DormDB.verifyPwd(pin);
+  if (ok) {
+    sessionStorage.setItem('dormPortalSession', DormDB.getPwdHashStr());
     document.getElementById('authOverlay').style.display = 'none';
     document.body.style.overflow = '';
     _initAfterAuth();
@@ -595,7 +599,22 @@ function _initAfterAuth() {
 }
 
 // Password management modal
+function _m365BackupReady() {
+  const m = DormDB.getM365Cfg();
+  return m.enabled && m.clientId && m.sharedFolderItemId;
+}
+
 function openPwdModal() {
+  if (!_m365BackupReady()) {
+    document.getElementById('pwdM365Warning').style.display = 'block';
+    document.getElementById('pwdFormFields').style.display = 'none';
+    document.getElementById('pwdRemoveBtn').style.display = 'none';
+    document.getElementById('pwdSaveBtn').style.display = 'none';
+    document.getElementById('pwdModal').style.display = 'flex';
+    return;
+  }
+  document.getElementById('pwdM365Warning').style.display = 'none';
+  document.getElementById('pwdFormFields').style.display = 'block';
   const hasHash = !!DormDB.getPwdHash();
   document.getElementById('pwdCurrentRow').style.display = hasHash ? 'block' : 'none';
   document.getElementById('pwdRemoveBtn').style.display  = hasHash ? 'inline-block' : 'none';
@@ -625,9 +644,9 @@ async function savePwd() {
   if (newPwd && newPwd !== confirm) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
 
   if (newPwd) {
-    const hash = await DormDB.hashPwd(newPwd);
-    DormDB.savePwdHash(hash);
-    sessionStorage.setItem('dormPortalSession', hash); // update session to new hash
+    const { hash, salt } = await DormDB.hashPwd(newPwd);
+    DormDB.savePwdHash({ hash, salt });
+    sessionStorage.setItem('dormPortalSession', hash);
     _toast('✅ Admin password saved');
   }
   closePwdModal();
@@ -667,8 +686,8 @@ async function savePortalAccess() {
   if (raNew  && raNew  !== raConf)  { errEl.textContent = 'RA Portal PINs do not match.';      errEl.style.display = 'block'; return; }
   if (monNew && monNew !== monConf) { errEl.textContent = 'Monitor Portal PINs do not match.'; errEl.style.display = 'block'; return; }
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
-  if (raNew)  pins.raPortalHash  = await DormDB.hashPwd(raNew);
-  if (monNew) pins.monPortalHash = await DormDB.hashPwd(monNew);
+  if (raNew)  pins.raPortalHash  = await DormDB.hashPwd(raNew);   // { hash, salt }
+  if (monNew) pins.monPortalHash = await DormDB.hashPwd(monNew); // { hash, salt }
   DormDB.savePortalPins(pins);
   _toast('✅ Portal PINs saved');
   closePortalModal();
@@ -1426,27 +1445,34 @@ async function _m365HandleRedirect() {
 <div id="pwdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:14px;width:360px;max-width:95vw;padding:28px 26px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
     <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔐 Admin Password</div>
-    <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:16px">Set a password to protect the Dean Portal from unauthorized access. Leave blank to disable the gate.</div>
-    <div id="pwdCurrentRow" style="margin-bottom:10px">
-      <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Current password</label>
-      <input type="password" id="pwdCurrent" placeholder="Enter current password"
-        style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+    <div id="pwdM365Warning" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:.8rem;color:#856404">
+      ⚠️ <strong>M365 backup required first.</strong><br>
+      The admin password gate is only available after OneDrive backup is configured — so you always have a recovery path if you forget your password.<br>
+      <span style="margin-top:6px;display:block">Go to <strong>⚙️ Settings → M365 Integration</strong> and complete the OneDrive shared folder setup, then return here.</span>
     </div>
-    <div style="margin-bottom:10px">
-      <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">New password</label>
-      <input type="password" id="pwdNew" placeholder="Enter new password"
-        style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+    <div id="pwdFormFields">
+      <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:16px">Set a password to protect the Dean Portal from unauthorized access.</div>
+      <div id="pwdCurrentRow" style="margin-bottom:10px">
+        <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Current password</label>
+        <input type="password" id="pwdCurrent" placeholder="Enter current password"
+          style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">New password</label>
+        <input type="password" id="pwdNew" placeholder="Enter new password"
+          style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Confirm new password</label>
+        <input type="password" id="pwdConfirm" placeholder="Re-enter new password"
+          style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+      </div>
+      <div id="pwdError" style="color:#c0392b;font-size:.78rem;margin-bottom:10px;display:none"></div>
     </div>
-    <div style="margin-bottom:16px">
-      <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Confirm new password</label>
-      <input type="password" id="pwdConfirm" placeholder="Re-enter new password"
-        style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
-    </div>
-    <div id="pwdError" style="color:#c0392b;font-size:.78rem;margin-bottom:10px;display:none"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
       <button id="pwdRemoveBtn" onclick="removePwd()" style="padding:8px 14px;background:#fff;color:#c0392b;border:1px solid #c0392b;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🗑️ Remove Password</button>
       <button onclick="closePwdModal()" style="padding:8px 14px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.82rem">Cancel</button>
-      <button onclick="savePwd()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">💾 Save</button>
+      <button id="pwdSaveBtn" onclick="savePwd()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">💾 Save</button>
     </div>
   </div>
 </div>
