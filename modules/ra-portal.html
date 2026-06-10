@@ -189,6 +189,7 @@ async function rpCheckAuth() {
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
   if (!pins.raPortalHash) return; // no PIN set — open access
   document.getElementById('rpPinRow').style.display = 'block';
+  document.getElementById('rpPinInput').style.display = 'block';
   // Disable __other__ option when PIN is set (must select from registered RA list)
   const sel = document.getElementById('rpRaSelect');
   const otherOpt = [...sel.options].find(o => o.value === '__other__');

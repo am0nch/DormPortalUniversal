@@ -168,6 +168,7 @@ async function mpCheckAuth() {
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
   if (!pins.monPortalHash) return; // no PIN set — open access
   document.getElementById('mpPinRow').style.display = 'block';
+  document.getElementById('mpPinInput').style.display = 'block';
   // Disable __other__ option when PIN is set (must select from registered Monitor list)
   const sel = document.getElementById('mpMonitorSelect');
   const otherOpt = [...sel.options].find(o => o.value === '__other__');
