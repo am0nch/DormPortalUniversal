@@ -111,6 +111,7 @@ body{background:#f0f4f8;min-height:100vh}
     <button class="btn-export" onclick="document.getElementById('restoreInput').click()">📂 Restore Backup</button>
     <button class="btn-export" onclick="document.getElementById('mergeInput').click()">🔀 Merge Backup</button>
     <button class="btn-export" onclick="openM365Modal()">☁️ Cloud Sync</button>
+    <button class="btn-export" id="syncBackupsBtn" onclick="openSyncModal()" style="display:none">☁️ Sync Backups</button>
     <button class="btn-export" onclick="exportAll()">💾 Export All Data</button>
   </div>
 </div>
@@ -516,6 +517,9 @@ async function submitAuth() {
 function _initAfterAuth() {
   updateHeader();
   refreshStats();
+  // Show Sync Backups button if shared folder is configured
+  const _m365 = DormDB.getM365Cfg();
+  document.getElementById('syncBackupsBtn').style.display = (_m365.enabled && _m365.sharedFolderItemId) ? '' : 'none';
   const _sn = DormDB.getDormNameSel();
   const _sc = DormDB.getDormNameCust();
   if (_sn) {
@@ -847,6 +851,7 @@ function saveM365Settings() {
   DormDB.saveM365Cfg(cfg);
   _m365UpdateStatus();
   _toast('☁️ Cloud Sync settings saved');
+  document.getElementById('syncBackupsBtn').style.display = (cfg.enabled && cfg.sharedFolderItemId) ? '' : 'none';
 }
 
 function _m365UpdateStatus() {
@@ -855,6 +860,18 @@ function _m365UpdateStatus() {
   document.getElementById('m365ClientId').value    = cfg.clientId  || '';
   document.getElementById('m365TenantId').value    = cfg.tenantId  || 'common';
   document.getElementById('m365Folder').value      = cfg.folderPath|| 'Nightly Checking';
+  const sharedPathEl = document.getElementById('m365SharedPath');
+  const sharedStatusEl = document.getElementById('m365SharedStatus');
+  if (sharedPathEl) sharedPathEl.value = cfg._sharedFolderPath || '';
+  if (sharedStatusEl) {
+    if (cfg.sharedFolderItemId) {
+      sharedStatusEl.textContent = '✅ Shared folder resolved — ' + (cfg._sharedFolderPath || 'configured');
+      sharedStatusEl.style.color = '#2e7d32';
+    } else {
+      sharedStatusEl.textContent = '';
+    }
+  }
+  document.getElementById('syncBackupsBtn').style.display = (cfg.enabled && cfg.sharedFolderItemId) ? '' : 'none';
   const statusEl  = document.getElementById('m365Status');
   const signInBtn = document.getElementById('m365SignInBtn');
   if (cfg.accessToken && cfg.tokenExpiry > Date.now()) {
@@ -895,6 +912,143 @@ function m365SignOut() {
   _m365UpdateStatus();
   sessionStorage.removeItem('dormM365Verifier');
   _toast('Signed out of Microsoft 365', '#546e7a');
+}
+
+// ── Shared Folder Resolve ────────────────────────────────────────────────────
+async function resolveSharedFolder() {
+  const token = await _m365EnsureToken();
+  if (!token) { alert('Sign in to Microsoft 365 first.'); return; }
+  const pathInput = (document.getElementById('m365SharedPath').value || '').trim();
+  if (!pathInput) { alert('Enter a folder path first.'); return; }
+  const statusEl = document.getElementById('m365SharedStatus');
+  statusEl.textContent = 'Resolving…'; statusEl.style.color = '#555';
+  try {
+    const encoded = pathInput.split('/').map(encodeURIComponent).join('/');
+    const resp = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${encoded}`, {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    if (!resp.ok) {
+      let errMsg = 'HTTP ' + resp.status;
+      try { const e = await resp.json(); errMsg = (e.error && e.error.message) || errMsg; } catch(_) {}
+      statusEl.textContent = '❌ Error: ' + errMsg;
+      statusEl.style.color = '#c62828';
+      return;
+    }
+    const data = await resp.json();
+    const resolvedDriveId = data.parentReference && data.parentReference.driveId;
+    if (data.id && resolvedDriveId) {
+      const cfg = DormDB.getM365Cfg();
+      cfg.sharedFolderDriveId = resolvedDriveId;
+      cfg.sharedFolderItemId  = data.id;
+      cfg._sharedFolderPath   = pathInput;
+      DormDB.saveM365Cfg(cfg);
+      statusEl.textContent = '✅ Resolved: ' + (data.name || pathInput);
+      statusEl.style.color = '#2e7d32';
+      document.getElementById('syncBackupsBtn').style.display = resolvedDriveId && DormDB.getM365Cfg().enabled ? '' : 'none';
+    } else {
+      statusEl.textContent = data.id && !resolvedDriveId
+        ? '❌ Could not resolve drive ID for this folder — try a subfolder path'
+        : '❌ Folder not found';
+      statusEl.style.color = '#c62828';
+    }
+  } catch(e) {
+    statusEl.textContent = '❌ Error: ' + e.message;
+    statusEl.style.color = '#c62828';
+  }
+}
+
+// ── Sync Backups from Shared Folder ─────────────────────────────────────────
+function openSyncModal() {
+  const cfg = DormDB.getM365Cfg();
+  if (!cfg.sharedFolderItemId) { alert('Configure and resolve the shared folder in Cloud Sync settings first.'); return; }
+  document.getElementById('syncModal').style.display = 'flex';
+  document.getElementById('syncFileList').innerHTML = '<div style="color:#888;text-align:center;padding:20px">Loading backup files…</div>';
+  document.getElementById('syncFileList')._files = null; // clear stale list from prior open
+  document.getElementById('syncMergeAllBtn').style.display = 'none';
+  _listOneDriveBackups();
+}
+function closeSyncModal() { document.getElementById('syncModal').style.display = 'none'; }
+
+async function _listOneDriveBackups() {
+  const listEl = document.getElementById('syncFileList');
+  try {
+    const token = await _m365EnsureToken();
+    if (!token) { listEl.innerHTML = '<div style="color:#c62828;padding:12px">Not signed in to Microsoft 365. Sign in via Cloud Sync first.</div>'; return; }
+    const cfg = DormDB.getM365Cfg();
+    const driveId = cfg.sharedFolderDriveId;
+    const itemId  = cfg.sharedFolderItemId;
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(itemId)}/children?$select=id,name,lastModifiedDateTime,size&$orderby=lastModifiedDateTime desc`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    if (!resp.ok) {
+      let errMsg = 'HTTP ' + resp.status;
+      try { const e = await resp.json(); errMsg = (e.error && e.error.message) || errMsg; } catch(_) {}
+      listEl.innerHTML = `<div style="color:#c62828;padding:12px">Error: ${escapeHtml(errMsg)}</div>`;
+      return;
+    }
+    const data = await resp.json();
+    const files = (data.value || []).filter(f => f.name.endsWith('.json'));
+    if (!files.length) { listEl.innerHTML = '<div style="color:#888;text-align:center;padding:20px">No JSON backup files found in the shared folder.</div>'; return; }
+    const mergeLog = new Set((DormDB.getMergeLog() || []).map(e => e.id));
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:.82rem">';
+    html += '<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:left">File</th><th style="padding:6px 8px;text-align:left">Modified</th><th style="padding:6px 8px;text-align:center">Status</th></tr>';
+    let newCount = 0;
+    files.forEach(f => {
+      const isNew = !mergeLog.has(f.id);
+      if (isNew) newCount++;
+      const dt = new Date(f.lastModifiedDateTime).toLocaleString();
+      const badge = isNew
+        ? '<span style="background:#e8f5e9;color:#2e7d32;border-radius:4px;padding:2px 6px;font-size:.72rem;font-weight:700">✅ New</span>'
+        : '<span style="background:#f5f5f5;color:#999;border-radius:4px;padding:2px 6px;font-size:.72rem">Already merged</span>';
+      html += `<tr style="border-top:1px solid #f0f0f0"><td style="padding:7px 8px;word-break:break-word">${escapeHtml(f.name)}</td><td style="padding:7px 8px;white-space:nowrap;color:#555">${dt}</td><td style="padding:7px 8px;text-align:center">${badge}</td></tr>`;
+    });
+    html += '</table>';
+    listEl.innerHTML = html;
+    listEl._files = files;
+    if (newCount > 0) {
+      const btn = document.getElementById('syncMergeAllBtn');
+      btn.textContent = `✅ Merge All New (${newCount})`;
+      btn.style.display = '';
+    }
+  } catch(e) {
+    listEl.innerHTML = `<div style="color:#c62828;padding:12px">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function syncMergeAllNew() {
+  const listEl = document.getElementById('syncFileList');
+  const files = listEl._files;
+  if (!files) return;
+  const token = await _m365EnsureToken();
+  if (!token) { alert('Sign in to Microsoft 365 first.'); return; }
+  const cfg = DormDB.getM365Cfg();
+  const driveId = cfg.sharedFolderDriveId;
+  const mergeLog = DormDB.getMergeLog() || [];
+  const mergedIds = new Set(mergeLog.map(e => e.id));
+  const toMerge = files.filter(f => !mergedIds.has(f.id));
+  if (!toMerge.length) { _toast('No new files to merge'); return; }
+  document.getElementById('syncMergeAllBtn').disabled = true;
+  document.getElementById('syncMergeAllBtn').textContent = 'Merging…';
+  let totalAdded = 0;
+  for (const file of toMerge) {
+    try {
+      const loopToken = await _m365EnsureToken(); // refresh if expiring
+      if (!loopToken) { console.warn('Token expired mid-merge — stopping'); break; }
+      const resp = await fetch(`https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(driveId)}/items/${encodeURIComponent(file.id)}/content`, {
+        headers: { Authorization: 'Bearer ' + loopToken }
+      });
+      if (!resp.ok) continue;
+      const dump = await resp.json();
+      const result = await DormDB.mergeAll(dump);
+      totalAdded += result.totalAdded;
+      mergeLog.push({ id: file.id, name: file.name, mergedAt: new Date().toISOString(), added: result.totalAdded });
+    } catch(e) { console.warn('Failed to merge', file.name, e); }
+  }
+  DormDB.saveMergeLog(mergeLog);
+  refreshStats();
+  closeSyncModal();
+  _toast(totalAdded > 0 ? `☁️ Merged ${totalAdded} new record${totalAdded !== 1 ? 's' : ''} from ${toMerge.length} file${toMerge.length !== 1 ? 's' : ''}` : '☁️ Sync complete — no new records found');
 }
 
 async function _m365RefreshToken(cfg) {
@@ -1098,6 +1252,25 @@ async function _m365HandleRedirect() {
   </div>
 </div>
 
+<!-- OneDrive Sync Backups Modal -->
+<div id="syncModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:min(640px,95vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.25)">
+    <div style="background:#1e3a5f;color:#fff;padding:16px 20px;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <strong style="font-size:1rem">☁️ OneDrive Backup Sync</strong>
+      <button onclick="closeSyncModal()" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div style="padding:16px 20px;font-size:.78rem;color:#666;flex-shrink:0">
+      Files from the shared folder. "New" files have not been merged yet. Merge adds records without overwriting your existing data.
+    </div>
+    <div id="syncFileList" style="flex:1;overflow-y:auto;padding:0 20px 4px"></div>
+    <div style="padding:16px 20px;border-top:1px solid #e0e0e0;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0">
+      <button id="syncMergeAllBtn" onclick="syncMergeAllNew()" style="display:none;padding:8px 18px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:700">✅ Merge All New</button>
+      <button onclick="_listOneDriveBackups()" style="padding:8px 14px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:6px;cursor:pointer;font-size:.82rem">🔄 Refresh</button>
+      <button onclick="closeSyncModal()" style="padding:8px 14px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.82rem">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Microsoft 365 Cloud Sync Modal -->
 <div id="m365Modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:14px;width:min(520px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)">
@@ -1127,9 +1300,21 @@ async function _m365HandleRedirect() {
             style="width:100%;font-size:.82rem;padding:6px 10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">
         </div>
         <div>
-          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">OneDrive folder name</label>
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">RA/Monitor backup folder <span style="font-weight:400;color:#999">(RAs upload here; dean pulls from here)</span></label>
           <input id="m365Folder" type="text" placeholder="Nightly Checking"
             style="width:100%;font-size:.82rem;padding:6px 10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 12px;font-size:.76rem;color:#795548">
+          <strong>Shared Folder Sync (optional):</strong> Create a "DormPortal Backups" folder in your OneDrive, share it with all RA/Monitor accounts, then resolve it below. RAs will upload to this shared folder and you can pull all backups with one click.
+        </div>
+        <div>
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Shared folder path in OneDrive <span style="font-weight:400;color:#999">(e.g. DormPortal Backups)</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="m365SharedPath" type="text" placeholder="DormPortal Backups"
+              style="flex:1;font-size:.82rem;padding:6px 10px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box">
+            <button onclick="resolveSharedFolder()" style="padding:6px 12px;background:#0078d4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.78rem;white-space:nowrap">📂 Resolve</button>
+          </div>
+          <div id="m365SharedStatus" style="font-size:.72rem;margin-top:4px;min-height:1em"></div>
         </div>
       </div>
       <button onclick="saveM365Settings()" style="padding:7px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;margin-bottom:16px">💾 Save Settings</button>

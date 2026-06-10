@@ -427,8 +427,11 @@ async function _rpAutoUpload() {
     const user = (DormDB.getCurrentUser() || 'RA').replace(/\s+/g,'_');
     const filename = 'RA_Backup_' + user + '_' + new Date().toISOString().slice(0,10) + '.json';
     const blob = new Blob([JSON.stringify(dump,null,2)], {type:'application/json'});
-    const folder = encodeURIComponent(cfg.folderPath || 'Nightly Checking');
-    const r = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/${folder}/${encodeURIComponent(filename)}:/content`, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
+    // Use shared folder if configured; fall back to own OneDrive folder
+    const url = (cfg.sharedFolderDriveId && cfg.sharedFolderItemId)
+      ? `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(cfg.sharedFolderDriveId)}/items/${encodeURIComponent(cfg.sharedFolderItemId)}:/${encodeURIComponent(filename)}:/content`
+      : `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(cfg.folderPath||'Nightly Checking')}/${encodeURIComponent(filename)}:/content`;
+    const r = await fetch(url, { method:'PUT', headers:{ Authorization:'Bearer '+token, 'Content-Type':'application/octet-stream' }, body: blob });
     if (r.ok) showToast('☁️ Auto-backed up to OneDrive');
   } catch(e) { /* silent — don't interrupt user on auto-upload failure */ }
 }

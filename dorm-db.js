@@ -68,6 +68,7 @@ const DormDB = (() => {
     MAINTENANCE_IMPORTS: 'dormMaintenanceImports',
     PORTAL_PINS:         'dormPortalPins',
     LAST_ROSTER_PULL:    'dormLastRosterPull',
+    MERGE_LOG:           'dormMergeLog',
   };
 
   // ── In-memory cache ───────────────────────────────────────────────────────
@@ -370,13 +371,19 @@ const DormDB = (() => {
       return _r(K.SEMESTER_CFG, { current: '1st Semester 2026' }).current || '1st Semester 2026';
     },
     getM365Cfg() {
-      return _r(K.M365_CFG, {
+      const def = {
         enabled: false, clientId: '', tenantId: 'common',
         folderPath: 'Nightly Checking', accessToken: '',
-        refreshToken: '', tokenExpiry: 0, userEmail: ''
-      });
+        refreshToken: '', tokenExpiry: 0, userEmail: '',
+        sharedFolderDriveId: '', sharedFolderItemId: ''
+      };
+      const stored = _r(K.M365_CFG, null);
+      // Merge defaults onto stored so new fields are back-filled on upgrade
+      return stored ? Object.assign({}, def, stored) : def;
     },
     saveM365Cfg:         (d)  => _w(K.M365_CFG, d),
+    getMergeLog:         ()   => _r(K.MERGE_LOG, []),
+    saveMergeLog:        (d)  => _w(K.MERGE_LOG, d),
     getPortalPins()           { return _r(K.PORTAL_PINS, { raPortalHash: '', monPortalHash: '' }); },
     savePortalPins:      (d)  => _w(K.PORTAL_PINS, d),
     getLastRosterPull:   ()   => _r(K.LAST_ROSTER_PULL, ''),
