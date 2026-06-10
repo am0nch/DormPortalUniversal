@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Monitor Portal — DormPortalUniversal</title>
+  <meta name="theme-color" content="#4a148c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Monitor Portal">
+  <link rel="manifest" href="../manifest.json">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
   <script src="../dorm-db.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -523,6 +530,34 @@ function showToast(msg, color) {
 }
 
 mpInit();
+</script>
+
+<!-- PWA: install banner -->
+<div id="mpInstallBanner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#4a148c;color:#fff;padding:12px 16px;z-index:9999;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -2px 8px rgba(0,0,0,.25)">
+  <span style="font-size:.85rem;font-weight:600">📱 Install Monitor Portal to your home screen</span>
+  <div style="display:flex;gap:8px;flex-shrink:0">
+    <button onclick="mpInstall()" style="background:#fff;color:#4a148c;border:none;border-radius:6px;padding:7px 14px;font-size:.82rem;font-weight:700;cursor:pointer">Install</button>
+    <button onclick="document.getElementById('mpInstallBanner').style.display='none'" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:.82rem;cursor:pointer">✕</button>
+  </div>
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('../sw.js').catch(() => {});
+}
+let _mpPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); _mpPrompt = e;
+  document.getElementById('mpInstallBanner').style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('mpInstallBanner').style.display = 'none';
+});
+function mpInstall() {
+  if (!_mpPrompt) return;
+  _mpPrompt.prompt();
+  _mpPrompt.userChoice.then(() => { _mpPrompt = null; });
+  document.getElementById('mpInstallBanner').style.display = 'none';
+}
 </script>
 </body>
 </html>

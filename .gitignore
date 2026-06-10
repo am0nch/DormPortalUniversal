@@ -1,5 +1,7 @@
 # Student data exports and backups (re-created by the app at runtime)
 *.json
+# But manifest.json is a PWA app file, not a data export
+!manifest.json
 *.xlsx
 *.pdf
 
