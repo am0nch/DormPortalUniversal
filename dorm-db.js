@@ -598,6 +598,7 @@ const DormDB = (() => {
         const incoming = Array.isArray(dump[key]) ? dump[key] : [];
         if (!incoming.length) continue;
         const existing = _r(key, []);
+        // dormHistory has no id field — use archivedAt as the unique key instead
         const uq = key === K.HISTORY ? 'archivedAt' : 'id';
         const seen = new Set(existing.map(e => e[uq]).filter(Boolean));
         const toAdd = incoming.filter(item => item[uq] && !seen.has(item[uq]));
@@ -607,6 +608,7 @@ const DormDB = (() => {
           totalAdded += toAdd.length;
         }
       }
+      // Photos: add new entries without clearing existing
       if (dump._photos) {
         try {
           const db = await _openIDB();
