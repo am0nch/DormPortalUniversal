@@ -64,6 +64,17 @@
 </head>
 <body>
 
+<!-- M365 sign-in gate (shown when M365 is configured but user is not signed in) -->
+<div id="mpM365Gate" style="display:none;position:fixed;inset:0;background:#4a148c;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:36px 32px;width:min(340px,90vw);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.35)">
+    <div style="font-size:2.2rem;margin-bottom:10px">🏛️</div>
+    <div id="mpGateDorm" style="font-weight:700;font-size:1.05rem;color:#4a148c;margin-bottom:4px">Monitor Portal</div>
+    <div style="font-size:.82rem;color:#888;margin-bottom:22px">Sign in with your Microsoft 365 account to continue. Only registered staff can access this portal.</div>
+    <button onclick="mpSignIn()" style="width:100%;padding:12px;background:#0078d4;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:12px">🔑 Sign in with Microsoft 365</button>
+    <div style="font-size:.68rem;color:#bbb">Authorized staff only · @apiu.edu accounts</div>
+  </div>
+</div>
+
 <!-- Header -->
 <div class="rp-header">
   <div class="rp-header-top">
@@ -349,10 +360,25 @@ async function _mpApplyRoster() {
 
 function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+let _mpAttempts = 0;
+let _mpLockedUntil = 0;
+
 // ── Identity ──────────────────────────────────────────────────────────────
 async function mpInit() {
   await DormDB.ready;
   await _mpHandleRedirect();
+
+  // M365 gate: if M365 is configured and enabled, require sign-in before loading portal
+  const _gateM365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (_gateM365.clientId && _gateM365.enabled) {
+    const gateToken = await _mpEnsureToken().catch(() => null);
+    if (!gateToken) {
+      document.getElementById('mpM365Gate').style.display = 'flex';
+      document.getElementById('mpGateDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
+      return;
+    }
+  }
+
   document.getElementById('mpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — Monitor Portal';
 
   // Populate identity dropdown with Monitor workers
@@ -421,13 +447,21 @@ async function saveIdentity() {
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
   if (pins.monPortalHash) {
     if (sel.value === '__other__') return alert('Custom name entry is disabled when a portal PIN is set. Select your name from the list.');
+    if (_mpLockedUntil > Date.now()) {
+      const secs = Math.ceil((_mpLockedUntil - Date.now()) / 1000);
+      return alert('Too many failed attempts. Wait ' + (secs >= 60 ? Math.ceil(secs / 60) + ' min' : secs + 's') + ' before trying again.');
+    }
     const pin = (document.getElementById('mpPinInput').value || '').trim();
     if (!pin) return alert('Enter the Monitor Portal PIN.');
     const hash = await DormDB.hashPwd(pin);
     if (hash !== pins.monPortalHash) {
+      _mpAttempts++;
+      _mpLockedUntil = Date.now() + Math.min(30 * 60 * 1000, 1000 * Math.pow(2, _mpAttempts - 1));
       document.getElementById('mpPinInput').value = '';
-      return alert('Incorrect PIN — try again.');
+      const waitSecs = Math.ceil((_mpLockedUntil - Date.now()) / 1000);
+      return alert('Incorrect PIN. Wait ' + (waitSecs >= 60 ? Math.ceil(waitSecs / 60) + ' min' : waitSecs + 's') + ' before trying again.');
     }
+    _mpAttempts = 0; _mpLockedUntil = 0;
     sessionStorage.setItem('mpSession', 'valid');
   }
 

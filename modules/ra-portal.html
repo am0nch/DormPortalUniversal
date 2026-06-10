@@ -67,6 +67,17 @@
 </head>
 <body>
 
+<!-- M365 sign-in gate (shown when M365 is configured but user is not signed in) -->
+<div id="rpM365Gate" style="display:none;position:fixed;inset:0;background:#1e3a5f;z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:36px 32px;width:min(340px,90vw);text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.35)">
+    <div style="font-size:2.2rem;margin-bottom:10px">🏛️</div>
+    <div id="rpGateDorm" style="font-weight:700;font-size:1.05rem;color:#1e3a5f;margin-bottom:4px">RA Portal</div>
+    <div style="font-size:.82rem;color:#888;margin-bottom:22px">Sign in with your Microsoft 365 account to continue. Only registered staff can access this portal.</div>
+    <button onclick="rpSignIn()" style="width:100%;padding:12px;background:#0078d4;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;margin-bottom:12px">🔑 Sign in with Microsoft 365</button>
+    <div style="font-size:.68rem;color:#bbb">Authorized staff only · @apiu.edu accounts</div>
+  </div>
+</div>
+
 <!-- Header -->
 <div class="rp-header">
   <div class="rp-header-top">
@@ -184,9 +195,24 @@ async function rpCheckAuth() {
   if (otherOpt) otherOpt.disabled = true;
 }
 
+let _rpAttempts = 0;
+let _rpLockedUntil = 0;
+
 async function rpInit() {
   await DormDB.ready;
   await _rpHandleRedirect();
+
+  // M365 gate: if M365 is configured and enabled, require sign-in before loading portal
+  const _gateM365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  if (_gateM365.clientId && _gateM365.enabled) {
+    const gateToken = await _rpEnsureToken().catch(() => null);
+    if (!gateToken) {
+      document.getElementById('rpM365Gate').style.display = 'flex';
+      document.getElementById('rpGateDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — RA Portal';
+      return;
+    }
+  }
+
   document.getElementById('rpDorm').textContent = (DormDB.getDormName() || 'Dorm') + ' — RA Portal';
 
   // Populate identity dropdown
@@ -270,13 +296,21 @@ async function saveIdentity() {
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : {};
   if (pins.raPortalHash) {
     if (sel.value === '__other__') return alert('Custom name entry is disabled when a portal PIN is set. Select your name from the list.');
+    if (_rpLockedUntil > Date.now()) {
+      const secs = Math.ceil((_rpLockedUntil - Date.now()) / 1000);
+      return alert('Too many failed attempts. Wait ' + (secs >= 60 ? Math.ceil(secs / 60) + ' min' : secs + 's') + ' before trying again.');
+    }
     const pin = (document.getElementById('rpPinInput').value || '').trim();
     if (!pin) return alert('Enter the RA Portal PIN.');
     const hash = await DormDB.hashPwd(pin);
     if (hash !== pins.raPortalHash) {
+      _rpAttempts++;
+      _rpLockedUntil = Date.now() + Math.min(30 * 60 * 1000, 1000 * Math.pow(2, _rpAttempts - 1));
       document.getElementById('rpPinInput').value = '';
-      return alert('Incorrect PIN — try again.');
+      const waitSecs = Math.ceil((_rpLockedUntil - Date.now()) / 1000);
+      return alert('Incorrect PIN. Wait ' + (waitSecs >= 60 ? Math.ceil(waitSecs / 60) + ' min' : waitSecs + 's') + ' before trying again.');
     }
+    _rpAttempts = 0; _rpLockedUntil = 0;
     sessionStorage.setItem('rpSession', 'valid');
   }
 
