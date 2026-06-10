@@ -59,6 +59,10 @@ body{background:#f0f4f8;min-height:100vh}
     <div style="font-size:2.2rem;margin-bottom:8px">🏛️</div>
     <div style="font-weight:700;font-size:1.05rem;color:#1e3a5f;margin-bottom:4px">Dormitory Administration</div>
     <div id="authDormName" style="font-size:.82rem;color:#888;margin-bottom:20px"></div>
+    <button id="authM365Btn" onclick="authViaM365()"
+      style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;margin-bottom:8px;display:none">🔑 Sign in with Microsoft 365</button>
+    <div id="authM365Error" style="color:#c0392b;font-size:.75rem;margin-bottom:8px;display:none"></div>
+    <div id="authDivider" style="text-align:center;color:#bbb;font-size:.75rem;margin-bottom:10px;display:none">— or enter admin password —</div>
     <input type="password" id="authPin" placeholder="Admin password" autocomplete="current-password"
       style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:10px;box-sizing:border-box">
     <div id="authError" style="color:#c0392b;font-size:.82rem;margin-bottom:8px;display:none">Incorrect password — try again</div>
@@ -480,17 +484,47 @@ async function exportAll() {
 // ── Admin password gate ───────────────────────────────────────────────────
 
 async function checkAuth() {
+  // M365 session always wins
+  if (sessionStorage.getItem('dormPortalM365') === 'valid') return true;
+
   const hash = DormDB.getPwdHash();
-  if (!hash) return true;
+  const m365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const m365Active = !!(m365.clientId && m365.enabled);
+
+  // No password set AND no M365 configured → open access
+  if (!hash && !m365Active) return true;
+
+  // No password set but M365 is active → show M365-only gate
+  if (!hash && m365Active) {
+    _showAuthOverlay({ m365Only: true });
+    return false;
+  }
+
+  // Password set, valid session → pass
   if (sessionStorage.getItem('dormPortalSession') === hash) return true;
-  const overlay = document.getElementById('authOverlay');
-  overlay.style.display = 'flex';
-  document.getElementById('authDormName').textContent = DormDB.getDormName() || 'Elijah Hall';
-  document.body.style.overflow = 'hidden';
-  document.getElementById('authPin').addEventListener('keydown', e => {
-    if (e.key === 'Enter') submitAuth();
-  }, { once: true });
+
+  // Password set → show full gate (M365 button + PIN input)
+  _showAuthOverlay({ m365Only: false });
   return false;
+}
+
+function _showAuthOverlay({ m365Only }) {
+  const m365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const m365Active = !!(m365.clientId && m365.enabled);
+  document.getElementById('authDormName').textContent = DormDB.getDormName() || 'Elijah Hall';
+  document.getElementById('authM365Btn').style.display  = m365Active ? 'block' : 'none';
+  document.getElementById('authM365Error').style.display = 'none';
+  document.getElementById('authDivider').style.display  = (m365Active && !m365Only) ? 'block' : 'none';
+  document.getElementById('authPin').style.display      = m365Only ? 'none' : '';
+  document.getElementById('authBtn').style.display      = m365Only ? 'none' : '';
+  document.getElementById('authError').style.display    = 'none';
+  document.getElementById('authOverlay').style.display  = 'flex';
+  document.body.style.overflow = 'hidden';
+  if (!m365Only) {
+    document.getElementById('authPin').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitAuth();
+    }, { once: true });
+  }
 }
 
 async function submitAuth() {
@@ -512,6 +546,18 @@ async function submitAuth() {
       if (e.key === 'Enter') submitAuth();
     }, { once: true });
   }
+}
+
+function authViaM365() {
+  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
+  const errEl = document.getElementById('authM365Error');
+  if (!cfg.clientId) {
+    errEl.textContent = 'M365 not configured — set the Client ID in Cloud Sync settings first.';
+    errEl.style.display = 'block';
+    return;
+  }
+  sessionStorage.setItem('dormAuthIntent', 'portal');
+  m365SignIn();
 }
 
 function _initAfterAuth() {
@@ -1136,6 +1182,14 @@ async function _m365HandleRedirect() {
       cfg.userEmail = me.userPrincipalName || me.mail || '';
       DormDB.saveM365Cfg(cfg);
       sessionStorage.removeItem('dormM365Verifier');
+      // If redirect was triggered for portal auth, unlock the gate
+      if (sessionStorage.getItem('dormAuthIntent') === 'portal') {
+        sessionStorage.setItem('dormPortalM365', 'valid');
+        sessionStorage.removeItem('dormAuthIntent');
+        document.getElementById('authOverlay').style.display = 'none';
+        document.body.style.overflow = '';
+        _initAfterAuth();
+      }
       _toast('☁️ Signed in as ' + (cfg.userEmail || 'your Microsoft account'));
     } else {
       alert('Microsoft sign-in failed: ' + (data.error_description || JSON.stringify(data)));
