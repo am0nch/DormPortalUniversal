@@ -518,20 +518,23 @@ function renderSlots() {
         catWorkers.forEach(w => {
           const block = blockOf[w.id];
           if (!block) return;
-          (block.shifts||[]).filter(s => s.day === c.day && isShiftInSlot(s, slotStart, cat)).forEach((s, si) => {
-            assigned.push({ w, s, si, block });
-            names.push({ name: displayName(w.name), wId: w.id, blockId: block.id, si });
+          // Use forEach over the full shifts array so `si` is the real block.shifts index
+          (block.shifts||[]).forEach((s, si) => {
+            if (s.day === c.day && isShiftInSlot(s, slotStart, cat)) {
+              names.push({ name: displayName(w.name), wId: w.id, blockId: block.id, si });
+            }
           });
         });
         const addStart = isOvn ? sc.dayEnd : slotStart;
         const addEnd   = isOvn ? sc.dayStart : slotEnd(slotStart, cat);
+        const slotFull = names.length > 0; // one worker per slot per day
         return `<td>
           ${names.map(n => `<span class="slot-name${isOvn?' overnight-name':''}"
             onclick="openShiftModal(${n.wId},'${c.day}',${n.blockId},${n.si})"
             title="Click to edit">${esc(n.name)}</span>`).join('')}
-          <span class="slot-add"
+          ${slotFull ? '' : `<span class="slot-add"
             onclick="openShiftModalSlot(${JSON.stringify(c.day)},${JSON.stringify(addStart)},${JSON.stringify(addEnd)})"
-            title="Add ${cat} to this slot">+</span>
+            title="Add ${cat} to this slot">+</span>`}
         </td>`;
       }).join('')}
     </tr>`;
@@ -605,7 +608,6 @@ function saveShift() {
   const start = document.getElementById('sm_start').value;
   const end   = document.getElementById('sm_end').value;
   if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
-  // Allow overnight (end < start) — no longer blocked
   if (start === end) { showToast('⚠️ Start and end time cannot be the same'); return; }
 
   const area     = document.getElementById('sm_area').value.trim();
@@ -613,9 +615,21 @@ function saveShift() {
   const shiftIdx = Number(document.getElementById('sm_shiftIdx').value);
   const ws       = isoDate(getWeekStart(weekOffset));
   const wsSlot   = isoDate(getWeekStart(weekOffsetSlot));
-  // Use whichever week view is active
   const activeTab = document.querySelector('.tab-panel.active')?.id;
   const wsUse = activeTab === 'tab-slots' ? wsSlot : ws;
+
+  // Slot conflict check: one worker per slot per day (same category, same day, same start time)
+  const slotTakenBy = schedule.filter(b => b.workerId !== wId && b.weekStart === wsUse && b.category === w.category)
+    .find(b => (b.shifts||[]).some(s => s.day === day && s.startTime === start));
+  if (slotTakenBy) {
+    showToast(`⚠️ Slot already assigned to ${slotTakenBy.workerName}`); return;
+  }
+  // Self-duplicate check: same worker, same day, same start (ignore the shift being edited)
+  const ownBlock = schedule.find(b => b.workerId === wId && b.weekStart === wsUse);
+  if (ownBlock) {
+    const dupIdx = (ownBlock.shifts||[]).findIndex((s, i) => s.day === day && s.startTime === start && i !== shiftIdx);
+    if (dupIdx >= 0) { showToast('⚠️ This worker is already in this time slot'); return; }
+  }
 
   let block = schedule.find(b => b.workerId === wId && b.weekStart === wsUse);
   if (!block) {
@@ -633,16 +647,17 @@ function saveShift() {
   showToast('✅ Shift saved');
 }
 function deleteShift() {
-  const wId      = Number(document.getElementById('sm_worker').value);
+  const blockId  = Number(document.getElementById('sm_blockId').value);
   const shiftIdx = Number(document.getElementById('sm_shiftIdx').value);
-  const activeTab = document.querySelector('.tab-panel.active')?.id;
-  const wsUse = isoDate(getWeekStart(activeTab === 'tab-slots' ? weekOffsetSlot : weekOffset));
-  const block = schedule.find(b => b.workerId === wId && b.weekStart === wsUse);
-  if (!block || shiftIdx < 0) return;
-  block.shifts.splice(shiftIdx, 1);
-  if (!block.shifts.length) schedule = schedule.filter(b => !(b.workerId === wId && b.weekStart === wsUse));
+  if (shiftIdx < 0) return;
+  // Find by block ID — reliable regardless of which week view is active
+  const blockIdx = schedule.findIndex(b => b.id === blockId);
+  if (blockIdx < 0) { showToast('⚠️ Shift not found — try refreshing'); return; }
+  schedule[blockIdx].shifts.splice(shiftIdx, 1);
+  if (!schedule[blockIdx].shifts.length) schedule.splice(blockIdx, 1);
   DormDB.saveSchedule(schedule);
   closeModal('shiftModal');
+  const activeTab = document.querySelector('.tab-panel.active')?.id;
   if (activeTab === 'tab-slots') renderSlots(); else renderWeekly();
   showToast('Shift removed');
 }
