@@ -427,7 +427,7 @@ function compressPhoto(file) {
 
 // ── One-time migration: base64 photos in localStorage → IndexedDB ─────────
 async function migratePhotosToIDB() {
-  if (DormDB.getPhotosFlag() === 'true') return;
+  if (DormDB.getPhotosFlag()) return;
   const toMigrate = profiles.filter(p => p.photoDataUrl && p.photoDataUrl.startsWith('data:'));
   for (const p of toMigrate) {
     try {

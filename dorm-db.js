@@ -92,11 +92,11 @@ const DormDB = (() => {
       const req = indexedDB.open(IDB_NAME, IDB_VERSION);
       req.onupgradeneeded = e => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains(IDB_PHOTOS)) db.createObjectStore(IDB_PHOTOS);
+        if (!db.objectStoreNames.contains(IDB_PHOTOS)) db.createObjectStore(IDB_PHOTOS, { keyPath: 'id' });
         if (!db.objectStoreNames.contains(IDB_KV))     db.createObjectStore(IDB_KV);
       };
       req.onsuccess = e => resolve(e.target.result);
-      req.onerror   = ()  => reject(req.error);
+      req.onerror   = ()  => { _dbPromise = null; reject(req.error); };
     });
     return _dbPromise;
   }
@@ -180,6 +180,16 @@ const DormDB = (() => {
       if (Object.keys(idb).length > 0) {
         // Subsequent load — use IDB as source of truth
         Object.assign(_cache, idb);
+        // Pick up any K-keys absent from IDB (new constants added after first migration)
+        for (const key of Object.values(K)) {
+          if (key in _cache) continue;
+          const raw = localStorage.getItem(key);
+          if (raw === null) continue;
+          let val;
+          try { val = JSON.parse(raw); } catch { val = raw; }
+          _cache[key] = val;
+          _idbSet(key, val);
+        }
       } else {
         // First load — migrate every managed key from localStorage
         for (const key of Object.values(K)) {
@@ -252,16 +262,24 @@ const DormDB = (() => {
     getDormNameSel:  () => _r(K.NAME_SEL, 'Elijah Hall'),
     getDormNameCust: () => _r(K.NAME_CUSTOM, ''),
     saveDormName(sel, custom) {
-      _w(K.NAME_SEL, sel);
-      _w(K.NAME_CUSTOM, custom || '');
+      // Write both keys before broadcasting so any NAME_SEL subscriber
+      // that calls getDormName() sees the updated custom name too.
+      _cache[K.NAME_SEL] = sel;
+      _cache[K.NAME_CUSTOM] = custom || '';
+      _idbSet(K.NAME_SEL, sel);
+      _idbSet(K.NAME_CUSTOM, custom || '');
+      _broadcast(K.NAME_SEL);
     },
     getMaxOcc:       ()     => _r(K.MAX_OCC, 2),
     saveMaxOcc:      (v)    => _w(K.MAX_OCC, v),
     getCurrentUser:  ()     => _r(K.USER, '') || 'Unknown',
     saveCurrentUser: (name) => _w(K.USER, name),
     saveLastSave(ts, user) {
-      _w(K.LAST_UPDATE, ts);
-      _w(K.LAST_USER, user);
+      _cache[K.LAST_UPDATE] = ts;
+      _cache[K.LAST_USER] = user;
+      _idbSet(K.LAST_UPDATE, ts);
+      _idbSet(K.LAST_USER, user);
+      _broadcast(K.LAST_UPDATE);
     },
     getLastSave: () => ({ ts: _r(K.LAST_UPDATE, ''), user: _r(K.LAST_USER, '') }),
     getFloor:    ()    => _r(K.FLOOR, '') || '',
