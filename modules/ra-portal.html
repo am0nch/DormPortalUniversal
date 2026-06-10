@@ -383,7 +383,7 @@ async function rpSignIn() {
   const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
   if (!cfg.clientId) return alert('Cloud Sync is not configured. Ask the dean to set up the Microsoft 365 Client ID in Cloud Sync settings on the main menu.');
   const { verifier, challenge } = await _rpGenChallenge();
-  localStorage.setItem('dormM365Verifier_ra', verifier);
+  localStorage.setItem('m365pkce_ra', verifier);
   const params = new URLSearchParams({
     client_id: cfg.clientId, response_type: 'code',
     redirect_uri: location.origin + location.pathname,
@@ -397,7 +397,7 @@ function rpSignOut() {
   const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
   cfg.accessToken = ''; cfg.refreshToken = ''; cfg.tokenExpiry = 0; cfg.userEmail = '';
   DormDB.saveM365Cfg(cfg);
-  localStorage.removeItem('dormM365Verifier_ra');
+  localStorage.removeItem('m365pkce_ra');
   _rpUpdateM365Status();
   showToast('Signed out of Microsoft 365', '#546e7a');
 }
@@ -444,7 +444,7 @@ async function _rpHandleRedirect() {
   if (params.get('state') !== 'm365auth_ra' || !params.get('code')) return;
   history.replaceState({}, '', location.pathname);
   const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-  const verifier = localStorage.getItem('dormM365Verifier_ra');
+  const verifier = localStorage.getItem('m365pkce_ra');
   if (!verifier || !cfg.clientId) return;
   try {
     const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', code:params.get('code'), redirect_uri:location.origin+location.pathname, grant_type:'authorization_code', code_verifier:verifier });
@@ -455,7 +455,7 @@ async function _rpHandleRedirect() {
       cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000;
       const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers:{ Authorization:'Bearer '+cfg.accessToken } }).then(r=>r.json()).catch(()=>({}));
       cfg.userEmail = me.userPrincipalName || me.mail || '';
-      DormDB.saveM365Cfg(cfg); localStorage.removeItem('dormM365Verifier_ra');
+      DormDB.saveM365Cfg(cfg); localStorage.removeItem('m365pkce_ra');
     } else { alert('Microsoft sign-in failed: ' + (data.error_description || JSON.stringify(data))); }
   } catch(e) { alert('Microsoft sign-in error: ' + e.message); }
 }

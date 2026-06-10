@@ -25,7 +25,6 @@ const DormDB = (() => {
     USER:        'dormUserName',
     LAST_UPDATE: 'dormLastUpdate',
     LAST_USER:   'dormLastUser',
-    ROLE:        'dormRole',
     FLOOR:       'dormFloor',
     COLS:        'dormCols',
     // Auth

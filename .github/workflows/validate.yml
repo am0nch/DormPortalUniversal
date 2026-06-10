@@ -1,0 +1,137 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Static validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── 1. BF-016: direct localStorage bypass ──────────────────────────────
+      - name: BF-016 — no direct localStorage calls for dorm* keys
+        run: |
+          # Find any localStorage.setItem/getItem call where the key contains 'dorm'
+          # (These should go through DormDB, not raw localStorage)
+          hits=$(grep -rn "localStorage\.\(setItem\|getItem\)" modules/ index.html \
+                  | grep -E "'dorm|\"dorm" || true)
+          if [ -n "$hits" ]; then
+            echo "::error::BF-016 violation — direct localStorage call(s) bypassing DormDB:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "BF-016 OK — no direct localStorage violations found"
+
+      # ── 2. Script src references all resolve ───────────────────────────────
+      - name: Script src — all referenced files exist
+        run: |
+          failed=0
+          # Extract src="..." from all HTML files, resolve relative to the HTML file's dir
+          while IFS= read -r htmlfile; do
+            dir=$(dirname "$htmlfile")
+            while IFS= read -r src; do
+              # Strip leading ./ if present
+              src="${src#./}"
+              target="$dir/$src"
+              # Normalise path (remove ../ segments simply via Python)
+              resolved=$(python3 -c "import os, sys; print(os.path.normpath(sys.argv[1]))" "$target")
+              if [ ! -f "$resolved" ]; then
+                echo "::error file=$htmlfile::Missing script: $src (resolved: $resolved)"
+                failed=1
+              fi
+            done < <(grep -oP '(?<=<script src=")[^"]+' "$htmlfile" || true)
+          done < <(find . -name "*.html" ! -path "./.git/*")
+          [ "$failed" -eq 0 ] && echo "Script src OK — all references resolved"
+          exit $failed
+
+      # ── 3. Service worker integrity ────────────────────────────────────────
+      - name: Service worker — syntax + precache file existence
+        run: |
+          # Syntax check
+          node --check sw.js
+          echo "sw.js syntax OK"
+
+          # Extract PRECACHE array entries and verify each file exists
+          failed=0
+          node -e "
+            const fs = require('fs');
+            const src = fs.readFileSync('sw.js', 'utf8');
+            const m = src.match(/const PRECACHE\s*=\s*\[([\s\S]*?)\];/);
+            if (!m) { console.error('PRECACHE array not found in sw.js'); process.exit(1); }
+            const entries = [...m[1].matchAll(/['\"]([^'\"]+)['\"]/g)].map(x => x[1]);
+            let failed = 0;
+            entries.forEach(e => {
+              // Resolve ./ relative to repo root
+              const path = e.replace(/^\.\//, '');
+              if (path === '' || path === '.') return; // root entry
+              if (!fs.existsSync(path)) {
+                console.error('PRECACHE entry missing from repo: ' + e);
+                failed++;
+              }
+            });
+            if (failed === 0) console.log('PRECACHE OK — all ' + entries.length + ' entries exist');
+            process.exit(failed > 0 ? 1 : 0);
+          "
+
+      # ── 4. Manifest validity ───────────────────────────────────────────────
+      - name: Manifest — required fields + icon files
+        run: |
+          node -e "
+            const fs = require('fs');
+            let m;
+            try { m = JSON.parse(fs.readFileSync('manifest.json', 'utf8')); }
+            catch(e) { console.error('manifest.json parse error:', e.message); process.exit(1); }
+
+            const required = ['name', 'short_name', 'start_url', 'display', 'icons'];
+            let failed = 0;
+            required.forEach(k => {
+              if (!m[k]) { console.error('manifest.json missing required field: ' + k); failed++; }
+            });
+
+            // Must have at least a 192px icon
+            const has192 = (m.icons || []).some(i => i.sizes && i.sizes.includes('192'));
+            if (!has192) { console.error('manifest.json: no 192x192 icon defined'); failed++; }
+
+            // All icon src files must exist
+            (m.icons || []).forEach(icon => {
+              const p = icon.src.replace(/^\.\//, '');
+              if (!fs.existsSync(p)) {
+                console.error('manifest.json icon file missing: ' + icon.src);
+                failed++;
+              }
+            });
+
+            if (failed === 0) console.log('Manifest OK — all fields present, icons exist');
+            process.exit(failed > 0 ? 1 : 0);
+          "
+
+      # ── 5. DormDB K constants coverage ────────────────────────────────────
+      - name: dorm-db.js — every K constant has a getter or setter
+        run: |
+          python3 - << 'PYEOF'
+          import re, sys
+          src = open('dorm-db.js').read()
+          # Extract the K = { ... } block
+          m = re.search(r'const K\s*=\s*\{([\s\S]*?)\n\s*\};', src)
+          if not m:
+              print('ERROR: K constants block not found in dorm-db.js')
+              sys.exit(1)
+          # Collect all constant names: lines like "  ROOMS:  'dormData',"
+          k_names = re.findall(r'^\s+([A-Z_]+)\s*:', m.group(1), re.MULTILINE)
+          failed = 0
+          for name in k_names:
+              # K.NAME must appear at least once in the file (getters, setters, exportAll)
+              # The K block itself uses ROOMS: '...', not K.ROOMS, so any hit is a real reference
+              if not re.search(r'\bK\.' + name + r'\b', src):
+                  print(f'K.{name} never referenced — missing getter, setter, or export?')
+                  failed += 1
+          if failed == 0:
+              print(f'K constants OK — all {len(k_names)} constants referenced')
+          sys.exit(1 if failed else 0)
+          PYEOF
