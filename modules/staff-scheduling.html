@@ -20,10 +20,8 @@ body{background:#f0f4f8;min-height:100vh}
 .tab-btn.active{background:#004d40;color:#fff}
 .tab-btn:hover:not(.active){background:#f0f4f8}
 .tab-panel{display:none}.tab-panel.active{display:block}
-/* Week nav */
 .week-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .week-label{font-weight:700;font-size:.9rem;color:#004d40}
-/* Worker grid (weekly view) */
 .grid-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .grid-table{min-width:680px;width:100%;border-collapse:collapse;background:#fff}
 .grid-table th{background:#004d40;color:#fff;padding:8px 6px;font-size:.74rem;font-weight:700;text-align:center;position:sticky;top:0;z-index:10}
@@ -39,7 +37,6 @@ body{background:#f0f4f8;min-height:100vh}
 .shift-chip.overnight{background:#37474f}
 .add-shift-btn{width:100%;height:100%;background:none;border:none;cursor:pointer;color:#ccc;font-size:.85rem}
 .add-shift-btn:hover{color:#004d40}
-/* Slot grid */
 .slot-table{min-width:680px;width:100%;border-collapse:collapse;background:#fff}
 .slot-table th{background:#1565c0;color:#fff;padding:8px 6px;font-size:.74rem;font-weight:700;text-align:center}
 .slot-table th.slot-col{background:#0d47a1;text-align:left;padding-left:10px;min-width:110px;white-space:nowrap}
@@ -49,9 +46,15 @@ body{background:#f0f4f8;min-height:100vh}
 .slot-name{display:inline-block;background:#1565c0;color:#fff;border-radius:3px;padding:1px 6px;font-size:.7rem;font-weight:600;margin:2px;cursor:pointer}
 .slot-name:hover{opacity:.85}
 .slot-name.overnight-name{background:#37474f}
+.slot-name.master-name{background:#2e7d32}
 .slot-add{display:inline-block;background:none;border:1px dashed #90caf9;color:#90caf9;border-radius:3px;padding:1px 6px;font-size:.68rem;cursor:pointer}
 .slot-add:hover{background:#e3f2fd;color:#1565c0;border-color:#1565c0}
-/* Cat filters */
+.master-table th{background:#2e7d32}
+.master-table th.slot-col{background:#1b5e20}
+.master-table td.slot-label{color:#2e7d32;background:#e8f5e9}
+.master-table td.slot-label.overnight-slot{background:#eceff1;color:#37474f}
+.master-table .slot-add{border-color:#a5d6a7;color:#a5d6a7}
+.master-table .slot-add:hover{background:#e8f5e9;color:#2e7d32;border-color:#2e7d32}
 .cat-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .cat-chip{padding:4px 12px;border-radius:14px;font-size:.75rem;font-weight:700;cursor:pointer;border:2px solid transparent}
 .cat-chip.all{background:#eceff1;color:#37474f;border-color:#cfd8dc}
@@ -60,28 +63,23 @@ body{background:#f0f4f8;min-height:100vh}
 .cat-chip.janitor{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
 .cat-chip.swp{background:#fff3e0;color:#e65100;border-color:#ffcc80}
 .cat-chip.active{box-shadow:0 0 0 2px currentColor}
-/* On-duty banner */
 .on-duty-banner{background:#e0f7fa;border:1px solid #80deea;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:.82rem;color:#006064}
-/* My schedule */
 .my-shift-card{background:#fff;border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:4px solid #004d40}
-/* Settings */
 .sf{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px}
 .sf h3{font-size:.88rem;color:#004d40;font-weight:700;margin-bottom:12px;border-bottom:1px solid #e0f2f1;padding-bottom:7px}
-/* Form elements */
 .fg{margin-bottom:12px}
 .fg label{display:block;font-size:.77rem;font-weight:600;color:#444;margin-bottom:3px}
 .fg input,.fg select,.fg textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:.84rem}
 .fg input:focus,.fg select:focus{outline:none;border-color:#004d40}
 .fg-row{display:flex;gap:12px}.fg-row .fg{flex:1}
-/* Buttons */
 .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
 .btn-primary{background:#004d40;color:#fff}.btn-primary:hover{opacity:.88}
 .btn-blue{background:#1565c0;color:#fff}.btn-blue:hover{opacity:.88}
+.btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}
 .btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
 .btn-ghost{background:#f0f4f8;color:#333;border:1px solid #d0d0d0}.btn-ghost:hover{background:#e8e8e8}
 .btn-sm{padding:5px 10px;font-size:.75rem}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-/* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center;padding:16px}
 .modal-overlay.open{display:flex}
 .modal-box{background:#fff;border-radius:12px;padding:22px;width:100%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
@@ -90,6 +88,7 @@ body{background:#f0f4f8;min-height:100vh}
 .toast{position:fixed;bottom:24px;right:20px;background:#004d40;color:#fff;padding:10px 18px;border-radius:8px;font-size:.86rem;box-shadow:0 2px 10px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
 .info-note{background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:8px 12px;font-size:.78rem;color:#0d47a1;margin-bottom:12px}
+.master-note{background:#e8f5e9;border:1px solid #a5d6a7;border-radius:6px;padding:8px 12px;font-size:.78rem;color:#1b5e20;margin-bottom:12px}
 @media(max-width:600px){.fg-row{flex-direction:column}}
 @media print{
   .ss-nav,.tab-bar,.btn,.btn-row,.week-nav .btn,.scroll-top,.cat-filters,.slot-add{display:none!important}
@@ -125,6 +124,7 @@ body{background:#f0f4f8;min-height:100vh}
   <div class="tab-bar">
     <button class="tab-btn active" data-tab="weekly"   onclick="switchTab('weekly')">📆 Weekly View</button>
     <button class="tab-btn"        data-tab="slots"    onclick="switchTab('slots')">🕐 Slot View</button>
+    <button class="tab-btn"        data-tab="master"   onclick="switchTab('master')">📋 Master Schedule</button>
     <button class="tab-btn"        data-tab="my"       onclick="switchTab('my')">👤 My Schedule</button>
     <button class="tab-btn"        data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
   </div>
@@ -137,6 +137,7 @@ body{background:#f0f4f8;min-height:100vh}
       <button class="btn btn-ghost btn-sm" onclick="shiftWeek(1)">Next ▶</button>
       <button class="btn btn-ghost btn-sm" onclick="goToday()">Today</button>
       <button class="btn btn-primary btn-sm" onclick="printWeeklySheet()">🖨️ Print</button>
+      <button class="btn btn-green btn-sm" onclick="openAutoPopModal()">🔄 Auto-Populate</button>
       <label class="btn btn-ghost btn-sm" style="cursor:pointer">
         📥 Import CSV
         <input type="file" accept=".csv" style="display:none" onchange="importCSV(this)">
@@ -163,6 +164,7 @@ body{background:#f0f4f8;min-height:100vh}
       <button class="btn btn-ghost btn-sm" onclick="shiftWeekSlot(1)">Next ▶</button>
       <button class="btn btn-ghost btn-sm" onclick="goTodaySlot()">Today</button>
       <button class="btn btn-blue btn-sm" onclick="printSlotSheet()">🖨️ Print Slot Sheet</button>
+      <button class="btn btn-green btn-sm" onclick="openAutoPopModal()">🔄 Auto-Populate</button>
       <label class="btn btn-ghost btn-sm" style="cursor:pointer">
         📥 Import CSV
         <input type="file" accept=".csv" style="display:none" onchange="importCSV(this)">
@@ -177,6 +179,27 @@ body{background:#f0f4f8;min-height:100vh}
     <div class="info-note" id="slotInfo"></div>
     <div class="grid-wrap slot-wrap">
       <table class="slot-table" id="slotGrid"></table>
+    </div>
+  </div>
+
+  <!-- ── MASTER SCHEDULE ───────────────────────────────────────────────────── -->
+  <div id="tab-master" class="tab-panel">
+    <div class="master-note" id="masterNote">
+      📋 <strong>Master Schedule</strong> — define the recurring weekly pattern once, then use
+      <strong>🔄 Auto-Populate</strong> in Weekly or Slot View to stamp it across a full semester.
+    </div>
+    <div class="cat-filters" id="catFiltersMaster">
+      <span class="cat-chip monitor active" onclick="setMasterCatFilter('Monitor')">Monitors</span>
+      <span class="cat-chip ra"             onclick="setMasterCatFilter('RA')">RAs</span>
+      <span class="cat-chip janitor"        onclick="setMasterCatFilter('Janitor')">Janitors</span>
+      <span class="cat-chip swp"            onclick="setMasterCatFilter('SWP')">SWP</span>
+    </div>
+    <div class="info-note" id="masterInfo"></div>
+    <div class="grid-wrap">
+      <table class="slot-table master-table" id="masterGrid"></table>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-red btn-sm" onclick="clearMasterCategory()">🗑️ Clear This Category</button>
     </div>
   </div>
 
@@ -197,7 +220,7 @@ body{background:#f0f4f8;min-height:100vh}
         </select>
       </div>
       <div class="fg">
-        <label>Display Name in Slot View</label>
+        <label>Display Name in Slot View &amp; Master</label>
         <select id="cfg_nameDisplay">
           <option value="first">First name only</option>
           <option value="full">Full name</option>
@@ -211,7 +234,7 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
     <div class="sf">
       <h3>🕐 Slot Configuration</h3>
-      <p style="font-size:.79rem;color:#888;margin-bottom:12px">Configure time slots per category for the Slot View. Monitors use 2-hour slots (07:00–23:00) plus an overnight slot (23:00–07:00, counted as 4 hrs).</p>
+      <p style="font-size:.79rem;color:#888;margin-bottom:12px">Configure time slots per category for the Slot View and Master Schedule. Monitors: 2-hour slots (07:00–23:00) plus an overnight slot (23:00–07:00, counted as 4 hrs).</p>
       <div id="slotConfigFields"></div>
     </div>
     <div class="btn-row">
@@ -249,8 +272,9 @@ body{background:#f0f4f8;min-height:100vh}
     <div class="fg"><label>Duties (optional)</label><textarea id="sm_duties" rows="2" placeholder="Key tasks for this shift..."></textarea></div>
     <input type="hidden" id="sm_blockId">
     <input type="hidden" id="sm_shiftIdx">
+    <input type="hidden" id="sm_isMaster"> <!-- '1' when editing master schedule -->
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="saveShift()">Save Shift</button>
+      <button class="btn btn-primary" onclick="saveShift()">Save</button>
       <button class="btn btn-ghost"   onclick="closeModal('shiftModal')">Cancel</button>
       <button class="btn btn-red btn-sm" id="sm_deleteBtn" style="margin-left:auto;display:none" onclick="deleteShift()">Remove</button>
     </div>
@@ -263,8 +287,37 @@ body{background:#f0f4f8;min-height:100vh}
     <div class="modal-title">📥 Import Shifts from CSV</div>
     <div id="csvPreview"></div>
     <div class="btn-row">
-      <button class="btn btn-primary" id="csvConfirmBtn" onclick="confirmCSVImport()">Import</button>
+      <button class="btn btn-primary" onclick="confirmCSVImport()">Import</button>
       <button class="btn btn-ghost"   onclick="closeModal('csvModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUTO-POPULATE MODAL ───────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="autoPopModal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-title">🔄 Auto-Populate from Master Schedule</div>
+    <p style="font-size:.8rem;color:#555;margin-bottom:14px">Stamp the Master Schedule into every week within the selected date range.</p>
+    <div class="fg">
+      <label>Semester</label>
+      <select id="ap_semester" onchange="onSemesterSelect()">
+        <option value="">— Select Semester —</option>
+      </select>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>From</label><input type="date" id="ap_start"></div>
+      <div class="fg"><label>To</label>  <input type="date" id="ap_end"></div>
+    </div>
+    <div class="fg" style="margin-bottom:6px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+        <input type="checkbox" id="ap_overwrite">
+        Overwrite existing shifts (uncheck = skip slots already filled)
+      </label>
+    </div>
+    <div id="ap_preview" style="font-size:.78rem;color:#555;margin-bottom:4px"></div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="runAutoPopulate()">Populate</button>
+      <button class="btn btn-ghost" onclick="closeModal('autoPopModal')">Cancel</button>
     </div>
   </div>
 </div>
@@ -273,20 +326,20 @@ body{background:#f0f4f8;min-height:100vh}
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
-let schedule    = [];
-let workers     = [];
-let cfg         = {};
-let weekOffset  = 0;
+let schedule       = [];
+let workers        = [];
+let cfg            = {};
+let weekOffset     = 0;
 let weekOffsetSlot = 0;
-let catFilter   = '';
-let slotCatFilter = 'Monitor';
-let _csvPending = null;  // parsed rows waiting for confirm
+let catFilter      = '';
+let slotCatFilter  = 'Monitor';
+let masterCatFilter= 'Monitor';
+let _csvPending    = null;
 
 const DAYS_MON = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const DAYS_SUN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const CATS     = ['RA','Monitor','Janitor','SWP'];
 
-// Default slot config for Monitor: 2hr slots 07:00–23:00 + overnight
 const DEFAULT_SLOT_CFG = {
   Monitor: { slotHours: 2, dayStart: '07:00', dayEnd: '23:00', overnight: true, overnightHours: 4 },
   RA:      { slotHours: 2, dayStart: '07:00', dayEnd: '23:00', overnight: false, overnightHours: 4 },
@@ -295,7 +348,7 @@ const DEFAULT_SLOT_CFG = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const esc     = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtDate = iso => { if (!iso) return ''; const [,m,d] = iso.split('-'); return `${d}/${m}`; };
 const isoDate = d  => d.toISOString().slice(0,10);
 
@@ -308,10 +361,17 @@ function getWeekStart(offset) {
   start.setHours(0,0,0,0);
   return start;
 }
-function dayOrder() {
-  return slotCfg().weekStartDay === 'Sun' ? DAYS_SUN : DAYS_MON;
+function getWeekStartForDate(d) {
+  const startDay = slotCfg().weekStartDay === 'Sun' ? 0 : 1;
+  const dow  = d.getDay();
+  const diff = (dow - startDay + 7) % 7;
+  const start = new Date(d);
+  start.setDate(d.getDate() - diff);
+  start.setHours(0,0,0,0);
+  return start;
 }
-function slotCfg() { return (cfg.scheduleCfg) || {}; }
+function dayOrder() { return slotCfg().weekStartDay === 'Sun' ? DAYS_SUN : DAYS_MON; }
+function slotCfg() { return cfg.scheduleCfg || {}; }
 function getSlotConfig(cat) {
   const saved = slotCfg().slotConfig || {};
   return Object.assign({}, DEFAULT_SLOT_CFG[cat] || DEFAULT_SLOT_CFG.Monitor, saved[cat] || {});
@@ -323,8 +383,8 @@ function displayName(fullName) {
 function catChipClass(cat) {
   return { RA:'cat-ra', Monitor:'cat-monitor', Janitor:'cat-janitor', SWP:'cat-swp' }[cat] || '';
 }
+function masterEntries() { return (slotCfg().masterSchedule || {}).entries || []; }
 
-// Build array of slot start times for a category, e.g. ['07:00','09:00',...,'21:00','OVERNIGHT']
 function buildSlots(cat) {
   const sc = getSlotConfig(cat);
   const slots = [];
@@ -345,51 +405,46 @@ function slotLabel(slotStart, cat) {
   }
   const sc = getSlotConfig(cat);
   const [h, m] = slotStart.split(':').map(Number);
-  const eh = h + sc.slotHours, em = m;
-  const endStr = `${String(eh > 23 ? eh - 24 : eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
+  const eh = h + sc.slotHours;
+  const endStr = `${String(eh > 23 ? eh - 24 : eh).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
   return `${slotStart}–${endStr}`;
 }
 function slotEnd(slotStart, cat) {
-  if (slotStart === 'OVERNIGHT') {
-    return getSlotConfig(cat).dayStart; // wraps to next day
-  }
+  if (slotStart === 'OVERNIGHT') return getSlotConfig(cat).dayStart;
   const sc = getSlotConfig(cat);
   const [h, m] = slotStart.split(':').map(Number);
   const eh = h + sc.slotHours;
   return `${String(eh > 23 ? eh - 24 : eh).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 }
-function isOvernightShift(start, end) {
-  return end <= start; // end time is earlier or equal → crosses midnight
-}
+function isOvernightShift(start, end) { return end <= start; }
 function isShiftInSlot(shift, slotStart, cat) {
   if (slotStart === 'OVERNIGHT') {
     return isOvernightShift(shift.startTime, shift.endTime) ||
            (shift.startTime >= getSlotConfig(cat).dayEnd);
   }
-  // Match if shift startTime falls within this slot's window
   const sEnd = slotEnd(slotStart, cat);
   return shift.startTime >= slotStart && shift.startTime < sEnd && !isOvernightShift(shift.startTime, shift.endTime);
 }
 function isOnDutyNow(shift, curTime) {
-  if (isOvernightShift(shift.startTime, shift.endTime)) {
+  if (isOvernightShift(shift.startTime, shift.endTime))
     return curTime >= shift.startTime || curTime <= shift.endTime;
-  }
   return shift.startTime <= curTime && curTime <= shift.endTime;
 }
 
-// ── Tab / week navigation ─────────────────────────────────────────────────────
+// ── Tab / navigation ──────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   if (name === 'weekly')   renderWeekly();
   if (name === 'slots')    renderSlots();
+  if (name === 'master')   renderMaster();
   if (name === 'my')       renderMySchedule();
   if (name === 'settings') renderSettings();
 }
-function shiftWeek(d)     { weekOffset += d;     renderWeekly(); }
-function shiftWeekSlot(d) { weekOffsetSlot += d;  renderSlots(); }
-function goToday()        { weekOffset = 0;       renderWeekly(); }
-function goTodaySlot()    { weekOffsetSlot = 0;   renderSlots(); }
+function shiftWeek(d)     { weekOffset += d;      renderWeekly(); }
+function shiftWeekSlot(d) { weekOffsetSlot += d;   renderSlots(); }
+function goToday()        { weekOffset = 0;        renderWeekly(); }
+function goTodaySlot()    { weekOffsetSlot = 0;    renderSlots(); }
 function setCatFilter(cat) {
   catFilter = cat;
   document.querySelectorAll('#catFiltersWeekly .cat-chip').forEach(c =>
@@ -402,12 +457,18 @@ function setSlotCatFilter(cat) {
     c.classList.toggle('active', c.textContent.replace('s','').trim() === cat));
   renderSlots();
 }
+function setMasterCatFilter(cat) {
+  masterCatFilter = cat;
+  document.querySelectorAll('#catFiltersMaster .cat-chip').forEach(c =>
+    c.classList.toggle('active', c.textContent.replace('s','').trim() === cat));
+  renderMaster();
+}
 
 // ── Weekly view ───────────────────────────────────────────────────────────────
 function renderWeekly() {
-  const ws     = getWeekStart(weekOffset);
-  const wsIso  = isoDate(ws);
-  const days   = dayOrder();
+  const ws    = getWeekStart(weekOffset);
+  const wsIso = isoDate(ws);
+  const days  = dayOrder();
   const dateCols = days.map((d, i) => {
     const dt = new Date(ws); dt.setDate(ws.getDate() + i);
     return { day: d, date: isoDate(dt), label: `${d}<br><small>${fmtDate(isoDate(dt))}</small>` };
@@ -423,7 +484,6 @@ function renderWeekly() {
   let active = workers.filter(w => w.status === 'Active');
   if (catFilter) active = active.filter(w => w.category === catFilter);
 
-  // On-duty banner
   let onDutyHTML = '';
   if (isThisWeek) {
     const onDuty = [];
@@ -433,9 +493,8 @@ function renderWeekly() {
           onDuty.push({ name: b.workerName, cat: b.category, area: s.area });
       });
     });
-    if (onDuty.length) {
+    if (onDuty.length)
       onDutyHTML = `<div class="on-duty-banner">🟢 <strong>On duty now:</strong> ${onDuty.map(w=>`<strong>${esc(w.name)}</strong> (${esc(w.cat)})${w.area?' — '+esc(w.area):''}`).join(' · ')}</div>`;
-    }
   }
   document.getElementById('onDutyBanner').innerHTML = onDutyHTML;
 
@@ -481,7 +540,6 @@ function renderSlots() {
   const days   = dayOrder();
   const sc     = getSlotConfig(cat);
   const slots  = buildSlots(cat);
-  const isThisWeek = weekOffsetSlot === 0;
 
   const dateCols = days.map((d, i) => {
     const dt = new Date(ws); dt.setDate(ws.getDate() + i);
@@ -491,43 +549,34 @@ function renderSlots() {
   document.getElementById('weekLabelSlot').textContent =
     `${ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${we.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
 
-  // Workers of this category
   const catWorkers = workers.filter(w => w.status === 'Active' && w.category === cat);
   const totalSlots = slots.filter(s=>s!=='OVERNIGHT').length;
   const overnightInfo = sc.overnight ? ` + 1 overnight slot (${sc.dayEnd}–${sc.dayStart}, ${sc.overnightHours}h)` : '';
   document.getElementById('slotInfo').textContent =
     `${cat}s · ${sc.slotHours}-hour slots · ${sc.dayStart}–${sc.dayEnd} · ${totalSlots} day slots${overnightInfo}`;
 
-  // Build a lookup: workerId → block for this week
   const blockOf = {};
   schedule.filter(b => b.weekStart === wsIso && b.category === cat).forEach(b => { blockOf[b.workerId] = b; });
 
-  let html = `<thead><tr>
-    <th class="slot-col">Time Slot</th>
-    ${dateCols.map(c=>`<th>${c.label}</th>`).join('')}
-  </tr></thead><tbody>`;
+  let html = `<thead><tr><th class="slot-col">Time Slot</th>${dateCols.map(c=>`<th>${c.label}</th>`).join('')}</tr></thead><tbody>`;
 
   slots.forEach(slotStart => {
-    const isOvn = slotStart === 'OVERNIGHT';
+    const isOvn    = slotStart === 'OVERNIGHT';
+    const addStart = isOvn ? sc.dayEnd : slotStart;
+    const addEnd   = isOvn ? sc.dayStart : slotEnd(slotStart, cat);
     html += `<tr>
       <td class="slot-label${isOvn?' overnight-slot':''}">${slotLabel(slotStart, cat)}</td>
       ${dateCols.map(c => {
-        // Find workers assigned to this slot on this day
         const names = [];
-        const assigned = [];
         catWorkers.forEach(w => {
           const block = blockOf[w.id];
           if (!block) return;
-          // Use forEach over the full shifts array so `si` is the real block.shifts index
           (block.shifts||[]).forEach((s, si) => {
-            if (s.day === c.day && isShiftInSlot(s, slotStart, cat)) {
+            if (s.day === c.day && isShiftInSlot(s, slotStart, cat))
               names.push({ name: displayName(w.name), wId: w.id, blockId: block.id, si });
-            }
           });
         });
-        const addStart = isOvn ? sc.dayEnd : slotStart;
-        const addEnd   = isOvn ? sc.dayStart : slotEnd(slotStart, cat);
-        const slotFull = names.length > 0; // one worker per slot per day
+        const slotFull = names.length > 0;
         return `<td>
           ${names.map(n => `<span class="slot-name${isOvn?' overnight-name':''}"
             onclick="openShiftModal(${n.wId},'${c.day}',${n.blockId},${n.si})"
@@ -544,18 +593,64 @@ function renderSlots() {
   document.getElementById('slotGrid').innerHTML = html;
 }
 
-// ── Shift modal ───────────────────────────────────────────────────────────────
+// ── Master Schedule view ──────────────────────────────────────────────────────
+function renderMaster() {
+  const cat   = masterCatFilter;
+  const sc    = getSlotConfig(cat);
+  const slots = buildSlots(cat);
+  const days  = dayOrder();
+  const entries = masterEntries().filter(e => e.category === cat);
+
+  const totalSlots = slots.filter(s=>s!=='OVERNIGHT').length;
+  const overnightInfo = sc.overnight ? ` + overnight (${sc.dayEnd}–${sc.dayStart}, ${sc.overnightHours}h)` : '';
+  document.getElementById('masterInfo').textContent =
+    `${cat}s · ${sc.slotHours}-hr slots · ${sc.dayStart}–${sc.dayEnd} · ${totalSlots} day slots${overnightInfo} · ${entries.length} assignments`;
+
+  let html = `<thead><tr>
+    <th class="slot-col">Time Slot</th>
+    ${days.map(d => `<th>${d}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  slots.forEach(slotStart => {
+    const isOvn    = slotStart === 'OVERNIGHT';
+    const addStart = isOvn ? sc.dayEnd : slotStart;
+    const addEnd   = isOvn ? sc.dayStart : slotEnd(slotStart, cat);
+    html += `<tr>
+      <td class="slot-label${isOvn?' overnight-slot':''}">${slotLabel(slotStart, cat)}</td>
+      ${days.map(d => {
+        // Find master entries for this slot+day
+        const matched = [];
+        masterEntries().forEach((e, ei) => {
+          if (e.category === cat && e.day === d && isShiftInSlot({ startTime: e.startTime, endTime: e.endTime }, slotStart, cat))
+            matched.push({ e, ei });
+        });
+        const slotFull = matched.length > 0;
+        return `<td>
+          ${matched.map(({ e, ei }) => `<span class="slot-name master-name"
+            onclick="openMasterModal(${JSON.stringify(d)},${JSON.stringify(e.startTime)},${JSON.stringify(e.endTime)},${ei})"
+            title="Click to edit">${esc(displayName(e.workerName))}</span>`).join('')}
+          ${slotFull ? '' : `<span class="slot-add"
+            onclick="openMasterModal(${JSON.stringify(d)},${JSON.stringify(addStart)},${JSON.stringify(addEnd)},-1)"
+            title="Assign ${cat} to this slot">+</span>`}
+        </td>`;
+      }).join('')}
+    </tr>`;
+  });
+
+  html += '</tbody>';
+  document.getElementById('masterGrid').innerHTML = html;
+}
+
+// ── Shift modal (weekly / slot view) ─────────────────────────────────────────
 function openShiftModal(workerId, day, blockId, shiftIdx) {
   const w = workers.find(x => x.id === workerId);
   if (!w) return;
-  const sel = document.getElementById('sm_worker');
-  sel.innerHTML = workers.filter(x => x.status === 'Active')
-    .map(x => `<option value="${x.id}" ${x.id === workerId?'selected':''}>${esc(x.name)} (${esc(x.category)})</option>`)
-    .join('');
-
-  document.getElementById('sm_day').value     = day;
-  document.getElementById('sm_blockId').value = blockId || '';
-  document.getElementById('sm_shiftIdx').value= shiftIdx;
+  document.getElementById('sm_worker').innerHTML = workers.filter(x => x.status === 'Active')
+    .map(x => `<option value="${x.id}" ${x.id === workerId?'selected':''}>${esc(x.name)} (${esc(x.category)})</option>`).join('');
+  document.getElementById('sm_day').value      = day;
+  document.getElementById('sm_blockId').value  = blockId || '';
+  document.getElementById('sm_shiftIdx').value = shiftIdx;
+  document.getElementById('sm_isMaster').value = '';
 
   const isEdit = shiftIdx >= 0;
   let shift = null;
@@ -575,11 +670,11 @@ function openShiftModal(workerId, day, blockId, shiftIdx) {
 }
 function openShiftModalSlot(day, startTime, endTime) {
   const catWorkers = workers.filter(x => x.status === 'Active' && x.category === slotCatFilter);
-  const sel = document.getElementById('sm_worker');
-  sel.innerHTML = catWorkers.map(x => `<option value="${x.id}">${esc(x.name)} (${esc(x.category)})</option>`).join('');
+  document.getElementById('sm_worker').innerHTML = catWorkers.map(x => `<option value="${x.id}">${esc(x.name)} (${esc(x.category)})</option>`).join('');
   document.getElementById('sm_day').value      = day;
   document.getElementById('sm_blockId').value  = '';
   document.getElementById('sm_shiftIdx').value = -1;
+  document.getElementById('sm_isMaster').value = '';
   document.getElementById('shiftModalTitle').textContent = 'Add Shift';
   document.getElementById('sm_deleteBtn').style.display  = 'none';
   document.getElementById('sm_start').value  = startTime;
@@ -589,6 +684,29 @@ function openShiftModalSlot(day, startTime, endTime) {
   checkOvernight();
   openModal('shiftModal');
 }
+
+// ── Master entry modal (reuses shiftModal) ────────────────────────────────────
+function openMasterModal(day, startTime, endTime, entryIdx) {
+  const catWorkers = workers.filter(x => x.status === 'Active' && x.category === masterCatFilter);
+  const isEdit = entryIdx >= 0;
+  const entry  = isEdit ? masterEntries()[entryIdx] : null;
+
+  document.getElementById('sm_worker').innerHTML = catWorkers
+    .map(x => `<option value="${x.id}" ${entry && x.id === entry.workerId ? 'selected' : ''}>${esc(x.name)} (${esc(x.category)})</option>`).join('');
+  document.getElementById('sm_day').value      = day;
+  document.getElementById('sm_blockId').value  = entryIdx; // reuse to store entry index
+  document.getElementById('sm_shiftIdx').value = entryIdx;
+  document.getElementById('sm_isMaster').value = '1';
+  document.getElementById('shiftModalTitle').textContent = isEdit ? '✏️ Edit Master Entry' : '📋 Add Master Entry';
+  document.getElementById('sm_deleteBtn').style.display  = isEdit ? '' : 'none';
+  document.getElementById('sm_start').value  = startTime;
+  document.getElementById('sm_end').value    = endTime;
+  document.getElementById('sm_area').value   = entry ? (entry.area || '') : '';
+  document.getElementById('sm_duties').value = '';
+  checkOvernight();
+  openModal('shiftModal');
+}
+
 function onWorkerSelect() {
   const w = workers.find(x => x.id === Number(document.getElementById('sm_worker').value));
   if (!w) return;
@@ -599,7 +717,11 @@ function checkOvernight() {
   const e = document.getElementById('sm_end').value;
   document.getElementById('overnightNote').style.display = (s && e && isOvernightShift(s, e)) ? '' : 'none';
 }
+
+// ── Save / Delete — routes to master or weekly ────────────────────────────────
 function saveShift() {
+  if (document.getElementById('sm_isMaster').value === '1') { saveMasterEntry(); return; }
+
   const wId = Number(document.getElementById('sm_worker').value);
   if (!wId) { showToast('⚠️ Select a worker'); return; }
   const w = workers.find(x => x.id === wId);
@@ -608,7 +730,7 @@ function saveShift() {
   const start = document.getElementById('sm_start').value;
   const end   = document.getElementById('sm_end').value;
   if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
-  if (start === end) { showToast('⚠️ Start and end time cannot be the same'); return; }
+  if (start === end)  { showToast('⚠️ Start and end time cannot be the same'); return; }
 
   const area     = document.getElementById('sm_area').value.trim();
   const duties   = document.getElementById('sm_duties').value.trim();
@@ -616,15 +738,12 @@ function saveShift() {
   const ws       = isoDate(getWeekStart(weekOffset));
   const wsSlot   = isoDate(getWeekStart(weekOffsetSlot));
   const activeTab = document.querySelector('.tab-panel.active')?.id;
-  const wsUse = activeTab === 'tab-slots' ? wsSlot : ws;
+  const wsUse    = activeTab === 'tab-slots' ? wsSlot : ws;
 
-  // Slot conflict check: one worker per slot per day (same category, same day, same start time)
+  // One worker per slot per day — check for conflicts in this week
   const slotTakenBy = schedule.filter(b => b.workerId !== wId && b.weekStart === wsUse && b.category === w.category)
     .find(b => (b.shifts||[]).some(s => s.day === day && s.startTime === start));
-  if (slotTakenBy) {
-    showToast(`⚠️ Slot already assigned to ${slotTakenBy.workerName}`); return;
-  }
-  // Self-duplicate check: same worker, same day, same start (ignore the shift being edited)
+  if (slotTakenBy) { showToast(`⚠️ Slot already assigned to ${slotTakenBy.workerName}`); return; }
   const ownBlock = schedule.find(b => b.workerId === wId && b.weekStart === wsUse);
   if (ownBlock) {
     const dupIdx = (ownBlock.shifts||[]).findIndex((s, i) => s.day === day && s.startTime === start && i !== shiftIdx);
@@ -633,8 +752,7 @@ function saveShift() {
 
   let block = schedule.find(b => b.workerId === wId && b.weekStart === wsUse);
   if (!block) {
-    block = { id: Date.now(), workerId: wId, workerName: w.name, category: w.category,
-              floor: w.floor, weekStart: wsUse, shifts: [] };
+    block = { id: Date.now(), workerId: wId, workerName: w.name, category: w.category, floor: w.floor, weekStart: wsUse, shifts: [] };
     schedule.push(block);
   }
   const newShift = { day, startTime: start, endTime: end, area, duties };
@@ -647,10 +765,11 @@ function saveShift() {
   showToast('✅ Shift saved');
 }
 function deleteShift() {
+  if (document.getElementById('sm_isMaster').value === '1') { deleteMasterEntry(); return; }
+
   const blockId  = Number(document.getElementById('sm_blockId').value);
   const shiftIdx = Number(document.getElementById('sm_shiftIdx').value);
   if (shiftIdx < 0) return;
-  // Find by block ID — reliable regardless of which week view is active
   const blockIdx = schedule.findIndex(b => b.id === blockId);
   if (blockIdx < 0) { showToast('⚠️ Shift not found — try refreshing'); return; }
   schedule[blockIdx].shifts.splice(shiftIdx, 1);
@@ -662,9 +781,147 @@ function deleteShift() {
   showToast('Shift removed');
 }
 
+// ── Master entry save / delete ────────────────────────────────────────────────
+function saveMasterEntry() {
+  const wId = Number(document.getElementById('sm_worker').value);
+  if (!wId) { showToast('⚠️ Select a worker'); return; }
+  const w = workers.find(x => x.id === wId);
+  if (!w) return;
+  const day      = document.getElementById('sm_day').value;
+  const start    = document.getElementById('sm_start').value;
+  const end      = document.getElementById('sm_end').value;
+  const area     = document.getElementById('sm_area').value.trim();
+  const entryIdx = Number(document.getElementById('sm_shiftIdx').value);
+
+  if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
+  if (start === end)  { showToast('⚠️ Start and end time cannot be the same'); return; }
+
+  // Duplicate check: same category, day, startTime — cannot be taken by another worker
+  const allEntries = masterEntries();
+  const conflict = allEntries.find((e, i) =>
+    i !== entryIdx && e.category === w.category && e.day === day && e.startTime === start && e.workerId !== wId);
+  if (conflict) { showToast(`⚠️ Slot already assigned to ${conflict.workerName} in Master Schedule`); return; }
+  const selfDup = allEntries.find((e, i) =>
+    i !== entryIdx && e.workerId === wId && e.day === day && e.startTime === start);
+  if (selfDup) { showToast('⚠️ This worker already has this slot in the Master Schedule'); return; }
+
+  const sc = cfg.scheduleCfg || {};
+  if (!sc.masterSchedule) sc.masterSchedule = { entries: [] };
+  const newEntry = { workerId: wId, workerName: w.name, category: w.category, floor: w.floor, day, startTime: start, endTime: end, area };
+  if (entryIdx >= 0 && entryIdx < sc.masterSchedule.entries.length)
+    sc.masterSchedule.entries[entryIdx] = newEntry;
+  else
+    sc.masterSchedule.entries.push(newEntry);
+  cfg.scheduleCfg = sc;
+  DormDB.saveWorkersCfg(cfg);
+  closeModal('shiftModal');
+  renderMaster();
+  showToast('✅ Master entry saved');
+}
+function deleteMasterEntry() {
+  const entryIdx = Number(document.getElementById('sm_shiftIdx').value);
+  if (entryIdx < 0) return;
+  const sc = cfg.scheduleCfg || {};
+  if (!sc.masterSchedule) return;
+  sc.masterSchedule.entries.splice(entryIdx, 1);
+  cfg.scheduleCfg = sc;
+  DormDB.saveWorkersCfg(cfg);
+  closeModal('shiftModal');
+  renderMaster();
+  showToast('Master entry removed');
+}
+function clearMasterCategory() {
+  if (!confirm(`Clear all Master Schedule entries for ${masterCatFilter}s?`)) return;
+  const sc = cfg.scheduleCfg || {};
+  if (sc.masterSchedule) sc.masterSchedule.entries = (sc.masterSchedule.entries||[]).filter(e => e.category !== masterCatFilter);
+  cfg.scheduleCfg = sc;
+  DormDB.saveWorkersCfg(cfg);
+  renderMaster();
+  showToast(`Cleared ${masterCatFilter} master entries`);
+}
+
+// ── Auto-Populate ─────────────────────────────────────────────────────────────
+function openAutoPopModal() {
+  // Populate semester dropdown
+  const semCfg = DormDB.getSemesterCfg ? DormDB.getSemesterCfg() : { list: [] };
+  const sel = document.getElementById('ap_semester');
+  sel.innerHTML = '<option value="">— Select Semester —</option>' +
+    (semCfg.list || [])
+      .filter(s => s.startDate && s.endDate)
+      .map(s => `<option value="${esc(s.label)}" data-start="${esc(s.startDate)}" data-end="${esc(s.endDate)}"
+          ${s.label === semCfg.current ? 'selected' : ''}>${esc(s.label)} (${esc(s.startDate)} – ${esc(s.endDate)})</option>`)
+      .join('');
+  onSemesterSelect(); // pre-fill dates for selected
+  _updateApPreview();
+  openModal('autoPopModal');
+}
+function onSemesterSelect() {
+  const opt = document.getElementById('ap_semester').selectedOptions[0];
+  if (!opt || !opt.dataset.start) { document.getElementById('ap_start').value=''; document.getElementById('ap_end').value=''; }
+  else { document.getElementById('ap_start').value = opt.dataset.start; document.getElementById('ap_end').value = opt.dataset.end; }
+  _updateApPreview();
+}
+function _updateApPreview() {
+  const start = document.getElementById('ap_start').value;
+  const end   = document.getElementById('ap_end').value;
+  const entries = masterEntries();
+  if (!start || !end || !entries.length) {
+    document.getElementById('ap_preview').textContent = entries.length ? 'Select a date range.' : '⚠️ No entries in Master Schedule yet — go to the Master Schedule tab to set them up first.';
+    return;
+  }
+  let d = getWeekStartForDate(new Date(start + 'T00:00:00'));
+  const endD = new Date(end + 'T00:00:00');
+  let weeks = 0;
+  while (d <= endD) { weeks++; d.setDate(d.getDate() + 7); }
+  document.getElementById('ap_preview').textContent = `${entries.length} master entries × ${weeks} week${weeks!==1?'s':''} = up to ${entries.length * weeks} shift assignments.`;
+}
+['ap_start','ap_end'].forEach(id => document.getElementById(id)?.addEventListener('change', _updateApPreview));
+function runAutoPopulate() {
+  const start    = document.getElementById('ap_start').value;
+  const end      = document.getElementById('ap_end').value;
+  const overwrite= document.getElementById('ap_overwrite').checked;
+  if (!start || !end) { showToast('⚠️ Select a date range'); return; }
+  if (new Date(start) > new Date(end)) { showToast('⚠️ Start must be before end date'); return; }
+
+  const entries = masterEntries();
+  if (!entries.length) { showToast('⚠️ Master Schedule is empty — add entries first'); return; }
+
+  // Collect all week-start ISO dates in range
+  const weekStarts = [];
+  let d = getWeekStartForDate(new Date(start + 'T00:00:00'));
+  const endD = new Date(end + 'T00:00:00');
+  while (d <= endD) { weekStarts.push(isoDate(d)); d = new Date(d); d.setDate(d.getDate() + 7); }
+
+  let added = 0;
+  weekStarts.forEach(ws => {
+    entries.forEach(entry => {
+      let block = schedule.find(b => b.workerId === entry.workerId && b.weekStart === ws);
+      if (!block) {
+        block = { id: Date.now() + Math.floor(Math.random() * 1000) + added,
+                  workerId: entry.workerId, workerName: entry.workerName, category: entry.category,
+                  floor: entry.floor, weekStart: ws, shifts: [] };
+        schedule.push(block);
+      }
+      if (!overwrite) {
+        const alreadyHas = block.shifts.some(s => s.day === entry.day && s.startTime === entry.startTime);
+        if (alreadyHas) return;
+      } else {
+        const idx = block.shifts.findIndex(s => s.day === entry.day && s.startTime === entry.startTime);
+        if (idx >= 0) { block.shifts[idx] = { day: entry.day, startTime: entry.startTime, endTime: entry.endTime, area: entry.area, duties: '' }; added++; return; }
+      }
+      block.shifts.push({ day: entry.day, startTime: entry.startTime, endTime: entry.endTime, area: entry.area, duties: '' });
+      added++;
+    });
+  });
+
+  DormDB.saveSchedule(schedule);
+  closeModal('autoPopModal');
+  const activeTab = document.querySelector('.tab-panel.active')?.id;
+  if (activeTab === 'tab-slots') renderSlots(); else renderWeekly();
+  showToast(`✅ Populated ${added} shifts across ${weekStarts.length} week${weekStarts.length!==1?'s':''}`);
+}
+
 // ── CSV Import ────────────────────────────────────────────────────────────────
-// Expected columns (case-insensitive): Name, Day, Start, End, Area
-// Also supports: Worker, StartTime, EndTime
 function importCSV(input) {
   const file = input.files[0];
   if (!file) return;
@@ -681,11 +938,9 @@ function importCSV(input) {
     const iEnd   = col(['end','endtime','end_time','time_end']);
     const iArea  = col(['area','location','floor','post']);
     if (iName < 0 || iDay < 0 || iStart < 0 || iEnd < 0) {
-      showToast('⚠️ CSV must have columns: Name, Day, Start, End (and optionally Area)');
-      return;
+      showToast('⚠️ CSV must have columns: Name, Day, Start, End (and optionally Area)'); return;
     }
-    const rows = [];
-    const errors = [];
+    const rows = [], errors = [];
     lines.slice(1).forEach((line, li) => {
       const cells = line.split(',').map(c => c.trim().replace(/^["']|["']$/g,''));
       const name  = cells[iName]  || '';
@@ -696,19 +951,17 @@ function importCSV(input) {
       const w = workers.find(x => x.name.toLowerCase() === name.toLowerCase() ||
                                    x.name.toLowerCase().startsWith(name.toLowerCase()));
       const normDay = day.charAt(0).toUpperCase() + day.slice(1,3).toLowerCase();
-      if (!w)                        { errors.push(`Row ${li+2}: Worker "${name}" not found`); return; }
+      if (!w)                         { errors.push(`Row ${li+2}: Worker "${name}" not found`); return; }
       if (!DAYS_MON.includes(normDay)){ errors.push(`Row ${li+2}: Invalid day "${day}"`); return; }
       if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end))
-                                      { errors.push(`Row ${li+2}: Invalid time format (use HH:MM)`); return; }
+                                       { errors.push(`Row ${li+2}: Invalid time format (use HH:MM)`); return; }
       rows.push({ w, day: normDay, start, end, area });
     });
-
     if (!rows.length) {
       document.getElementById('csvPreview').innerHTML =
         `<p style="color:#c62828;font-size:.83rem">No valid rows found.</p>` +
         (errors.length ? `<ul style="font-size:.78rem;color:#c62828;margin-top:6px">${errors.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>` : '');
-      openModal('csvModal');
-      return;
+      openModal('csvModal'); return;
     }
     _csvPending = rows;
     document.getElementById('csvPreview').innerHTML =
@@ -716,12 +969,9 @@ function importCSV(input) {
       <table style="width:100%;border-collapse:collapse;font-size:.78rem">
         <tr style="background:#f0f4f8"><th style="padding:4px 6px;text-align:left">Worker</th><th>Day</th><th>Start</th><th>End</th><th>Area</th></tr>
         ${rows.map(r=>`<tr style="border-bottom:1px solid #eee">
-          <td style="padding:3px 6px">${esc(r.w.name)}</td>
-          <td style="text-align:center">${esc(r.day)}</td>
-          <td style="text-align:center">${esc(r.start)}</td>
-          <td style="text-align:center">${esc(r.end)}</td>
-          <td>${esc(r.area)}</td>
-        </tr>`).join('')}
+          <td style="padding:3px 6px">${esc(r.w.name)}</td><td style="text-align:center">${esc(r.day)}</td>
+          <td style="text-align:center">${esc(r.start)}</td><td style="text-align:center">${esc(r.end)}</td>
+          <td>${esc(r.area)}</td></tr>`).join('')}
       </table>` +
       (errors.length ? `<p style="color:#e65100;font-size:.75rem;margin-top:8px">⚠️ ${errors.length} row(s) skipped: ${errors[0]}${errors.length>1?' …':''}</p>` : '');
     openModal('csvModal');
@@ -731,10 +981,10 @@ function importCSV(input) {
 function confirmCSVImport() {
   if (!_csvPending) return;
   const ws = isoDate(getWeekStart(weekOffset));
-  _csvPending.forEach(({ w, day, start, end, area }) => {
+  _csvPending.forEach(({ w, day, start, end, area }, i) => {
     let block = schedule.find(b => b.workerId === w.id && b.weekStart === ws);
     if (!block) {
-      block = { id: Date.now() + Math.random(), workerId: w.id, workerName: w.name,
+      block = { id: Date.now() + i, workerId: w.id, workerName: w.name,
                 category: w.category, floor: w.floor, weekStart: ws, shifts: [] };
       schedule.push(block);
     }
@@ -745,7 +995,7 @@ function confirmCSVImport() {
   closeModal('csvModal');
   const activeTab = document.querySelector('.tab-panel.active')?.id;
   if (activeTab === 'tab-slots') renderSlots(); else renderWeekly();
-  showToast(`✅ Shifts imported`);
+  showToast('✅ Shifts imported');
 }
 
 // ── My Schedule ───────────────────────────────────────────────────────────────
@@ -768,10 +1018,7 @@ function renderMySchedule() {
     myBlocks.map(block => {
       const wk = new Date(block.weekStart), we2 = new Date(wk); we2.setDate(wk.getDate()+6);
       const totalHrs = (block.shifts||[]).reduce((sum,s) => {
-        if (isOvernightShift(s.startTime, s.endTime)) {
-          const sc2 = getSlotConfig(block.category);
-          return sum + (sc2.overnightHours || 4);
-        }
+        if (isOvernightShift(s.startTime, s.endTime)) return sum + (getSlotConfig(block.category).overnightHours || 4);
         const [sh,sm] = s.startTime.split(':').map(Number), [eh,em] = s.endTime.split(':').map(Number);
         return sum + (eh*60+em - sh*60-sm)/60;
       }, 0);
@@ -795,9 +1042,8 @@ function renderMySchedule() {
 // ── Settings ──────────────────────────────────────────────────────────────────
 function renderSettings() {
   const sc = slotCfg();
-  document.getElementById('cfg_weekStart').value   = sc.weekStartDay  || 'Mon';
-  document.getElementById('cfg_nameDisplay').value = sc.nameDisplay   || 'first';
-
+  document.getElementById('cfg_weekStart').value   = sc.weekStartDay || 'Mon';
+  document.getElementById('cfg_nameDisplay').value = sc.nameDisplay  || 'first';
   const defaults = sc.defaults || {};
   document.getElementById('defaultShiftFields').innerHTML = CATS.map(cat => {
     const d = defaults[cat] || {};
@@ -811,7 +1057,6 @@ function renderSettings() {
       </div>
     </div>`;
   }).join('');
-
   const slotConf = sc.slotConfig || {};
   document.getElementById('slotConfigFields').innerHTML = CATS.map(cat => {
     const d = Object.assign({}, DEFAULT_SLOT_CFG[cat]||{}, slotConf[cat]||{});
@@ -844,10 +1089,7 @@ function saveSettings() {
   sc.nameDisplay  = document.getElementById('cfg_nameDisplay').value;
   sc.defaults = {};
   CATS.forEach(cat => {
-    sc.defaults[cat] = {
-      start: document.getElementById(`def_${cat}_start`).value,
-      end:   document.getElementById(`def_${cat}_end`).value,
-    };
+    sc.defaults[cat] = { start: document.getElementById(`def_${cat}_start`).value, end: document.getElementById(`def_${cat}_end`).value };
   });
   sc.slotConfig = {};
   CATS.forEach(cat => {
@@ -864,7 +1106,7 @@ function saveSettings() {
   showToast('✅ Settings saved');
 }
 
-// ── Print: Weekly sheet ───────────────────────────────────────────────────────
+// ── Print ─────────────────────────────────────────────────────────────────────
 function printWeeklySheet() {
   const ws    = getWeekStart(weekOffset);
   const we    = new Date(ws); we.setDate(ws.getDate()+6);
@@ -894,8 +1136,6 @@ function printWeeklySheet() {
   }
   _doPrint(`Staff Schedule — ${esc(dorm)}`, wkLabel, content);
 }
-
-// ── Print: Slot sheet ─────────────────────────────────────────────────────────
 function printSlotSheet() {
   const cat   = slotCatFilter;
   const ws    = getWeekStart(weekOffsetSlot);
@@ -909,36 +1149,27 @@ function printSlotSheet() {
   const blockOf = {};
   schedule.filter(b => b.weekStart === wsIso && b.category === cat).forEach(b => { blockOf[b.workerId] = b; });
   const catWorkers = workers.filter(w => w.status === 'Active' && w.category === cat);
-  const nd = slotCfg().nameDisplay || 'first';
-  const dName = n => nd === 'full' ? n : (n||'').split(' ')[0];
-
+  const dName = n => slotCfg().nameDisplay === 'full' ? n : (n||'').split(' ')[0];
   let rows = '';
   slots.forEach(slotStart => {
     const isOvn = slotStart === 'OVERNIGHT';
     rows += `<tr${isOvn?' style="background:#f5f5f5"':''}>
-      <td style="font-weight:700;white-space:nowrap;color:${isOvn?'#37474f':'#1565c0'}">${slotStart==='OVERNIGHT'?`${sc.dayEnd}–${sc.dayStart} (Overnight·${sc.overnightHours}h)`:slotLabel(slotStart,cat).replace('<br><small style="opacity:.7">','(').replace('</small>','').replace(')',')')}</td>
+      <td style="font-weight:700;white-space:nowrap;color:${isOvn?'#37474f':'#1565c0'}">${isOvn?`${sc.dayEnd}–${sc.dayStart} (Overnight·${sc.overnightHours}h)`:slotLabel(slotStart,cat).replace(/<[^>]+>/g,'')}</td>
       ${days.map(d => {
         const names = [];
         catWorkers.forEach(w => {
           const block = blockOf[w.id];
           if (!block) return;
-          (block.shifts||[]).filter(s => s.day===d && isShiftInSlot(s,slotStart,cat)).forEach(s => {
-            names.push(dName(w.name));
-          });
+          (block.shifts||[]).filter(s => s.day===d && isShiftInSlot(s,slotStart,cat)).forEach(() => names.push(dName(w.name)));
         });
         return `<td>${names.join(', ')}</td>`;
       }).join('')}
     </tr>`;
   });
-
   const content = `<h2>${esc(cat)} Shift Schedule</h2>
-    <table>
-      <tr><th style="text-align:left">Time Slot</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr>
-      ${rows}
-    </table>`;
+    <table><tr><th style="text-align:left">Time Slot</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr>${rows}</table>`;
   _doPrint(`${cat} Shift Schedule — ${esc(dorm)}`, wkLabel, content);
 }
-
 function _doPrint(title, wkLabel, content) {
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
@@ -948,16 +1179,14 @@ function _doPrint(title, wkLabel, content) {
   table{width:100%;border-collapse:collapse;margin-bottom:8pt;table-layout:fixed}
   th,td{border:1pt solid #ccc;padding:3pt 4pt;text-align:center;font-size:8pt;word-break:break-word}
   th{background:#e0f2f1;color:#004d40}td:first-child{text-align:left;font-size:7.5pt}
-  hr{border:none;border-top:1pt dotted #ccc;margin:1pt 0}
-  em{font-style:normal;font-size:6.5pt;opacity:.75}
+  hr{border:none;border-top:1pt dotted #ccc;margin:1pt 0}em{font-style:normal;font-size:6.5pt;opacity:.75}
   @page{size:A4 landscape;margin:10mm}
   </style></head><body>
   <h1>📅 ${title}</h1>
   <p style="font-size:8.5pt;color:#555;margin-bottom:5mm">Week of ${wkLabel}</p>
   ${content || '<p style="color:#999">No shifts scheduled for this week.</p>'}
   </body></html>`);
-  win.document.close();
-  win.print();
+  win.document.close(); win.print();
 }
 
 // ── Dialogs ───────────────────────────────────────────────────────────────────
@@ -970,7 +1199,9 @@ function showToast(msg, dur=3200) {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => t.classList.remove('show'), dur);
 }
-document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal('shiftModal'); closeModal('csvModal'); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal('shiftModal'); closeModal('csvModal'); closeModal('autoPopModal'); }
+});
 window.addEventListener('scroll', () => {
   document.getElementById('scrollTopBtn').classList.toggle('show', window.scrollY > 300);
 });
@@ -997,6 +1228,7 @@ async function init() {
     const t = document.querySelector('.tab-panel.active')?.id;
     if (t==='tab-weekly') renderWeekly();
     if (t==='tab-slots')  renderSlots();
+    if (t==='tab-master') renderMaster();
     if (t==='tab-my')     renderMySchedule();
   });
   DormDB.on(DormDB.KEYS.SCHEDULE, () => {
@@ -1011,6 +1243,7 @@ async function init() {
     const t = document.querySelector('.tab-panel.active')?.id;
     if (t==='tab-settings') renderSettings();
     if (t==='tab-slots')    renderSlots();
+    if (t==='tab-master')   renderMaster();
   });
 
   renderWeekly();
