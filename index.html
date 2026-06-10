@@ -430,6 +430,7 @@ async function restoreAll(input) {
   catch { return alert('Invalid backup file — could not parse JSON.'); }
   if (!confirm('This will overwrite ALL current data with the backup.\n\nAre you sure?')) return;
   await DormDB.importAll(dump);
+  sessionStorage.removeItem('dormPortalSession'); // invalidate session — restored pwd hash may differ
   refreshStats();
   updateHeader();
   // Re-sync dorm selector dropdown to the restored value
