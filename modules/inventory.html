@@ -141,6 +141,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <button class="btn btn-blue" onclick="seedAllRooms()">🏠 Seed All Rooms</button>
   <button class="btn btn-red" onclick="confirmClearRoomItems()">🗑️ Clear Room Items</button>
   <button class="btn" onclick="printInventorySheet()">🖨️ Print All Items</button>
+  <button class="btn" onclick="printInventoryForm()">📋 Print Check Form</button>
   <button class="btn btn-orange" onclick="openScanModal()">📷 Scan Barcode</button>
   <button class="btn" style="background:#6a1b9a;color:#fff" onclick="openSnapshotModal()">📸 Take Snapshot</button>
   <span id="invCount" style="margin-left:auto;font-size:.8rem;color:#666"></span>
@@ -1446,6 +1447,153 @@ function printInventorySheet() {
   ${body || '<p style="color:#888">No items in inventory yet.</p>'}
   <script>window.onload=()=>setTimeout(()=>window.print(),120);<\/script>
   </body></html>`);
+  w.document.close();
+}
+
+function printInventoryForm() {
+  const inv  = DormDB.getInventory();
+  const dorm = DormDB.getDormName();
+  const locs = getAllLocations();
+  if (!inv.length) { showToast('No inventory items to print.'); return; }
+
+  // Group and sort: rooms first (sorted naturally), then common areas
+  const byLoc = {};
+  inv.forEach(i => { (byLoc[i.location] = byLoc[i.location] || []).push(i); });
+  const locEntries = Object.entries(byLoc).sort(([a,ai],[b,bi]) => {
+    const aRoom = (ai[0].locationType||'room') === 'room';
+    const bRoom = (bi[0].locationType||'room') === 'room';
+    if (aRoom !== bRoom) return aRoom ? -1 : 1;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+
+  const condBox = c =>
+    ['Good','Fair','Poor','Damaged','Missing'].map(k =>
+      `<span style="margin-right:6pt;white-space:nowrap">
+        <span style="display:inline-block;width:9pt;height:9pt;border:1pt solid #555;border-radius:2pt;vertical-align:middle;background:${c===k?'#1e3a5f':'#fff'}"></span>
+        <span style="font-size:6.5pt;vertical-align:middle;${c===k?'font-weight:bold;color:#1e3a5f':''}">${k}</span>
+      </span>`
+    ).join('');
+
+  let body = '';
+  locEntries.forEach(([locId, items], li) => {
+    const locObj = locs.find(l => l.id === locId);
+    const label  = locObj?.label || locId;
+    const isRoom = (items[0].locationType || 'room') === 'room';
+
+    // Sort items: Side A first, Side B second, Shared last; then alphabetically
+    const sorted = [...items].sort((a, b) => {
+      const sa = a.side || 'Z', sb = b.side || 'Z';
+      return sa !== sb ? sa.localeCompare(sb) : a.name.localeCompare(b.name);
+    });
+
+    const pageBreak = li > 0 ? 'page-break-before:always;' : '';
+    body += `<div style="${pageBreak}padding-top:${li>0?'8pt':'0'}">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:4pt">
+        <tr>
+          <td style="font-size:12pt;font-weight:bold;color:#1e3a5f;border-bottom:2pt solid #1e3a5f;padding-bottom:3pt">
+            ${isRoom ? '🏠' : '📍'} ${escapeHtml(label)}
+          </td>
+          <td style="text-align:right;font-size:8pt;color:#888;border-bottom:2pt solid #1e3a5f;padding-bottom:3pt;white-space:nowrap">
+            ${sorted.length} item${sorted.length!==1?'s':''}
+          </td>
+        </tr>
+      </table>
+
+      <table style="width:100%;border-collapse:collapse;font-size:8pt">
+        <thead>
+          <tr style="background:#e8f0f8">
+            <th style="padding:3.5pt 5pt;border:0.5pt solid #bbb;text-align:left;width:28%">Item</th>
+            <th style="padding:3.5pt 5pt;border:0.5pt solid #bbb;text-align:center;width:6%">Side</th>
+            <th style="padding:3.5pt 5pt;border:0.5pt solid #bbb;text-align:left;width:44%">Condition Check</th>
+            <th style="padding:3.5pt 5pt;border:0.5pt solid #bbb;text-align:left;width:22%">Remarks / Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map((i, ri) => `
+          <tr style="background:${ri%2===0?'#fff':'#f9fbfd'}">
+            <td style="padding:4pt 5pt;border:0.5pt solid #ddd;vertical-align:middle">
+              <strong style="font-size:8pt">${escapeHtml(i.name)}</strong>
+              ${i.category ? `<br><span style="font-size:6.5pt;color:#888">${escapeHtml(i.category)}</span>` : ''}
+              <br><span style="font-family:monospace;font-size:6pt;color:#ccc">${escapeHtml(i.id)}</span>
+            </td>
+            <td style="padding:4pt 5pt;border:0.5pt solid #ddd;text-align:center;vertical-align:middle">
+              ${i.side
+                ? `<span style="font-weight:bold;font-size:9pt;color:${i.side==='A'?'#1565c0':'#880e4f'}">${escapeHtml(i.side)}</span>`
+                : '<span style="color:#ccc;font-size:7pt">—</span>'}
+            </td>
+            <td style="padding:4pt 5pt;border:0.5pt solid #ddd;vertical-align:middle">${condBox(i.condition)}</td>
+            <td style="padding:4pt 5pt;border:0.5pt solid #ddd"></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  });
+
+  const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <title>Inventory Check Form — ${escapeHtml(dorm)}</title>
+  <style>
+    *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;margin:0;padding:0}
+    @page{size:A4 portrait;margin:12mm}
+    body{color:#000;background:#fff;font-size:8pt}
+    @media print{.no-print{display:none}}
+  </style>
+</head><body>
+
+<!-- Cover header (repeats if multi-page via @page) -->
+<table style="width:100%;border-collapse:collapse;margin-bottom:10pt;border-bottom:2pt solid #1e3a5f;padding-bottom:8pt">
+  <tr>
+    <td style="vertical-align:top">
+      <div style="font-size:15pt;font-weight:bold;color:#1e3a5f">📦 Inventory Condition Check</div>
+      <div style="font-size:9pt;color:#555;margin-top:2pt">${escapeHtml(dorm)}</div>
+    </td>
+    <td style="text-align:right;vertical-align:top;font-size:8pt;color:#555;min-width:180pt">
+      <table style="border-collapse:collapse;width:100%">
+        <tr><td style="padding:2pt 4pt;text-align:right;color:#888">Date:</td>
+            <td style="border-bottom:1pt solid #aaa;padding:2pt 6pt;min-width:110pt">${today}</td></tr>
+        <tr><td style="padding:2pt 4pt;text-align:right;color:#888">Conducted by:</td>
+            <td style="border-bottom:1pt solid #aaa;padding:2pt 6pt"></td></tr>
+        <tr><td style="padding:2pt 4pt;text-align:right;color:#888">Semester:</td>
+            <td style="border-bottom:1pt solid #aaa;padding:2pt 6pt">${escapeHtml(DormDB.getSemesterCfg?.()?.current || '')}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div style="font-size:7pt;color:#888;margin-bottom:8pt">
+  Pre-filled condition = last recorded value. Tick the actual condition found. Leave Remarks blank if unchanged.
+  Total: <strong>${inv.length} items</strong> across <strong>${locEntries.length} location${locEntries.length!==1?'s':''}</strong>.
+</div>
+
+${body}
+
+<!-- Signature block on last page -->
+<div style="margin-top:18pt;border-top:1pt solid #ccc;padding-top:12pt;page-break-inside:avoid">
+  <table style="width:100%;border-collapse:collapse">
+    <tr>
+      <td style="width:45%;padding-right:20pt">
+        <div style="border-bottom:1pt solid #555;height:22pt;margin-bottom:4pt"></div>
+        <div style="font-size:7.5pt;color:#555">Inspected by (Print name)</div>
+      </td>
+      <td style="width:25%;padding-right:20pt">
+        <div style="border-bottom:1pt solid #555;height:22pt;margin-bottom:4pt"></div>
+        <div style="font-size:7.5pt;color:#555">Signature</div>
+      </td>
+      <td style="width:30%">
+        <div style="border-bottom:1pt solid #555;height:22pt;margin-bottom:4pt"></div>
+        <div style="font-size:7.5pt;color:#555">Date signed</div>
+      </td>
+    </tr>
+  </table>
+  <div style="margin-top:10pt;font-size:6.5pt;color:#aaa;text-align:center">
+    ${escapeHtml(dorm)} · Printed ${today} · DormPortal
+  </div>
+</div>
+
+<script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script>
+</body></html>`);
   w.document.close();
 }
 
