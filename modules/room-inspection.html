@@ -9,9 +9,7 @@
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
 body{background:#f0f4f8;min-height:100vh}
 .container{max-width:1100px;margin:0 auto;padding:20px}
-.nav{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.nav a{color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px}
-.nav h1{color:#1e3a5f;font-size:1.3rem;font-weight:800;flex:1}
+/* nav handled by dorm-ui.css */
 .toolbar{background:#e9ecef;padding:10px 14px;border-radius:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
 .btn:hover{opacity:.88}
@@ -103,12 +101,13 @@ body{background:#f0f4f8;min-height:100vh}
 </style>
 </head>
 <body>
+<div class="nav no-print">
+  <a id="backLink" href="../index.html">← Menu</a>
+  <h1>🔍 Room Inspection — <span id="dormNameSpan"></span></h1>
+  <span class="nav-right">User: <strong id="userSpan"></strong></span>
+</div>
+
 <div class="container">
-  <div class="nav">
-    <a id="backLink" href="../index.html">← Menu</a>
-    <h1>🔍 Room Inspection — <span id="dormNameSpan">Elijah Hall</span></h1>
-    <span style="font-size:.78rem;color:#888">User: <strong id="userSpan"></strong></span>
-  </div>
 
   <div class="toolbar">
     <button class="btn btn-green" onclick="openInspectionForm(undefined,_activeInspType())">＋ New Inspection</button>

@@ -186,11 +186,11 @@ input, select, textarea { font-size: inherit; }
   cursor: pointer;
   font-size: .82rem;
   font-weight: 600;
-  color: #666;
+  color: #555;
   transition: background .15s, color .15s;
 }
 .tab-bar .tab-btn.active { background: var(--dp-accent); color: #fff; }
-.tab-bar .tab-btn:hover:not(.active) { background: var(--dp-bg); color: var(--dp-text); }
+.tab-bar .tab-btn:hover:not(.active) { background: var(--dp-navy-light); color: var(--dp-navy); }
 
 /* Underline-style tabs (inventory secondary tabs) */
 .tabs {
@@ -211,8 +211,8 @@ input, select, textarea { font-size: inherit; }
   margin-bottom: -2px;
   transition: color .15s, border-color .15s;
 }
-.tabs .tab-btn.active,
-.tabs .tab-btn:hover { color: var(--dp-accent); border-bottom-color: var(--dp-accent); }
+.tabs .tab-btn.active { color: var(--dp-accent); border-bottom-color: var(--dp-accent); }
+.tabs .tab-btn:hover:not(.active) { color: var(--dp-navy); border-bottom-color: var(--dp-navy-light); background: var(--dp-navy-light); border-radius: var(--dp-radius) var(--dp-radius) 0 0; }
 
 .tab-panel { display: none; padding-top: 16px; }
 .tab-panel.active { display: block; }

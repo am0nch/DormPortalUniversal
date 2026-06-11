@@ -9,13 +9,14 @@
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
 body{background:#f0f4f8;padding:20px}
 .container{max-width:100%;background:#fff;border-radius:16px;padding:20px}
-h1{color:#1e3a5f;margin-bottom:16px}
+/* h1 in nav handled by dorm-ui.css */
 .btn{background:#1e3a5f;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:.8rem}
 .btn:hover{opacity:.88}
 .btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-purple{background:#6f42c1}.btn-red{background:#c0392b}.btn-blue{background:#2980b9}
 .tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
-.tab-btn{background:#d9e6f5;color:#1e3a5f;border:none;padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:.82rem;font-weight:700}
+.tab-btn{background:#d9e6f5;color:#1e3a5f;border:none;padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:.82rem;font-weight:700;transition:background .15s,color .15s}
 .tab-btn.active{background:var(--dp-accent);color:#fff}
+.tab-btn:hover:not(.active){background:var(--dp-navy);color:#fff}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 .tab-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:#e9ecef;padding:10px 14px;border-radius:10px}
@@ -60,14 +61,14 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
 </style>
 </head>
 <body>
-<div class="container">
-
-<div style="margin-bottom:10px">
-  <a id="navBack" href="../index.html" style="color:#1e3a5f;font-size:.82rem;font-weight:700;text-decoration:none;padding:5px 10px;background:#d9e6f5;border-radius:6px">← Menu</a>
+<div class="nav no-print">
+  <a id="navBack" href="../index.html">← Menu</a>
   <script>(function(){const from=new URLSearchParams(location.search).get('back');if(from==='room-reservations'){const l=document.getElementById('navBack');l.href='room-reservations.html';l.textContent='← Room Reservations';}})()</script>
+  <h1>📊 Reports — <span id="dormNameSpan"></span></h1>
+  <span class="nav-right">User: <strong id="userSpan"></strong></span>
 </div>
 
-<h1>📊 Reports — <span id="dormNameSpan"></span></h1>
+<div class="container">
 
 <div class="tabs no-print">
   <button class="tab-btn active" data-tab="archive" onclick="switchTab('archive')">📜 Archive</button>
@@ -1596,6 +1597,7 @@ DormDB.on(DormDB.KEYS.SEMESTER_CFG, _seedSemesterFilter);
 // Initial render (deferred until IDB cache is ready)
 DormDB.ready.then(() => {
   document.getElementById('dormNameSpan').textContent = DormDB.getDormName();
+  document.getElementById('userSpan').textContent     = DormDB.getCurrentUser();
   _seedSemesterFilter();
   renderArchive();
 });
