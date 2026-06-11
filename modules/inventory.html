@@ -79,6 +79,30 @@ table.h-tbl tr:hover td{background:#f7fafc}
 
 .empty-msg{color:#888;font-size:.82rem;padding:8px 0}
 
+/* ── Barcode scanner modal ── */
+.scan-video-wrap{position:relative;background:#000;border-radius:8px;overflow:hidden;margin-bottom:12px;aspect-ratio:4/3;max-height:280px;display:flex;align-items:center;justify-content:center}
+.scan-video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-aim{position:absolute;inset:20%;border:2px solid rgba(255,200,0,.85);border-radius:6px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+.scan-aim::before,.scan-aim::after{content:'';position:absolute;background:#fc0;border-radius:2px}
+.scan-aim::before{inset:0 35%}
+.scan-aim::after{inset:35% 0}
+.scan-no-cam{color:#aaa;font-size:.82rem;padding:20px;text-align:center}
+.scan-result{background:#f0fff4;border:1.5px solid #27ae60;border-radius:8px;padding:14px 16px;margin-top:10px;display:none}
+.scan-result.visible{display:block}
+.scan-result.not-found{background:#fff5f5;border-color:#e74c3c}
+.sr-name{font-size:1rem;font-weight:700;color:#1e3a5f;margin-bottom:6px}
+.sr-meta{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.8rem}
+.sr-lbl{color:#888;font-weight:600}.sr-val{color:#333}
+.sr-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.scan-usb-row{display:flex;gap:8px;margin-top:4px}
+.scan-usb-row input{flex:1;padding:8px 12px;border:1.5px solid #cdd6e0;border-radius:6px;font-size:.9rem;font-family:monospace}
+.scan-usb-row input:focus{outline:none;border-color:#1e3a5f}
+.scan-mode-tabs{display:flex;gap:4px;margin-bottom:10px}
+.scan-mode-tab{padding:5px 14px;border:1.5px solid #cdd6e0;border-radius:20px;cursor:pointer;font-size:.78rem;font-weight:600;color:#666;background:#fff;transition:.12s}
+.scan-mode-tab.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+#scanCamPanel,#scanUsbPanel{display:none}
+#scanCamPanel.active,#scanUsbPanel.active{display:block}
+
 #scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:#1e3a5f;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}#scrollTopBtn:hover{background:#2d5282;}@media print{#scrollTopBtn{display:none}}
 /* ── Bedding summary table ── */
 .bdg-summary{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:.82rem}
@@ -116,6 +140,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <button class="btn btn-green" onclick="openAddModal()">➕ Add Item</button>
   <button class="btn btn-blue" onclick="seedAllRooms()">🏠 Seed All Rooms</button>
   <button class="btn" onclick="printInventorySheet()">🖨️ Print All Items</button>
+  <button class="btn btn-orange" onclick="openScanModal()">📷 Scan Barcode</button>
   <span id="invCount" style="margin-left:auto;font-size:.8rem;color:#666"></span>
 </div>
 
@@ -334,6 +359,46 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeModal('confirmModal')">Cancel</button>
       <button class="btn btn-red" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- BARCODE SCANNER MODAL -->
+<div class="modal" id="scanModal">
+  <div class="modal-content" style="max-width:460px">
+    <span class="close-btn" onclick="closeScanModal()">&times;</span>
+    <h2>📷 Barcode Scanner</h2>
+
+    <div class="scan-mode-tabs">
+      <button class="scan-mode-tab active" id="scanTabCam" onclick="setScanMode('cam')">📷 Camera</button>
+      <button class="scan-mode-tab" id="scanTabUsb" onclick="setScanMode('usb')">🔌 USB / Manual</button>
+    </div>
+
+    <!-- Camera mode -->
+    <div id="scanCamPanel" class="active">
+      <div class="scan-video-wrap" id="scanVideoWrap">
+        <video id="scanVideo" autoplay playsinline muted></video>
+        <div class="scan-aim"></div>
+      </div>
+      <p style="font-size:.75rem;color:#888;text-align:center;margin-bottom:4px" id="scanCamStatus">Starting camera…</p>
+    </div>
+
+    <!-- USB / manual mode -->
+    <div id="scanUsbPanel">
+      <p style="font-size:.8rem;color:#555;margin-bottom:6px">Point your USB barcode scanner at the label, or type the Item ID manually.</p>
+      <div class="scan-usb-row">
+        <input type="text" id="scanUsbInput" placeholder="Scan or type barcode (e.g. INV-ABC123)"
+          autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+          onkeydown="if(event.key==='Enter'){handleScanInput(this.value.trim());this.value='';}">
+        <button class="btn btn-blue btn-sm" onclick="const v=document.getElementById('scanUsbInput');handleScanInput(v.value.trim());v.value=''">Go</button>
+      </div>
+    </div>
+
+    <!-- Result panel -->
+    <div class="scan-result" id="scanResult">
+      <div class="sr-name" id="srName"></div>
+      <div class="sr-meta" id="srMeta"></div>
+      <div class="sr-actions" id="srActions"></div>
     </div>
   </div>
 </div>
@@ -1727,6 +1792,154 @@ function printBeddingReport() {
   w.document.close();
 }
 
+// ── Barcode Scanner ───────────────────────────────────────────────────────────
+let _scanStream   = null;
+let _scanDetector = null;
+let _scanLoop     = null;
+let _scanMode     = 'cam';
+let _scanResultTimer = null;
+
+function openScanModal() {
+  document.getElementById('scanModal').classList.add('open');
+  document.getElementById('scanResult').classList.remove('visible','not-found');
+  setScanMode(_scanMode);
+}
+function closeScanModal() {
+  document.getElementById('scanModal').classList.remove('open');
+  _stopCamera();
+  clearTimeout(_scanResultTimer);
+}
+function setScanMode(mode) {
+  _scanMode = mode;
+  document.getElementById('scanTabCam').classList.toggle('active', mode === 'cam');
+  document.getElementById('scanTabUsb').classList.toggle('active', mode === 'usb');
+  document.getElementById('scanCamPanel').classList.toggle('active', mode === 'cam');
+  document.getElementById('scanUsbPanel').classList.toggle('active', mode === 'usb');
+  if (mode === 'cam') {
+    _startCamera();
+  } else {
+    _stopCamera();
+    setTimeout(() => document.getElementById('scanUsbInput').focus(), 80);
+  }
+}
+
+async function _startCamera() {
+  const status = document.getElementById('scanCamStatus');
+  if (!('BarcodeDetector' in window)) {
+    status.textContent = '⚠️ Camera scanning not supported in this browser. Use USB/Manual tab or try Chrome/Edge.';
+    document.getElementById('scanVideo').style.display = 'none';
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    status.textContent = '⚠️ Camera access not available (file:// or no HTTPS). Use USB/Manual tab.';
+    return;
+  }
+  try {
+    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('scanVideo');
+    video.srcObject = _scanStream;
+    video.style.display = '';
+    await video.play();
+    status.textContent = 'Point camera at a barcode label…';
+    _scanDetector = new BarcodeDetector({ formats: ['code_39', 'code_128', 'qr_code', 'data_matrix'] });
+    _runScanLoop();
+  } catch (err) {
+    status.textContent = `⚠️ Camera error: ${err.message}. Use USB/Manual tab.`;
+  }
+}
+function _stopCamera() {
+  cancelAnimationFrame(_scanLoop);
+  _scanLoop = null;
+  if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
+}
+function _runScanLoop() {
+  const video = document.getElementById('scanVideo');
+  async function tick() {
+    if (!_scanStream) return;
+    try {
+      const codes = await _scanDetector.detect(video);
+      if (codes.length) {
+        const val = codes[0].rawValue.trim();
+        handleScanInput(val);
+        // Pause scanning for 2.5 s to avoid re-reading the same barcode immediately
+        await new Promise(r => setTimeout(r, 2500));
+      }
+    } catch (_) { /* frame not ready */ }
+    _scanLoop = requestAnimationFrame(tick);
+  }
+  _scanLoop = requestAnimationFrame(tick);
+}
+
+function handleScanInput(raw) {
+  if (!raw) return;
+  // Normalise: uppercase, allow INV-XXXXX or plain XXXXX
+  const id = raw.toUpperCase().startsWith('INV-') ? raw.toUpperCase() : 'INV-' + raw.toUpperCase();
+  const inv = DormDB.getInventory();
+  // Try exact ID match first, then fallback to serial number
+  const item = inv.find(i => i.id === id) || inv.find(i => (i.serialNo||'').toUpperCase() === raw.toUpperCase());
+  displayScanResult(item, item ? null : raw);
+}
+
+function displayScanResult(item, rawNotFound) {
+  const panel  = document.getElementById('scanResult');
+  const nameEl = document.getElementById('srName');
+  const metaEl = document.getElementById('srMeta');
+  const actEl  = document.getElementById('srActions');
+  clearTimeout(_scanResultTimer);
+
+  if (!item) {
+    panel.className = 'scan-result visible not-found';
+    nameEl.textContent = `❌ Not found: "${rawNotFound}"`;
+    metaEl.innerHTML = '<span style="font-size:.78rem;color:#888">No inventory item matches this barcode. Check the ID or add the item.</span>';
+    actEl.innerHTML  = `<button class="btn btn-green btn-sm" onclick="openAddModal();closeScanModal()">➕ Add New Item</button>`;
+    return;
+  }
+
+  const locs   = getAllLocations();
+  const locLbl = locs.find(l => l.id === item.location)?.label || item.location || '—';
+  const condColors = { Good:'#155724', Fair:'#856404', Poor:'#721c24', Damaged:'#7d3c00', Missing:'#6a1b9a' };
+  const condColor  = condColors[item.condition] || '#333';
+
+  panel.className = 'scan-result visible';
+  nameEl.textContent = item.name;
+
+  const rows = [
+    ['ID',        item.id],
+    ['Location',  locLbl],
+    ['Category',  item.category || '—'],
+    ['Condition', item.condition || 'Good'],
+    item.isConsumable ? ['Qty in Stock', `${item.qty ?? 1} unit(s)${item.reorderAt ? ` (reorder at ${item.reorderAt})` : ''}`] : null,
+    item.brand    ? ['Brand',      item.brand]    : null,
+    item.serialNo ? ['Serial No.', item.serialNo] : null,
+    item.maintenanceFlag ? ['⚠️ Maintenance', item.maintenanceNotes || 'Flagged'] : null,
+    item.notes    ? ['Notes',      item.notes]    : null,
+  ].filter(Boolean);
+
+  metaEl.innerHTML = rows.map(([l, v]) =>
+    `<span class="sr-lbl">${escapeHtml(l)}</span>
+     <span class="sr-val" style="${l==='Condition'?`color:${condColor};font-weight:700`:''}">${escapeHtml(String(v))}</span>`
+  ).join('');
+
+  actEl.innerHTML = `
+    <button class="btn btn-blue btn-sm" onclick="openEditModal('${escapeHtml(item.id)}')">✏️ Edit Item</button>
+    <button class="btn btn-sm" onclick="jumpToLocation('${escapeHtml(item.location)}')">🏠 View Location</button>
+  `;
+
+  // Auto-clear result after 6 s so the next scan lands cleanly
+  _scanResultTimer = setTimeout(() => {
+    panel.classList.remove('visible','not-found');
+  }, 6000);
+}
+
+function jumpToLocation(locId) {
+  closeScanModal();
+  switchTab('location');
+  const picker = document.getElementById('locPicker');
+  picker.value = locId;
+  renderLocation();
+  window.scrollTo({ top: picker.offsetTop - 80, behavior: 'smooth' });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   await DormDB.ready;
@@ -1765,6 +1978,7 @@ async function init() {
       closeItemModal(); closeModal('confirmModal');
       closeModal('bddSaleModal'); closeModal('bddStockModal');
       closeModal('bddCountModal'); closeModal('bddSettingsModal');
+      closeScanModal();
     }
   });
   document.querySelectorAll('.modal').forEach(m => {
@@ -1773,6 +1987,7 @@ async function init() {
         closeItemModal(); closeModal('confirmModal');
         closeModal('bddSaleModal'); closeModal('bddStockModal');
         closeModal('bddCountModal'); closeModal('bddSettingsModal');
+        if (m.id === 'scanModal') closeScanModal();
       }
     });
   });
