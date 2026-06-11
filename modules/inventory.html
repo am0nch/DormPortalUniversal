@@ -142,6 +142,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <button class="btn btn-red" onclick="confirmClearRoomItems()">🗑️ Clear Room Items</button>
   <button class="btn" onclick="printInventorySheet()">🖨️ Print All Items</button>
   <button class="btn btn-orange" onclick="openScanModal()">📷 Scan Barcode</button>
+  <button class="btn" style="background:#6a1b9a;color:#fff" onclick="openSnapshotModal()">📸 Take Snapshot</button>
   <span id="invCount" style="margin-left:auto;font-size:.8rem;color:#666"></span>
 </div>
 
@@ -153,6 +154,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <button class="tab-btn" data-tab="maintenance" onclick="switchTab('maintenance')">🔧 Maintenance</button>
   <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
   <button class="tab-btn" data-tab="bedding" onclick="switchTab('bedding')">🛏️ Bedding</button>
+  <button class="tab-btn" data-tab="auditlog" onclick="switchTab('auditlog')">📅 Audit Log</button>
 </div>
 
 <!-- DASHBOARD -->
@@ -362,6 +364,41 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <div class="modal-actions">
       <button class="btn btn-gray" onclick="closeItemModal()">Cancel</button>
       <button class="btn btn-green" onclick="saveItem()">💾 Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIT LOG TAB -->
+<div id="tab-auditlog" class="tab-panel">
+  <div id="auditLogBody"></div>
+</div>
+
+<!-- SNAPSHOT MODAL -->
+<div class="modal" id="snapshotModal">
+  <div class="modal-content" style="max-width:420px">
+    <span class="close-btn" onclick="closeModal('snapshotModal')">&times;</span>
+    <h2>📸 Take Inventory Snapshot</h2>
+    <p style="font-size:.8rem;color:#555;margin-bottom:14px">Captures the current condition and quantity of every item as a dated record. Use this for the initial baseline and for each annual or semester check.</p>
+    <div class="fg">
+      <label>Snapshot Label *</label>
+      <input type="text" id="snap_label" placeholder="e.g. Baseline — August 2026, Annual Check 2027">
+    </div>
+    <div class="fg">
+      <label>Date *</label>
+      <input type="date" id="snap_date">
+    </div>
+    <div class="fg">
+      <label>Conducted by</label>
+      <input type="text" id="snap_by" placeholder="Name of person doing the check">
+    </div>
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="snap_notes" placeholder="Any observations, context, or special circumstances…" style="min-height:60px"></textarea>
+    </div>
+    <div id="snap_preview" style="font-size:.78rem;color:#666;margin-bottom:12px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-gray" onclick="closeModal('snapshotModal')">Cancel</button>
+      <button class="btn" style="background:#6a1b9a;color:#fff" onclick="saveSnapshot()">📸 Save Snapshot</button>
     </div>
   </div>
 </div>
@@ -695,6 +732,7 @@ function switchTab(name) {
   if (name === 'maintenance') renderMaintenance();
   if (name === 'settings')    renderSettings();
   if (name === 'bedding')    { populateBddSemFilter(); renderBeddingTab(); }
+  if (name === 'auditlog')  renderAuditLog();
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
@@ -1863,6 +1901,161 @@ function printBeddingReport() {
   w.document.close();
 }
 
+// ── Inventory Snapshots / Audit Log ──────────────────────────────────────────
+function openSnapshotModal() {
+  const inv = DormDB.getInventory();
+  if (!inv.length) { showToast('No inventory items to snapshot yet.'); return; }
+  document.getElementById('snap_label').value = '';
+  document.getElementById('snap_date').value  = new Date().toISOString().slice(0, 10);
+  document.getElementById('snap_by').value    = DormDB.getCurrentUser() || '';
+  document.getElementById('snap_notes').value = '';
+  const conds = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Missing: 0 };
+  inv.forEach(i => { conds[i.condition || 'Good'] = (conds[i.condition || 'Good'] || 0) + 1; });
+  document.getElementById('snap_preview').textContent =
+    `Will snapshot ${inv.length} items — Good: ${conds.Good}, Fair: ${conds.Fair}, Poor: ${conds.Poor}, Damaged: ${conds.Damaged}, Missing: ${conds.Missing}`;
+  document.getElementById('snapshotModal').classList.add('open');
+}
+
+function saveSnapshot() {
+  const label = document.getElementById('snap_label').value.trim();
+  const date  = document.getElementById('snap_date').value;
+  if (!label) { showToast('Please enter a snapshot label.'); return; }
+  if (!date)  { showToast('Please select a date.'); return; }
+
+  const inv  = DormDB.getInventory();
+  const conds = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Missing: 0 };
+  const snapshots = inv.map(i => {
+    const c = i.condition || 'Good';
+    conds[c] = (conds[c] || 0) + 1;
+    return { itemId: i.id, name: i.name, location: i.location, side: i.side || '',
+             category: i.category, condition: c, qty: i.qty || 1 };
+  });
+
+  // Stamp lastChecked on all items
+  const today = date;
+  inv.forEach(i => { i.lastChecked = today; });
+  DormDB.saveInventory(inv);
+
+  const audits = DormDB.getInvAudits();
+  audits.unshift({
+    id: 'AUD-' + Date.now().toString(36).toUpperCase().slice(-6),
+    label,
+    date,
+    conductedBy: document.getElementById('snap_by').value.trim(),
+    notes: document.getElementById('snap_notes').value.trim(),
+    totalItems: inv.length,
+    summary: { ...conds },
+    snapshots,
+  });
+  DormDB.saveInvAudits(audits);
+  closeModal('snapshotModal');
+  showToast(`✅ Snapshot saved — ${inv.length} items recorded`);
+  if (_isActive('tab-auditlog')) renderAuditLog();
+}
+
+function renderAuditLog() {
+  const audits = DormDB.getInvAudits();
+  const el = document.getElementById('auditLogBody');
+  if (!audits.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px 20px;color:#aaa">
+      <div style="font-size:2.5rem;margin-bottom:12px">📸</div>
+      <p style="font-size:.9rem;font-weight:700;margin-bottom:6px">No snapshots yet</p>
+      <p style="font-size:.8rem">Click <strong>📸 Take Snapshot</strong> to record the current inventory as your baseline.</p>
+    </div>`;
+    return;
+  }
+
+  const condColor = { Good:'#27ae60', Fair:'#f39c12', Poor:'#e74c3c', Damaged:'#7d3c00', Missing:'#6a1b9a' };
+  const condBg    = { Good:'#d4edda', Fair:'#fff3cd', Poor:'#f8d7da', Damaged:'#fde8d8', Missing:'#f3e5f5' };
+
+  el.innerHTML = audits.map((a, ai) => {
+    const prev = audits[ai + 1]; // older snapshot
+    const total = a.totalItems || 0;
+    const pct   = k => total ? Math.round(((a.summary[k] || 0) / total) * 100) : 0;
+
+    // Build diff vs previous snapshot
+    let diffHtml = '';
+    if (prev) {
+      const prevMap = {};
+      (prev.snapshots || []).forEach(s => { prevMap[s.itemId] = s; });
+      const changed = (a.snapshots || []).filter(s => {
+        const p = prevMap[s.itemId];
+        return p && p.condition !== s.condition;
+      });
+      const added   = (a.snapshots || []).filter(s => !prevMap[s.itemId]);
+      const removed = (prev.snapshots || []).filter(s => !(a.snapshots || []).find(x => x.itemId === s.itemId));
+
+      if (changed.length || added.length || removed.length) {
+        diffHtml = `<details style="margin-top:10px">
+          <summary style="cursor:pointer;font-size:.78rem;font-weight:700;color:#1e3a5f">
+            🔍 Changes vs "${escapeHtml(prev.label)}" (${changed.length} condition change${changed.length!==1?'s':''}, ${added.length} new, ${removed.length} removed)
+          </summary>
+          <div style="margin-top:8px;max-height:260px;overflow-y:auto">
+          ${changed.map(s => {
+            const p = prevMap[s.itemId];
+            const loc = getLocLabel(s.location) + (s.side ? ` — Side ${s.side}` : '');
+            return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:.76rem">
+              <span style="flex:1;font-weight:600">${escapeHtml(s.name)}</span>
+              <span style="font-size:.7rem;color:#888">${escapeHtml(loc)}</span>
+              <span class="badge" style="background:${condBg[p.condition]};color:${condColor[p.condition]}">${escapeHtml(p.condition)}</span>
+              <span style="color:#aaa">→</span>
+              <span class="badge" style="background:${condBg[s.condition]};color:${condColor[s.condition]}">${escapeHtml(s.condition)}</span>
+            </div>`;
+          }).join('')}
+          ${added.map(s => `<div style="padding:4px 0;font-size:.76rem;color:#27ae60;border-bottom:1px solid #f0f0f0">
+            ➕ <strong>${escapeHtml(s.name)}</strong> <span style="color:#888">${escapeHtml(getLocLabel(s.location))}</span>
+          </div>`).join('')}
+          ${removed.map(s => `<div style="padding:4px 0;font-size:.76rem;color:#e74c3c;border-bottom:1px solid #f0f0f0">
+            ➖ <strong>${escapeHtml(s.name)}</strong> <span style="color:#888">${escapeHtml(getLocLabel(s.location))}</span>
+          </div>`).join('')}
+          </div>
+        </details>`;
+      } else {
+        diffHtml = `<p style="font-size:.75rem;color:#27ae60;margin-top:8px">✅ No condition changes since previous snapshot.</p>`;
+      }
+    }
+
+    return `<div class="sec-card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:.95rem;font-weight:700;color:#1e3a5f">${escapeHtml(a.label)}</div>
+          <div style="font-size:.75rem;color:#888;margin-top:2px">
+            📅 ${escapeHtml(a.date)}
+            ${a.conductedBy ? ` · 👤 ${escapeHtml(a.conductedBy)}` : ''}
+            · ${total} items
+            ${ai === audits.length - 1 ? ' · <span style="background:#6a1b9a;color:#fff;padding:1px 7px;border-radius:10px;font-size:.68rem;font-weight:700">BASELINE</span>' : ''}
+          </div>
+          ${a.notes ? `<div style="font-size:.76rem;color:#555;margin-top:4px;font-style:italic">${escapeHtml(a.notes)}</div>` : ''}
+        </div>
+        <button class="btn btn-sm btn-red" onclick="deleteAudit('${escapeHtml(a.id)}')" title="Delete this snapshot">✕</button>
+      </div>
+
+      <!-- Condition bar -->
+      <div style="margin-top:10px">
+        <div style="display:flex;border-radius:6px;overflow:hidden;height:14px;margin-bottom:4px">
+          ${['Good','Fair','Poor','Damaged','Missing'].map(k =>
+            (a.summary[k] || 0) ? `<div title="${a.summary[k]} ${k}" style="width:${pct(k)}%;background:${condColor[k]};transition:width .3s"></div>` : ''
+          ).join('')}
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${['Good','Fair','Poor','Damaged','Missing'].map(k =>
+            (a.summary[k] || 0) ? `<span style="font-size:.72rem;color:${condColor[k]};font-weight:700">${a.summary[k]} ${k}</span>` : ''
+          ).join('')}
+        </div>
+      </div>
+
+      ${diffHtml}
+    </div>`;
+  }).join('');
+}
+
+function deleteAudit(id) {
+  const audits = DormDB.getInvAudits().filter(a => a.id !== id);
+  DormDB.saveInvAudits(audits);
+  renderAuditLog();
+  showToast('Snapshot deleted.');
+}
+
 // ── Barcode Scanner ───────────────────────────────────────────────────────────
 let _scanStream   = null;
 let _scanDetector = null;
@@ -2043,12 +2236,14 @@ async function init() {
   DormDB.on(DormDB.KEYS.BEDDING_COUNT, () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
   DormDB.on(DormDB.KEYS.BEDDING_CFG,   () => { if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
   DormDB.on(DormDB.KEYS.SEMESTER_CFG,  () => { populateBddSemSelects(); if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
+  DormDB.on(DormDB.KEYS.INV_AUDITS,   () => { if (_isActive('tab-auditlog')) renderAuditLog(); });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeItemModal(); closeModal('confirmModal');
       closeModal('bddSaleModal'); closeModal('bddStockModal');
       closeModal('bddCountModal'); closeModal('bddSettingsModal');
+      closeModal('snapshotModal');
       closeScanModal();
     }
   });
