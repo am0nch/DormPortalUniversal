@@ -463,6 +463,17 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <div class="scan-result" id="scanResult">
       <div class="sr-name" id="srName"></div>
       <div class="sr-meta" id="srMeta"></div>
+      <!-- Quick condition update -->
+      <div id="srCondRow" style="display:none;margin-top:10px">
+        <div style="font-size:.73rem;font-weight:700;color:#555;margin-bottom:5px">Update Condition:</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          <button class="btn btn-sm" style="background:#27ae60;color:#fff" onclick="updateScannedCondition('Good')">✅ Good</button>
+          <button class="btn btn-sm" style="background:#f39c12;color:#fff" onclick="updateScannedCondition('Fair')">⚠️ Fair</button>
+          <button class="btn btn-sm" style="background:#e74c3c;color:#fff" onclick="updateScannedCondition('Poor')">🔴 Poor</button>
+          <button class="btn btn-sm" style="background:#7d3c00;color:#fff" onclick="updateScannedCondition('Damaged')">🔧 Damaged</button>
+          <button class="btn btn-sm" style="background:#6a1b9a;color:#fff" onclick="updateScannedCondition('Missing')">❓ Missing</button>
+        </div>
+      </div>
       <div class="sr-actions" id="srActions"></div>
     </div>
   </div>
@@ -2206,39 +2217,42 @@ function handleScanInput(raw) {
   displayScanResult(item, item ? null : raw);
 }
 
+let _scannedItemId = null;
+
 function displayScanResult(item, rawNotFound) {
-  const panel  = document.getElementById('scanResult');
-  const nameEl = document.getElementById('srName');
-  const metaEl = document.getElementById('srMeta');
-  const actEl  = document.getElementById('srActions');
+  const panel    = document.getElementById('scanResult');
+  const nameEl   = document.getElementById('srName');
+  const metaEl   = document.getElementById('srMeta');
+  const actEl    = document.getElementById('srActions');
+  const condRow  = document.getElementById('srCondRow');
   clearTimeout(_scanResultTimer);
 
   if (!item) {
+    _scannedItemId = null;
     panel.className = 'scan-result visible not-found';
     nameEl.textContent = `❌ Not found: "${rawNotFound}"`;
-    metaEl.innerHTML = '<span style="font-size:.78rem;color:#888">No inventory item matches this barcode. Check the ID or add the item.</span>';
-    actEl.innerHTML  = `<button class="btn btn-green btn-sm" onclick="openAddModal();closeScanModal()">➕ Add New Item</button>`;
+    metaEl.innerHTML  = '<span style="font-size:.78rem;color:#888">No inventory item matches this barcode. Check the ID or add the item.</span>';
+    actEl.innerHTML   = `<button class="btn btn-green btn-sm" onclick="openAddModal();closeScanModal()">➕ Add New Item</button>`;
+    condRow.style.display = 'none';
     return;
   }
 
-  const locs   = getAllLocations();
-  const locLbl = locs.find(l => l.id === item.location)?.label || item.location || '—';
+  _scannedItemId = item.id;
+  const locs     = getAllLocations();
+  const locLbl   = locs.find(l => l.id === item.location)?.label || item.location || '—';
   const condColors = { Good:'#155724', Fair:'#856404', Poor:'#721c24', Damaged:'#7d3c00', Missing:'#6a1b9a' };
   const condColor  = condColors[item.condition] || '#333';
 
   panel.className = 'scan-result visible';
-  nameEl.textContent = item.name;
+  nameEl.textContent = item.name + (item.side ? ` — Side ${item.side}` : '');
 
   const rows = [
-    ['ID',        item.id],
     ['Location',  locLbl + (item.side ? ` — Side ${item.side}` : '')],
     ['Category',  item.category || '—'],
     ['Condition', item.condition || 'Good'],
     item.isConsumable ? ['Qty in Stock', `${item.qty ?? 1} unit(s)${item.reorderAt ? ` (reorder at ${item.reorderAt})` : ''}`] : null,
-    item.brand    ? ['Brand',      item.brand]    : null,
-    item.serialNo ? ['Serial No.', item.serialNo] : null,
     item.maintenanceFlag ? ['⚠️ Maintenance', item.maintenanceNotes || 'Flagged'] : null,
-    item.notes    ? ['Notes',      item.notes]    : null,
+    item.notes    ? ['Notes',  item.notes]    : null,
   ].filter(Boolean);
 
   metaEl.innerHTML = rows.map(([l, v]) =>
@@ -2246,15 +2260,28 @@ function displayScanResult(item, rawNotFound) {
      <span class="sr-val" style="${l==='Condition'?`color:${condColor};font-weight:700`:''}">${escapeHtml(String(v))}</span>`
   ).join('');
 
+  condRow.style.display = '';
   actEl.innerHTML = `
-    <button class="btn btn-blue btn-sm" onclick="openEditModal('${escapeHtml(item.id)}')">✏️ Edit Item</button>
+    <button class="btn btn-blue btn-sm" onclick="openEditModal('${escapeHtml(item.id)}')">✏️ Full Edit</button>
     <button class="btn btn-sm" onclick="jumpToLocation('${escapeHtml(item.location)}')">🏠 View Location</button>
   `;
 
-  // Auto-clear result after 6 s so the next scan lands cleanly
-  _scanResultTimer = setTimeout(() => {
-    panel.classList.remove('visible','not-found');
-  }, 6000);
+  // Keep result visible until next scan — no auto-clear during a walk-through
+  _scanResultTimer = null;
+}
+
+function updateScannedCondition(condition) {
+  if (!_scannedItemId) return;
+  const inv  = DormDB.getInventory();
+  const idx  = inv.findIndex(i => i.id === _scannedItemId);
+  if (idx < 0) return;
+  const prev = inv[idx].condition;
+  inv[idx].condition  = condition;
+  inv[idx].lastChecked = new Date().toISOString().slice(0, 10);
+  DormDB.saveInventory(inv);
+  // Refresh the result panel with updated item
+  displayScanResult(inv[idx], null);
+  showToast(`✅ ${inv[idx].name} — ${prev !== condition ? `${prev} → ${condition}` : condition + ' (unchanged)'}`);
 }
 
 function jumpToLocation(locId) {
