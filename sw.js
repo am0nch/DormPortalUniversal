@@ -70,7 +70,7 @@ self.addEventListener('fetch', event => {
           // Cache new HTML and JS files on first visit
           if (response.ok && (url.pathname.endsWith('.html') || url.pathname.endsWith('.js') || url.pathname.endsWith('.png'))) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone)).catch(err => console.warn('SW cache write failed:', url.pathname, err.name));
           }
           return response;
         })

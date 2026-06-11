@@ -742,6 +742,10 @@ function saveShift() {
   const end   = document.getElementById('sm_end').value;
   if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
   if (start === end)  { showToast('⚠️ Start and end time cannot be the same'); return; }
+  const sc = getSlotConfig(w.category);
+  if (isOvernightShift(start, end) && !sc.overnight) {
+    if (!confirm(`⚠️ ${w.name}: end time (${end}) is before start (${start}), which creates an overnight shift. ${w.category}s don't normally work overnight. Save anyway?`)) return;
+  }
 
   const area     = document.getElementById('sm_area').value.trim();
   const duties   = document.getElementById('sm_duties').value.trim();
@@ -806,6 +810,13 @@ function saveMasterEntry() {
 
   if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
   if (start === end)  { showToast('⚠️ Start and end time cannot be the same'); return; }
+  const wMaster = workers.find(x => x.id === wId);
+  if (wMaster) {
+    const scm = getSlotConfig(wMaster.category);
+    if (isOvernightShift(start, end) && !scm.overnight) {
+      if (!confirm(`⚠️ ${wMaster.name}: end time (${end}) is before start (${start}), creating an overnight shift. ${wMaster.category}s don't normally work overnight. Save anyway?`)) return;
+    }
+  }
 
   // Duplicate check: same category, day, startTime — cannot be taken by another worker
   const allEntries = masterEntries();
@@ -903,15 +914,20 @@ function runAutoPopulate() {
   const endD = new Date(end + 'T00:00:00');
   while (d <= endD) { weekStarts.push(isoDate(d)); d = new Date(d); d.setDate(d.getDate() + 7); }
 
+  // Pre-index existing blocks by workerId:weekStart to avoid O(n²) find() inside the loop
+  const blockIndex = new Map();
+  schedule.forEach(b => blockIndex.set(`${b.workerId}:${b.weekStart}`, b));
+
   let added = 0;
   weekStarts.forEach(ws => {
     entries.forEach(entry => {
-      let block = schedule.find(b => b.workerId === entry.workerId && b.weekStart === ws);
+      let block = blockIndex.get(`${entry.workerId}:${ws}`);
       if (!block) {
         block = { id: Date.now() + Math.floor(Math.random() * 1000) + added,
                   workerId: entry.workerId, workerName: entry.workerName, category: entry.category,
                   floor: entry.floor, weekStart: ws, shifts: [] };
         schedule.push(block);
+        blockIndex.set(`${entry.workerId}:${ws}`, block);
       }
       if (!overwrite) {
         const alreadyHas = block.shifts.some(s => s.day === entry.day && s.startTime === entry.startTime);

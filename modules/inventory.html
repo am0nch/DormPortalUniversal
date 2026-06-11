@@ -187,7 +187,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
       <option value="">All Sides</option>
       <option value="A">Side A</option>
       <option value="B">Side B</option>
-      <option value="">Shared</option>
+      <option value="shared">Shared only</option>
     </select>
     <select id="itemFlagFilter" onchange="renderItems()">
       <option value="">All Items</option><option value="1">Flagged</option><option value="0">Not Flagged</option>
@@ -688,11 +688,20 @@ function generateId() {
   const r = Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, '0');
   return 'INV-' + t + r;
 }
+// Single source of truth for condition colours — used by badges, audit log bar, print form, scan result
+const COND_COLOR = { Good:'#155724', Fair:'#856404', Poor:'#721c24', Damaged:'#7d3c00', Missing:'#6a1b9a' };
+const COND_BG    = { Good:'#d4edda', Fair:'#fff3cd', Poor:'#f8d7da', Damaged:'#fde8d8', Missing:'#f3e5f5' };
+
 function condBadge(c) {
   const m = {Good:'b-good',Fair:'b-fair',Poor:'b-poor',Damaged:'b-damaged',Missing:'b-missing'};
   return `<span class="badge ${m[c]||'b-good'}">${escapeHtml(c||'Good')}</span>`;
 }
 function catBadge(c) { return `<span class="badge b-cat">${escapeHtml(c||'')}</span>`; }
+function sideChip(s) {
+  return s
+    ? `<span style="display:inline-block;background:${s==='A'?'#e3f2fd':'#fce4ec'};color:${s==='A'?'#1565c0':'#880e4f'};border-radius:4px;padding:1px 7px;font-size:.7rem;font-weight:700">Side ${escapeHtml(s)}</span>`
+    : '<span style="color:#ccc;font-size:.7rem">Shared</span>';
+}
 function _isActive(id) { return document.getElementById(id)?.classList.contains('active'); }
 function isAcRoom(r) { return r && r.toUpperCase().includes('AC'); }
 
@@ -841,7 +850,8 @@ function renderItems() {
   if (locF)  inv = inv.filter(i => i.location === locF);
   if (catF)  inv = inv.filter(i => i.category === catF);
   if (condF) inv = inv.filter(i => i.condition === condF);
-  if (sideF) inv = inv.filter(i => (i.side || '') === sideF);
+  if (sideF === 'shared') inv = inv.filter(i => !i.side);
+  else if (sideF) inv = inv.filter(i => (i.side || '') === sideF);
   if (flagF === '1') inv = inv.filter(i => i.maintenanceFlag);
   if (flagF === '0') inv = inv.filter(i => !i.maintenanceFlag);
 
@@ -857,7 +867,7 @@ function renderItems() {
         <td><strong>${escapeHtml(i.name)}</strong>${i.brand?`<br><span style="font-size:.7rem;color:#aaa">${escapeHtml(i.brand)}</span>`:''}</td>
         <td>${catBadge(i.category)}</td>
         <td style="font-size:.78rem">${escapeHtml(getLocLabel(i.location))}</td>
-        <td style="text-align:center">${i.side ? `<span class="badge" style="background:${i.side==='A'?'#e3f2fd':'#fce4ec'};color:${i.side==='A'?'#1565c0':'#880e4f'}">${escapeHtml(i.side)}</span>` : '<span style="color:#ccc;font-size:.7rem">—</span>'}</td>
+        <td style="text-align:center">${sideChip(i.side)}</td>
         <td>${condBadge(i.condition)}</td>
         <td style="text-align:center">${i.maintenanceFlag ? (i.maintenancePushed ? '<span style="font-size:.7rem;color:#888">📤</span>' : '<span style="font-size:.7rem;color:#e74c3c;font-weight:700">⚠</span>') : ''}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button> <button class="btn btn-sm btn-red" onclick="confirmRemove('${escapeHtml(i.id)}')">✕</button></td>
@@ -886,7 +896,6 @@ function renderLocation() {
 
   if (inv.length) {
     html += `<h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin-bottom:8px">📦 Items at ${escapeHtml(locObj.label)} (${inv.length})</h3>`;
-    const sideChip = s => s ? `<span style="display:inline-block;background:${s==='A'?'#e3f2fd':'#fce4ec'};color:${s==='A'?'#1565c0':'#880e4f'};border-radius:4px;padding:1px 7px;font-size:.7rem;font-weight:700">Side ${escapeHtml(s)}</span>` : '<span style="color:#ccc;font-size:.7rem">Shared</span>';
     const itemRow = i => `<tr>
       <td>
         <strong>${escapeHtml(i.name)}</strong>
@@ -1414,7 +1423,7 @@ function printInventorySheet() {
   let body = '';
   Object.entries(byLoc).sort(([a],[b]) => a.localeCompare(b)).forEach(([loc, items]) => {
     const label = locs.find(l => l.id === loc)?.label || loc;
-    const condColor = {Good:'#155724',Fair:'#856404',Poor:'#721c24',Damaged:'#7d3c00',Missing:'#6a1b9a'};
+    const condColor = COND_COLOR;
     body += `<h3 style="font-size:10pt;font-weight:bold;color:#1e3a5f;margin:10pt 0 4pt;border-bottom:1pt solid #1e3a5f;padding-bottom:2pt">${escapeHtml(label)}</h3>
     <table style="width:100%;border-collapse:collapse;font-size:8pt;margin-bottom:6pt">
       <thead><tr style="background:#e8f0f8">
@@ -2186,8 +2195,8 @@ function renderAuditLog() {
     return;
   }
 
-  const condColor = { Good:'#27ae60', Fair:'#f39c12', Poor:'#e74c3c', Damaged:'#7d3c00', Missing:'#6a1b9a' };
-  const condBg    = { Good:'#d4edda', Fair:'#fff3cd', Poor:'#f8d7da', Damaged:'#fde8d8', Missing:'#f3e5f5' };
+  const condColor = COND_COLOR;
+  const condBg    = COND_BG;
 
   el.innerHTML = audits.map((a, ai) => {
     const prev = audits[ai + 1]; // older snapshot
@@ -2204,7 +2213,8 @@ function renderAuditLog() {
         return p && p.condition !== s.condition;
       });
       const added   = (a.snapshots || []).filter(s => !prevMap[s.itemId]);
-      const removed = (prev.snapshots || []).filter(s => !(a.snapshots || []).find(x => x.itemId === s.itemId));
+      const currentIds = new Set((a.snapshots || []).map(s => s.itemId));
+      const removed = (prev.snapshots || []).filter(s => !currentIds.has(s.itemId));
 
       if (changed.length || added.length || removed.length) {
         diffHtml = `<details style="margin-top:10px">
@@ -2293,6 +2303,9 @@ function closeScanModal() {
   document.getElementById('scanModal').classList.remove('open');
   _stopCamera();
   clearTimeout(_scanResultTimer);
+  _scannedItemId = null;
+  document.getElementById('srCondRow').style.display = 'none';
+  document.getElementById('scanResult').classList.remove('visible', 'not-found');
 }
 function setScanMode(mode) {
   _scanMode = mode;
@@ -2388,8 +2401,7 @@ function displayScanResult(item, rawNotFound) {
   _scannedItemId = item.id;
   const locs     = getAllLocations();
   const locLbl   = locs.find(l => l.id === item.location)?.label || item.location || '—';
-  const condColors = { Good:'#155724', Fair:'#856404', Poor:'#721c24', Damaged:'#7d3c00', Missing:'#6a1b9a' };
-  const condColor  = condColors[item.condition] || '#333';
+  const condColor  = COND_COLOR[item.condition] || '#333';
 
   panel.className = 'scan-result visible';
   nameEl.textContent = item.name + (item.side ? ` — Side ${item.side}` : '');

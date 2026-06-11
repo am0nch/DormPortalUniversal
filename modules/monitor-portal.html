@@ -256,7 +256,8 @@ async function _mpHandleRedirect() {
   if (params.get('state') !== 'm365auth_mp' || !params.get('code')) return;
   history.replaceState({}, '', location.pathname);
   const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-  const verifier = localStorage.getItem('m365pkce_mp');
+  const verifier = localStorage.getItem('m365pkce_mp') || localStorage.getItem('dormM365Verifier_mp');
+  localStorage.removeItem('dormM365Verifier_mp'); // clear legacy key if present
   if (!verifier || !cfg.clientId) return;
   try {
     const body = new URLSearchParams({ client_id:cfg.clientId, scope:'Files.ReadWrite offline_access', code:params.get('code'), redirect_uri:location.origin+location.pathname, grant_type:'authorization_code', code_verifier:verifier });
