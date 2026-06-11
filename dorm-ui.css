@@ -1,0 +1,535 @@
+/*
+ * dorm-ui.css — DormPortal Universal Design System
+ * Shared base layer for all 19 modules.
+ * Modules may override via their own <style> block using CSS variables.
+ */
+
+/* ── 1. Custom Properties ─────────────────────────────────────────────────── */
+:root {
+  /* Brand palette */
+  --dp-navy:       #1e3a5f;
+  --dp-navy-dark:  #162d4a;
+  --dp-navy-light: #d9e6f5;
+
+  /* Per-module accent (modules override this in their own <style> block) */
+  --dp-accent:     var(--dp-navy);
+  --dp-accent-dark: var(--dp-navy-dark);
+  --dp-accent-text: #fff;
+  --dp-accent-bg:   #e8f0fb;
+
+  /* Semantic colours */
+  --dp-green:      #27ae60;
+  --dp-orange:     #e67e22;
+  --dp-red:        #e74c3c;
+  --dp-gray:       #95a5a6;
+  --dp-teal:       #004d40;
+  --dp-purple:     #7b1fa2;
+  --dp-blue:       #1565c0;
+
+  /* Surface */
+  --dp-bg:         #f0f4f8;
+  --dp-surface:    #ffffff;
+  --dp-border:     #dce3ea;
+  --dp-border-light: #edf2f7;
+
+  /* Text */
+  --dp-text:       #1a2432;
+  --dp-text-muted: #666;
+  --dp-text-faint: #aaa;
+
+  /* Spacing */
+  --dp-radius:     8px;
+  --dp-radius-lg:  12px;
+  --dp-shadow:     0 1px 4px rgba(0,0,0,.08);
+  --dp-shadow-lg:  0 4px 20px rgba(0,0,0,.14);
+
+  /* Typography */
+  --dp-font:       'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ── 2. Base Reset ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--dp-font);
+  font-size: .9rem;
+  background: var(--dp-bg);
+  color: var(--dp-text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+a { color: inherit; }
+button, input, select, textarea { font-family: inherit; }
+input, select, textarea { font-size: inherit; }
+
+/* ── 3. Navigation Bar ────────────────────────────────────────────────────── */
+/*
+ * Supports all nav class names currently used across modules.
+ * Modules override --dp-accent to change the nav background.
+ */
+.dorm-nav,
+.nav,
+.nav-bar,
+.att-nav, .dw-nav, .pr-nav, .sa-nav, .ss-nav,
+.inc-nav,
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--dp-accent);
+  color: #fff;
+  padding: 11px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+}
+/* Back link inside nav */
+.dorm-nav a, .nav a, .nav-bar a, .att-nav a, .dw-nav a, .pr-nav a, .sa-nav a, .ss-nav a, .inc-nav a,
+.nav-back, .ph-back {
+  color: #fff;
+  text-decoration: none;
+  font-size: .84rem;
+  opacity: .82;
+  transition: opacity .15s;
+}
+.dorm-nav a:hover, .nav a:hover, .nav-bar a:hover, .att-nav a:hover, .dw-nav a:hover,
+.pr-nav a:hover, .sa-nav a:hover, .ss-nav a:hover, .inc-nav a:hover,
+.nav-back:hover, .ph-back:hover { opacity: 1; }
+
+/* Nav title */
+.nav h1, .nav-title, .ph-title {
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* Nav right-side meta */
+.nav-right, .nav-dorm, .nav-meta, .ph-right { font-size: .76rem; opacity: .78; }
+
+/* ── 4. Container & Layout ────────────────────────────────────────────────── */
+.dorm-wrap, .container, .inc-wrap, .ss-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 16px 48px;
+}
+.dorm-wrap--wide { max-width: 1440px; }
+
+/* ── 5. Toolbar ───────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+
+/* ── 6. Buttons ───────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--dp-radius);
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  background: #e2e8f0;
+  color: var(--dp-navy);
+  transition: filter .15s, opacity .15s;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1.4;
+}
+.btn:hover { filter: brightness(.92); }
+.btn:active { filter: brightness(.85); }
+
+/* Size variants */
+.btn-sm { padding: 3px 9px; font-size: .72rem; }
+.btn-lg { padding: 9px 20px; font-size: .9rem; }
+
+/* Colour variants — comprehensive to cover all naming across modules */
+.btn-primary, .btn-blue, .btn-navy { background: var(--dp-navy); color: #fff; }
+.btn-accent                        { background: var(--dp-accent); color: var(--dp-accent-text); }
+.btn-green                         { background: var(--dp-green); color: #fff; }
+.btn-orange                        { background: var(--dp-orange); color: #fff; }
+.btn-red                           { background: var(--dp-red); color: #fff; }
+.btn-gray, .btn-ghost              { background: #e2e8f0; color: #444; }
+.btn-teal                          { background: var(--dp-teal); color: #fff; }
+.btn-purple                        { background: var(--dp-purple); color: #fff; }
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--dp-accent);
+  color: var(--dp-accent);
+}
+.btn-outline:hover { background: var(--dp-accent-bg); }
+
+/* ── 7. Tab Bar ───────────────────────────────────────────────────────────── */
+/* Pill-style tabs (used in most modules) */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  background: var(--dp-surface);
+  padding: 8px;
+  border-radius: var(--dp-radius-lg);
+  box-shadow: var(--dp-shadow);
+  margin-bottom: 20px;
+}
+.tab-bar .tab-btn {
+  padding: 7px 15px;
+  border: none;
+  background: none;
+  border-radius: var(--dp-radius);
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #666;
+  transition: background .15s, color .15s;
+}
+.tab-bar .tab-btn.active { background: var(--dp-accent); color: #fff; }
+.tab-bar .tab-btn:hover:not(.active) { background: var(--dp-bg); color: var(--dp-text); }
+
+/* Underline-style tabs (inventory secondary tabs) */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 2px solid var(--dp-navy-light);
+}
+.tabs .tab-btn {
+  background: none;
+  border: none;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: .82rem;
+  font-weight: 600;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
+}
+.tabs .tab-btn.active,
+.tabs .tab-btn:hover { color: var(--dp-accent); border-bottom-color: var(--dp-accent); }
+
+.tab-panel { display: none; padding-top: 16px; }
+.tab-panel.active { display: block; }
+
+/* ── 8. Tables ────────────────────────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; }
+
+table.h-tbl, table.dorm-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+  background: var(--dp-surface);
+  border-radius: var(--dp-radius);
+  overflow: hidden;
+  box-shadow: var(--dp-shadow);
+}
+table.h-tbl th, table.dorm-tbl th {
+  background: var(--dp-accent);
+  color: #fff;
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+  font-weight: 700;
+}
+table.h-tbl td, table.dorm-tbl td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--dp-border-light);
+  vertical-align: middle;
+}
+table.h-tbl tr:last-child td, table.dorm-tbl tr:last-child td { border-bottom: none; }
+table.h-tbl tr:hover td, table.dorm-tbl tr:hover td { background: #f7fafc; }
+
+/* ── 9. Badges ────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: .7rem;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Inventory-style condition badges */
+.b-good,   .badge-good            { background: #d4edda; color: #155724; }
+.b-fair,   .badge-fair            { background: #fff3cd; color: #856404; }
+.b-poor,   .badge-poor            { background: #f8d7da; color: #721c24; }
+.b-damaged,.badge-damaged         { background: #fde8d8; color: #7d3c00; }
+.b-missing,.badge-missing         { background: #f3e5f5; color: #6a1b9a; }
+.b-cat,    .badge-cat             { background: #e8f4fd; color: #1565c0; }
+
+/* Student status badges */
+.badge-green,  .badge-active, .badge-resolved { background: #d4edda; color: #155724; }
+.badge-yellow, .badge-warning, .badge-pending { background: #fff3cd; color: #856404; }
+.badge-red,    .badge-alert,  .badge-open     { background: #f8d7da; color: #721c24; }
+.badge-blue,   .badge-info,   .badge-exported { background: #e8f4fd; color: #1565c0; }
+.badge-gray,   .badge-inactive               { background: #f0f0f0; color: #555; }
+.badge-purple, .badge-emergency              { background: #f3e5f5; color: #6a1b9a; }
+.badge-orange, .badge-moderate               { background: #fff3e0; color: #e65100; }
+.badge-teal                                  { background: #e0f2f1; color: #004d40; }
+
+/* Severity-specific (incidents) */
+.badge-minor   { background: #d4edda; color: #155724; }
+.badge-major   { background: #f8d7da; color: #721c24; }
+
+/* ── 10. Filter Bar ───────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.filter-bar input,
+.filter-bar select,
+.dorm-input,
+.dorm-select {
+  padding: 5px 10px;
+  border: 1.5px solid var(--dp-border);
+  border-radius: var(--dp-radius);
+  font-size: .8rem;
+  font-family: var(--dp-font);
+  background: var(--dp-surface);
+  color: var(--dp-text);
+  transition: border-color .15s;
+}
+.filter-bar input:focus,
+.filter-bar select:focus,
+.dorm-input:focus,
+.dorm-select:focus {
+  outline: none;
+  border-color: var(--dp-accent);
+}
+.filter-bar input { min-width: 160px; }
+
+/* ── 11. Modals ───────────────────────────────────────────────────────────── */
+/* Supports both .modal (old) and .modal-overlay (student-profiles) */
+.modal, .modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.46);
+  z-index: 1000;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+.modal.open, .modal-overlay.open { display: flex; }
+
+.modal-content, .modal-box {
+  background: var(--dp-surface);
+  border-radius: var(--dp-radius-lg);
+  width: 100%;
+  max-width: 600px;
+  padding: 24px;
+  box-shadow: var(--dp-shadow-lg);
+  margin: auto;
+  position: relative;
+}
+.modal-content h2, .modal-box h2, .modal-title {
+  font-size: 1rem;
+  color: var(--dp-navy);
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+.close-btn, .modal-close {
+  float: right;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--dp-text-faint);
+  line-height: 1;
+  margin-left: 10px;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  transition: color .15s;
+}
+.close-btn:hover, .modal-close:hover { color: var(--dp-red); }
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dp-border-light);
+}
+
+/* ── 12. Form Fields ──────────────────────────────────────────────────────── */
+.fg { margin-bottom: 12px; }
+.fg label, .ff label {
+  display: block;
+  font-size: .77rem;
+  font-weight: 600;
+  color: #445;
+  margin-bottom: 4px;
+}
+.fg input, .fg select, .fg textarea,
+.ff input, .ff select, .ff textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid var(--dp-border);
+  border-radius: var(--dp-radius);
+  font-size: .83rem;
+  font-family: var(--dp-font);
+  background: var(--dp-surface);
+  color: var(--dp-text);
+  transition: border-color .15s;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus,
+.ff input:focus, .ff select:focus, .ff textarea:focus {
+  outline: none;
+  border-color: var(--dp-accent);
+  box-shadow: 0 0 0 3px rgba(30,58,95,.08);
+}
+.fg textarea { min-height: 60px; resize: vertical; }
+.fg-row { display: flex; gap: 10px; }
+.fg-row .fg { flex: 1; min-width: 0; }
+
+/* Section title inside forms */
+.fs-title {
+  font-size: .71rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--dp-navy);
+  border-bottom: 1px solid var(--dp-navy-light);
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+/* ── 13. Stat / Summary Cards ─────────────────────────────────────────────── */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.stat-card {
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-lg);
+  padding: 14px 16px;
+  border-left: 4px solid var(--dp-accent);
+  transition: box-shadow .15s;
+}
+.stat-card:hover { box-shadow: var(--dp-shadow); }
+.sc-val { font-size: 1.8rem; font-weight: 800; margin-top: 2px; color: var(--dp-accent); }
+.sc-lbl { font-size: .71rem; color: var(--dp-text-muted); margin-top: 4px; }
+
+/* ── 14. Section Cards ────────────────────────────────────────────────────── */
+.sec-card {
+  background: var(--dp-surface);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-lg);
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--dp-shadow);
+}
+.sec-card h3 {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--dp-navy);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--dp-border-light);
+  padding-bottom: 8px;
+}
+
+/* ── 15. Toast Notification ───────────────────────────────────────────────── */
+.dp-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--dp-navy);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: var(--dp-radius);
+  font-size: .85rem;
+  z-index: 9999;
+  box-shadow: 0 3px 12px rgba(0,0,0,.22);
+  animation: dp-toast-in .2s ease;
+  max-width: 340px;
+  line-height: 1.4;
+}
+@keyframes dp-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 16. Scroll-to-top Button ─────────────────────────────────────────────── */
+#scrollTopBtn, .scroll-top {
+  position: fixed;
+  bottom: 26px;
+  right: 26px;
+  z-index: 999;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: var(--dp-accent);
+  color: #fff;
+  font-size: 1.2rem;
+  box-shadow: 0 3px 10px rgba(0,0,0,.26);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s;
+}
+#scrollTopBtn.visible, .scroll-top.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+#scrollTopBtn:hover, .scroll-top:hover { filter: brightness(.9); }
+@media print { #scrollTopBtn, .scroll-top { display: none; } }
+
+/* ── 17. Empty State ──────────────────────────────────────────────────────── */
+.empty-msg, .empty-state {
+  color: var(--dp-text-muted);
+  font-size: .82rem;
+  padding: 8px 0;
+}
+.empty-state { text-align: center; padding: 48px 20px; }
+.empty-state .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+/* ── 18. Utilities ────────────────────────────────────────────────────────── */
+.text-muted  { color: var(--dp-text-muted); }
+.text-faint  { color: var(--dp-text-faint); }
+.text-navy   { color: var(--dp-navy); }
+.text-accent { color: var(--dp-accent); }
+.text-sm     { font-size: .78rem; }
+.text-xs     { font-size: .72rem; }
+.font-mono   { font-family: 'Courier New', monospace; }
+.font-bold   { font-weight: 700; }
+.no-wrap     { white-space: nowrap; }
+
+/* ── 19. Mobile ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  body { font-size: 15px; }
+  input, select, textarea { font-size: 16px !important; } /* prevent iOS zoom */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .dorm-wrap, .container, .inc-wrap, .ss-wrap { padding: 10px 10px 40px; }
+  .modal-content, .modal-box { padding: 16px; margin: 8px auto; }
+  .tab-bar { overflow-x: auto; flex-wrap: nowrap; padding: 6px; }
+  .tab-bar .tab-btn { white-space: nowrap; flex-shrink: 0; }
+  .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .tabs .tab-btn { white-space: nowrap; flex-shrink: 0; }
+  .fg-row { flex-wrap: wrap; }
+  .toolbar { flex-wrap: wrap; gap: 6px; }
+  .stat-cards { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+
+/* ── 20. Print Reset ──────────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  .dorm-nav, .nav, .nav-bar, .att-nav, .dw-nav, .pr-nav, .sa-nav, .ss-nav, .inc-nav, .page-header { display: none !important; }
+  body { background: #fff; }
+}

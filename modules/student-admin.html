@@ -2,22 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="stylesheet" href="../dorm-ui.css">
 <title>Student Admin — APIU</title>
 <script src="../dorm-db.js"></script>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
 body{background:#f0f4f8;min-height:100vh}
-.sa-nav{background:#1565c0;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.sa-nav{background:var(--dp-accent);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .sa-nav a{color:#bbdefb;text-decoration:none;font-size:.85rem;font-weight:600}
 .sa-nav a:hover{color:#fff}
 .nav-title{font-weight:700;font-size:1rem}
 .nav-dorm{font-size:.78rem;opacity:.75}
-.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#1565c0;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:var(--dp-accent);color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
 .scroll-top.show{display:flex}
 .sa-wrap{max-width:960px;margin:0 auto;padding:20px 16px 40px}
 .tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
-.tab-btn.active{background:#1565c0;color:#fff}
+.tab-btn.active{background:var(--dp-accent);color:#fff}
 .tab-btn:hover:not(.active){background:#f0f4f8}
 .tab-panel{display:none}.tab-panel.active{display:block}
 /* Stat cards */
@@ -74,7 +75,7 @@ table.rpt td{padding:6px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top
 table.rpt tr:last-child td{border-bottom:none}
 /* Buttons */
 .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
-.btn-primary{background:#1565c0;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-primary{background:var(--dp-accent);color:#fff}.btn-primary:hover{opacity:.88}
 .btn-orange{background:#e65100;color:#fff}.btn-orange:hover{opacity:.88}
 .btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
 .btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}

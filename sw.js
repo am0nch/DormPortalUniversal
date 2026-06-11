@@ -1,6 +1,6 @@
 // DormPortalUniversal — Service Worker
 // Bump CACHE_NAME after any deploy to force cache refresh on all devices
-const CACHE_NAME = 'dormportal-v2';
+const CACHE_NAME = 'dormportal-v3';
 
 // All files the app needs to work fully offline.
 // Paths are relative to this SW file (repo root).
@@ -8,6 +8,7 @@ const PRECACHE = [
   './',
   './index.html',
   './dorm-db.js',
+  './dorm-ui.css',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -19,8 +19,10 @@ jobs:
         run: |
           # Find any localStorage.setItem/getItem call where the key contains 'dorm'
           # (These should go through DormDB, not raw localStorage)
+          # Exclude dormM365Verifier_* — ephemeral OAuth PKCE tokens, kept as legacy fallback reads only
           hits=$(grep -rn "localStorage\.\(setItem\|getItem\)" modules/ index.html \
-                  | grep -E "'dorm|\"dorm" || true)
+                  | grep -E "'dorm|\"dorm" \
+                  | grep -v "dormM365Verifier_" || true)
           if [ -n "$hits" ]; then
             echo "::error::BF-016 violation — direct localStorage call(s) bypassing DormDB:"
             echo "$hits"

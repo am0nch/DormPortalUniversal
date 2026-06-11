@@ -2,22 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="stylesheet" href="../dorm-ui.css">
 <title>Maintenance — APIU</title>
 <script src="../dorm-db.js"></script>
 <style>
+/* dorm-ui accent override /* green — plant requests */ */
+:root { --dp-accent:#2e7d32;--dp-accent-dark:#1b5e20;--dp-accent-bg:#e8f5e9 }
+
 *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:0}
 body{background:#f0f4f8;min-height:100vh}
-.pr-nav{background:#4e342e;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.pr-nav{background:var(--dp-accent);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:200;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .pr-nav a{color:#d7ccc8;text-decoration:none;font-size:.85rem;font-weight:600}
 .pr-nav a:hover{color:#fff}
 .nav-title{font-weight:700;font-size:1rem}
 .nav-dorm{font-size:.78rem;opacity:.75}
-.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:#4e342e;color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
+.scroll-top{position:fixed;bottom:24px;right:20px;width:38px;height:38px;background:var(--dp-accent);color:#fff;border:none;border-radius:50%;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:1000}
 .scroll-top.show{display:flex}
 .pr-wrap{max-width:960px;margin:0 auto;padding:20px 16px 40px}
 .tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;background:#fff;padding:8px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .tab-btn{padding:7px 14px;border:none;background:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600;color:#666;transition:background .15s,color .15s}
-.tab-btn.active{background:#4e342e;color:#fff}
+.tab-btn.active{background:var(--dp-accent);color:#fff}
 .tab-btn:hover:not(.active){background:#f0f4f8}
 .tab-panel{display:none}.tab-panel.active{display:block}
 /* Stat cards */
@@ -66,7 +70,7 @@ body{background:#f0f4f8;min-height:100vh}
 .bar-fill.bar-ok{background:#2e7d32}.bar-fill.bar-warn{background:#e65100}
 /* Buttons */
 .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700;transition:opacity .15s}
-.btn-primary{background:#4e342e;color:#fff}.btn-primary:hover{opacity:.88}
+.btn-primary{background:var(--dp-accent);color:#fff}.btn-primary:hover{opacity:.88}
 .btn-green{background:#2e7d32;color:#fff}.btn-green:hover{opacity:.88}
 .btn-orange{background:#e65100;color:#fff}.btn-orange:hover{opacity:.88}
 .btn-red{background:#c62828;color:#fff}.btn-red:hover{opacity:.88}
