@@ -52,8 +52,8 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,480 |
-| `dorm-db.js` | 671 |
+| `index.html` | 1,524 |
+| `dorm-db.js` | 673 |
 | `modules/room-reservations.html` | 2,140 |
 | `modules/student-profiles.html` | 1,233 |
 | `modules/floor-plan.html` | 507 |
@@ -61,15 +61,15 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/reports.html` | 1,604 |
 | `modules/room-inspection.html` | 1,334 |
 | `modules/key-inventory.html` | 1,585 |
-| `modules/inventory.html` | 1,784 |
+| `modules/inventory.html` | 2,515 |
 | `modules/attendance.html` | 1,230 |
 | `modules/incidents.html` | 987 |
 | `modules/student-admin.html` | 1,012 |
 | `modules/dorm-workers.html` | 757 |
-| `modules/staff-scheduling.html` | 1,265 |
+| `modules/staff-scheduling.html` | 1,281 |
 | `modules/plant-requests.html` | 716 |
-| `modules/ra-portal.html` | 565 |
-| `modules/monitor-portal.html` | 528 |
+| `modules/ra-portal.html` | 601 |
+| `modules/monitor-portal.html` | 564 |
 | `modules/userguide.html` | 2,447 |
 | `modules/handbook.html` | 1,873 |
 
@@ -144,18 +144,20 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 - [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
-- [ ] Enable GitHub Pages (remote ✅, code pushed ✅; pending Pages config in GitHub settings)
-- [ ] Staff scheduling: `dormSchedule` and `dormWorkersConfig.scheduleCfg.masterSchedule` are not listed in cross-module dependency map — add when next touching CLAUDE.md
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS
+- [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 
 ## Completed (2026-06-11)
 
-- [x] **dorm-db.js** — Replaced static PBKDF2 salt with random per-user 16-byte salt; `hashPwd()` returns `{hash,salt}`; added `verifyPwd()`, `verifyPin()`, `getPwdHashStr()`; legacy fixed-salt path kept for backwards compat
-- [x] **index.html** — Admin password gate disabled until M365 backup (OneDrive shared folder) is configured; `openPwdModal()` shows warning banner; `checkAuth()` skips gate when M365 not ready; portal PIN save updated to `{hash,salt}` format
-- [x] **ra-portal.html / monitor-portal.html** — PIN verification switched from manual hash compare to `DormDB.verifyPin()`
-- [x] **staff-scheduling.html** — Full rewrite: added Slot View (time-based grid), overnight shift support (end < start), CSV import with preview modal, per-category slot config in Settings, Print Slot Sheet
-- [x] **staff-scheduling.html** — Fixed delete bug (blockId lookup vs workerId+weekStart); fixed filtered-index bug (si was relative to filtered array, not block.shifts); added one-worker-per-slot duplicate guard
-- [x] **staff-scheduling.html** — Added Master Schedule tab (recurring template), Auto-Populate from semester dates, `getWeekStartForDate()` helper, clear-category button; fixed CSV block ID float bug
-- [x] **staff-scheduling.html** — Fixed empty worker dropdown in openMasterModal/openShiftModalSlot: now toasts and returns early when no active workers in category
+- [x] **dorm-db.js** — Random PBKDF2 salt, `hashPwd()/{hash,salt}`, `verifyPwd()`, `verifyPin()`, `getPwdHashStr()`; legacy fixed-salt compat
+- [x] **index.html** — M365 backup gate before password activation; PWA manifest + SW registration + install banner
+- [x] **ra-portal.html / monitor-portal.html** — `DormDB.verifyPin()` for PINs; PWA manifest + SW + install banner; M365 PKCE legacy key fallback
+- [x] **staff-scheduling.html** — Slot View, overnight support, CSV import, Master Schedule tab, Auto-Populate (semester dates), `getWeekStartForDate()`; O(n²) fix in `runAutoPopulate()` (Map pre-index); overnight guard for non-overnight categories
+- [x] **inventory.html** — Full inventory overhaul: barcode scanner (camera + USB), Side A/B assignment, Clear Room Items, Audit Log + snapshots, printable A4 check form, quick condition update in scanner, barcode quick-view modal (🏷️), By Location grouping by side; code-review fixes: `closeScanModal` reset, Side filter "shared" value, `COND_COLOR`/`COND_BG` constants, `sideChip()` module-level, O(n²) audit log Set fix
+- [x] **sw.js** — PWA service worker: cache-first for all 20 app shell files, offline fallback, `put()` error surfaced via `.catch()`
+- [x] **dorm-db.js** — `K.INV_AUDITS / dormInventoryAudits`, `getInvAudits()`, `saveInvAudits()`; removed stale `K.ROLE`
+- [x] **.github/workflows/validate.yml** — 5-check CI: BF-016, script src, SW precache, manifest, K constants
+- [x] **manifest.json + icons/** — PWA manifest with RA/Monitor shortcuts; 192/512/180px icons
 
 ---
 
@@ -171,8 +173,11 @@ s.roomHold.active && (s.summer || s.firstSem)
 | `dormKeysAssigned` | key-inventory, room-inspection | student-profiles, index.html |
 | `dormInspections` | room-inspection | room-reservations (clearance pre-fill), reports |
 | `dormInventory` | inventory | index.html |
+| `dormInventoryAudits` | inventory | inventory (audit log tab) |
 | `dormMaintenance` | room-inspection, inventory | index.html |
 | `dormWorkers` | dorm-workers | ra-portal, monitor-portal, staff-scheduling, index.html |
+| `dormWorkersConfig` | staff-scheduling (scheduleCfg + masterSchedule) | staff-scheduling |
+| `dormSchedule` | staff-scheduling | staff-scheduling |
 | `dormSemesterCfg` | index.html | all modules with semester selects |
 
 ---
