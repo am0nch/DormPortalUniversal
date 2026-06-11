@@ -179,6 +179,12 @@ table.h-tbl tr:hover td{background:#f7fafc}
       <option value="">All Conditions</option>
       <option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option><option>Missing</option>
     </select>
+    <select id="itemSideFilter" onchange="renderItems()">
+      <option value="">All Sides</option>
+      <option value="A">Side A</option>
+      <option value="B">Side B</option>
+      <option value="">Shared</option>
+    </select>
     <select id="itemFlagFilter" onchange="renderItems()">
       <option value="">All Items</option><option value="1">Flagged</option><option value="0">Not Flagged</option>
     </select>
@@ -295,7 +301,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <div class="fg-row">
       <div class="fg" style="flex:2">
         <label>Location *</label>
-        <select id="im_loc"></select>
+        <select id="im_loc" onchange="onLocChange()"></select>
       </div>
       <div class="fg" style="flex:1">
         <label>Condition</label>
@@ -303,6 +309,14 @@ table.h-tbl tr:hover td{background:#f7fafc}
           <option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option><option>Missing</option>
         </select>
       </div>
+    </div>
+    <div class="fg" id="im_side_row" style="display:none">
+      <label>Room Side</label>
+      <select id="im_side">
+        <option value="">— Shared / not side-specific —</option>
+        <option value="A">Side A</option>
+        <option value="B">Side B</option>
+      </select>
     </div>
     <div class="fg-row">
       <div class="fg">
@@ -659,6 +673,7 @@ function emptyItem(location, locationType) {
     id: generateId(),
     name: '', category: 'Furniture',
     location: location || '', locationType: locationType || 'room',
+    side: '',   // 'A' | 'B' | '' (shared/not applicable)
     description: '', serialNo: '', brand: '',
     isConsumable: false, qty: 1, reorderAt: 0,
     condition: 'Good',
@@ -756,11 +771,13 @@ function renderItems() {
   const catF   = document.getElementById('itemCatFilter')?.value || '';
   const condF  = document.getElementById('itemCondFilter')?.value || '';
   const flagF  = document.getElementById('itemFlagFilter')?.value || '';
+  const sideF  = document.getElementById('itemSideFilter')?.value || '';
   let inv = DormDB.getInventory();
   if (search) inv = inv.filter(i => i.name.toLowerCase().includes(search) || i.id.toLowerCase().includes(search) || (i.serialNo||'').toLowerCase().includes(search) || (i.brand||'').toLowerCase().includes(search));
   if (locF)  inv = inv.filter(i => i.location === locF);
   if (catF)  inv = inv.filter(i => i.category === catF);
   if (condF) inv = inv.filter(i => i.condition === condF);
+  if (sideF) inv = inv.filter(i => (i.side || '') === sideF);
   if (flagF === '1') inv = inv.filter(i => i.maintenanceFlag);
   if (flagF === '0') inv = inv.filter(i => !i.maintenanceFlag);
 
@@ -770,12 +787,13 @@ function renderItems() {
   }
   document.getElementById('itemsBody').innerHTML = `
     <table class="h-tbl">
-      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Location</th><th>Condition</th><th>🔧</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Location</th><th>Side</th><th>Condition</th><th>🔧</th><th>Actions</th></tr></thead>
       <tbody>${inv.map(i => `<tr>
         <td><span style="font-family:monospace;font-size:.68rem;color:#aaa">${escapeHtml(i.id)}</span></td>
         <td><strong>${escapeHtml(i.name)}</strong>${i.brand?`<br><span style="font-size:.7rem;color:#aaa">${escapeHtml(i.brand)}</span>`:''}</td>
         <td>${catBadge(i.category)}</td>
         <td style="font-size:.78rem">${escapeHtml(getLocLabel(i.location))}</td>
+        <td style="text-align:center">${i.side ? `<span class="badge" style="background:${i.side==='A'?'#e3f2fd':'#fce4ec'};color:${i.side==='A'?'#1565c0':'#880e4f'}">${escapeHtml(i.side)}</span>` : '<span style="color:#ccc;font-size:.7rem">—</span>'}</td>
         <td>${condBadge(i.condition)}</td>
         <td style="text-align:center">${i.maintenanceFlag ? (i.maintenancePushed ? '<span style="font-size:.7rem;color:#888">📤</span>' : '<span style="font-size:.7rem;color:#e74c3c;font-weight:700">⚠</span>') : ''}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button> <button class="btn btn-sm btn-red" onclick="confirmRemove('${escapeHtml(i.id)}')">✕</button></td>
@@ -804,18 +822,30 @@ function renderLocation() {
 
   if (inv.length) {
     html += `<h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin-bottom:8px">📦 Items at ${escapeHtml(locObj.label)} (${inv.length})</h3>`;
-    html += `<div class="tbl-wrap"><table class="h-tbl" style="margin-bottom:16px">
-      <thead><tr><th>Name</th><th>Category</th><th>Condition</th><th>Brand</th><th>Serial</th><th>Notes</th><th></th></tr></thead>
-      <tbody>${inv.map(i => `<tr>
-        <td><strong>${escapeHtml(i.name)}</strong></td>
-        <td>${catBadge(i.category)}</td>
-        <td>${condBadge(i.condition)}</td>
-        <td style="font-size:.76rem">${escapeHtml(i.brand||'—')}</td>
-        <td style="font-size:.72rem;color:#aaa;font-family:monospace">${escapeHtml(i.serialNo||'—')}</td>
-        <td style="font-size:.75rem">${escapeHtml(i.notes||'')}</td>
-        <td><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button></td>
-      </tr>`).join('')}</tbody>
-    </table></div>`;
+    const itemRow = i => `<tr>
+      <td><strong>${escapeHtml(i.name)}</strong></td>
+      <td>${catBadge(i.category)}</td>
+      <td>${condBadge(i.condition)}</td>
+      <td style="font-size:.76rem">${escapeHtml(i.brand||'—')}</td>
+      <td style="font-size:.72rem;color:#aaa;font-family:monospace">${escapeHtml(i.serialNo||'—')}</td>
+      <td style="font-size:.75rem">${escapeHtml(i.notes||'')}</td>
+      <td><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button></td>
+    </tr>`;
+    const tblHead = `<thead><tr><th>Name</th><th>Category</th><th>Condition</th><th>Brand</th><th>Serial</th><th>Notes</th><th></th></tr></thead>`;
+    if (isRoom && inv.some(i => i.side)) {
+      // Group by side
+      const sideA    = inv.filter(i => i.side === 'A');
+      const sideB    = inv.filter(i => i.side === 'B');
+      const shared   = inv.filter(i => !i.side);
+      const section  = (label, color, items) => items.length ? `
+        <h4 style="font-size:.8rem;font-weight:700;color:${color};margin:12px 0 5px">${label} (${items.length})</h4>
+        <div class="tbl-wrap"><table class="h-tbl" style="margin-bottom:10px">${tblHead}<tbody>${items.map(itemRow).join('')}</tbody></table></div>` : '';
+      html += section('🔵 Side A', '#1565c0', sideA);
+      html += section('🔴 Side B', '#880e4f', sideB);
+      html += section('⚪ Shared / Room', '#555', shared);
+    } else {
+      html += `<div class="tbl-wrap"><table class="h-tbl" style="margin-bottom:16px">${tblHead}<tbody>${inv.map(itemRow).join('')}</tbody></table></div>`;
+    }
   } else {
     html += `<p class="empty-msg" style="margin-bottom:12px">No items recorded for this location yet. Click "Add Item Here" to get started.</p>`;
   }
@@ -894,7 +924,7 @@ function printSelectedLabels() {
     const svg = C39.svg(i.id, 160, 48);
     return `<div class="print-label">
       ${svg}
-      <div class="pl-name">${escapeHtml(i.name)}</div>
+      <div class="pl-name">${escapeHtml(i.name)}${i.side ? ` <span class="pl-side">Side ${escapeHtml(i.side)}</span>` : ''}</div>
       <div class="pl-loc">${escapeHtml(getLocLabel(i.location))}</div>
       <div class="pl-id">${escapeHtml(i.id)}</div>
     </div>`;
@@ -911,6 +941,7 @@ function printSelectedLabels() {
     .pl-name{font-size:8pt;font-weight:bold;margin-top:2mm;word-break:break-word;line-height:1.3}
     .pl-loc{font-size:6.5pt;color:#555;margin-top:1mm}
     .pl-id{font-family:monospace;font-size:6pt;color:#999;margin-top:1mm;letter-spacing:.5pt}
+    .pl-side{background:#1e3a5f;color:#fff;border-radius:2pt;padding:0.5pt 3pt;font-size:6.5pt;font-weight:bold}
   </style></head><body>
   <div class="sheet">${labels}</div>
   <script>window.onload=()=>setTimeout(()=>window.print(),120);<\/script>
@@ -1089,13 +1120,22 @@ function seedAllRooms() {
     const ac = isAcRoom(room);
     tpl.forEach(t => {
       if (t.acOnly && !ac) return;
-      const have = inv.filter(i => i.location === room && i.name.toLowerCase() === t.name.toLowerCase()).length;
-      for (let x = have; x < t.qty; x++) {
-        const item = emptyItem(room, 'room');
-        item.name = t.name;
-        item.category = t.category;
-        inv.push(item);
-        added++;
+      const existing = inv.filter(i => i.location === room && i.name.toLowerCase() === t.name.toLowerCase());
+      const have = existing.length;
+      // Items with qty >= 2 get seeded as Side A + Side B; qty 1 stays shared
+      if (t.qty >= 2) {
+        ['A', 'B'].forEach(side => {
+          if (existing.some(i => i.side === side)) return;
+          const item = emptyItem(room, 'room');
+          item.name = t.name; item.category = t.category; item.side = side;
+          inv.push(item); added++;
+        });
+      } else {
+        if (have < t.qty) {
+          const item = emptyItem(room, 'room');
+          item.name = t.name; item.category = t.category;
+          inv.push(item); added++;
+        }
       }
     });
   });
@@ -1153,7 +1193,18 @@ function _fillModal(item) {
   document.getElementById('im_mflag').checked = mf;
   document.getElementById('maintFields').style.display = mf ? '' : 'none';
   document.getElementById('im_mnotes').value  = item.maintenanceNotes || '';
+  document.getElementById('im_side').value    = item.side || '';
+  // Show side picker only for room-type locations
+  const isRoom = (getAllLocations().find(l => l.id === item.location)?.type || 'room') === 'room';
+  document.getElementById('im_side_row').style.display = (isRoom && !!item.location) ? '' : 'none';
   updateBarcodePreview(item.id);
+}
+function onLocChange() {
+  const loc = document.getElementById('im_loc').value;
+  const locs = getAllLocations();
+  const isRoom = loc && (locs.find(l => l.id === loc)?.type || 'room') === 'room';
+  document.getElementById('im_side_row').style.display = isRoom ? '' : 'none';
+  if (!isRoom) document.getElementById('im_side').value = '';
 }
 function toggleConsumable() {
   document.getElementById('consumableFields').style.display = document.getElementById('im_consumable').checked ? '' : 'none';
@@ -1177,9 +1228,11 @@ function saveItem() {
   const locObj = getAllLocations().find(l => l.id === loc);
   const cons = document.getElementById('im_consumable').checked;
   const mf   = document.getElementById('im_mflag').checked;
+  const isRoom = (locObj?.type || 'room') === 'room';
   const fields = {
     name, category: document.getElementById('im_cat').value,
     location: loc, locationType: locObj?.type || 'room',
+    side: isRoom ? (document.getElementById('im_side').value || '') : '',
     brand: document.getElementById('im_brand').value.trim(),
     serialNo: document.getElementById('im_serial').value.trim(),
     isConsumable: cons,
@@ -1905,7 +1958,7 @@ function displayScanResult(item, rawNotFound) {
 
   const rows = [
     ['ID',        item.id],
-    ['Location',  locLbl],
+    ['Location',  locLbl + (item.side ? ` — Side ${item.side}` : '')],
     ['Category',  item.category || '—'],
     ['Condition', item.condition || 'Good'],
     item.isConsumable ? ['Qty in Stock', `${item.qty ?? 1} unit(s)${item.reorderAt ? ` (reorder at ${item.reorderAt})` : ''}`] : null,
