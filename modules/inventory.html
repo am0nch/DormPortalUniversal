@@ -139,6 +139,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
 <div class="toolbar no-print">
   <button class="btn btn-green" onclick="openAddModal()">➕ Add Item</button>
   <button class="btn btn-blue" onclick="seedAllRooms()">🏠 Seed All Rooms</button>
+  <button class="btn btn-red" onclick="confirmClearRoomItems()">🗑️ Clear Room Items</button>
   <button class="btn" onclick="printInventorySheet()">🖨️ Print All Items</button>
   <button class="btn btn-orange" onclick="openScanModal()">📷 Scan Barcode</button>
   <span id="invCount" style="margin-left:auto;font-size:.8rem;color:#666"></span>
@@ -1142,6 +1143,23 @@ function seedAllRooms() {
   DormDB.saveInventory(inv);
   showToast(`✅ Seeded ${added} item${added!==1?'s':''} across ${rooms.length} rooms.`);
   renderDashboard();
+}
+
+function confirmClearRoomItems() {
+  const count = DormDB.getInventory().filter(i => i.locationType === 'room').length;
+  if (!count) { showToast('No room items to clear.'); return; }
+  document.getElementById('confirmTitle').textContent = 'Clear Room Items';
+  document.getElementById('confirmMsg').textContent =
+    `This will permanently remove all ${count} item${count !== 1 ? 's' : ''} assigned to rooms. ` +
+    `Common area items (lobby, corridor, etc.) are kept. You can re-seed with "Seed All Rooms" afterwards.`;
+  document.getElementById('confirmOkBtn').textContent = `Delete ${count} Items`;
+  document.getElementById('confirmOkBtn').onclick = () => {
+    DormDB.saveInventory(DormDB.getInventory().filter(i => i.locationType !== 'room'));
+    closeModal('confirmModal');
+    document.getElementById('confirmOkBtn').textContent = 'Confirm'; // reset label
+    showToast(`🗑️ ${count} room item${count !== 1 ? 's' : ''} cleared.`);
+  };
+  document.getElementById('confirmModal').classList.add('open');
 }
 
 // ── Item Modal ────────────────────────────────────────────────────────────────
