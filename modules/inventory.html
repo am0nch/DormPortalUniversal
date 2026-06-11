@@ -403,6 +403,19 @@ table.h-tbl tr:hover td{background:#f7fafc}
   </div>
 </div>
 
+<!-- BARCODE QUICK-VIEW MODAL -->
+<div class="modal" id="barcodeViewModal">
+  <div class="modal-content" style="max-width:380px;text-align:center">
+    <span class="close-btn" onclick="closeModal('barcodeViewModal')">&times;</span>
+    <h2 id="barcodeViewTitle" style="font-size:.95rem;margin-bottom:4px"></h2>
+    <div style="font-size:.76rem;color:#888;margin-bottom:14px" id="barcodeViewLoc"></div>
+    <div id="barcodeViewSvg" style="margin-bottom:6px"></div>
+    <div id="barcodeViewId" style="font-family:monospace;font-size:.78rem;color:#aaa;letter-spacing:.5px;margin-bottom:16px"></div>
+    <button class="btn btn-blue btn-sm" onclick="printItemBarcode()">🖨️ Print Label</button>
+    <button class="btn btn-gray btn-sm" onclick="closeModal('barcodeViewModal')">Close</button>
+  </div>
+</div>
+
 <!-- CONFIRM MODAL -->
 <div class="modal" id="confirmModal">
   <div class="modal-content" style="max-width:400px">
@@ -861,16 +874,24 @@ function renderLocation() {
 
   if (inv.length) {
     html += `<h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin-bottom:8px">📦 Items at ${escapeHtml(locObj.label)} (${inv.length})</h3>`;
+    const sideChip = s => s ? `<span style="display:inline-block;background:${s==='A'?'#e3f2fd':'#fce4ec'};color:${s==='A'?'#1565c0':'#880e4f'};border-radius:4px;padding:1px 7px;font-size:.7rem;font-weight:700">Side ${escapeHtml(s)}</span>` : '<span style="color:#ccc;font-size:.7rem">Shared</span>';
     const itemRow = i => `<tr>
-      <td><strong>${escapeHtml(i.name)}</strong></td>
+      <td>
+        <strong>${escapeHtml(i.name)}</strong>
+        <div style="font-family:monospace;font-size:.65rem;color:#bbb;margin-top:1px">${escapeHtml(i.id)}</div>
+      </td>
+      <td style="text-align:center">${sideChip(i.side)}</td>
       <td>${catBadge(i.category)}</td>
       <td>${condBadge(i.condition)}</td>
       <td style="font-size:.76rem">${escapeHtml(i.brand||'—')}</td>
       <td style="font-size:.72rem;color:#aaa;font-family:monospace">${escapeHtml(i.serialNo||'—')}</td>
       <td style="font-size:.75rem">${escapeHtml(i.notes||'')}</td>
-      <td><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button>
+        <button class="btn btn-sm" onclick="showItemBarcode('${escapeHtml(i.id)}')" title="View barcode label">🏷️</button>
+      </td>
     </tr>`;
-    const tblHead = `<thead><tr><th>Name</th><th>Category</th><th>Condition</th><th>Brand</th><th>Serial</th><th>Notes</th><th></th></tr></thead>`;
+    const tblHead = `<thead><tr><th>Name / ID</th><th>Side</th><th>Category</th><th>Condition</th><th>Brand</th><th>Serial</th><th>Notes</th><th></th></tr></thead>`;
     if (isRoom && inv.some(i => i.side)) {
       // Group by side
       const sideA    = inv.filter(i => i.side === 'A');
@@ -1274,6 +1295,47 @@ function updateBarcodePreview(id) {
   document.getElementById('bcIdText').textContent = itemId;
 }
 function closeItemModal() { document.getElementById('itemModal').classList.remove('open'); _editingId = null; }
+
+function showItemBarcode(id) {
+  const item = DormDB.getInventory().find(i => i.id === id);
+  if (!item) return;
+  const side = item.side ? ` — Side ${item.side}` : '';
+  document.getElementById('barcodeViewTitle').textContent = item.name + side;
+  document.getElementById('barcodeViewLoc').textContent   = getLocLabel(item.location) + side;
+  document.getElementById('barcodeViewId').textContent    = item.id;
+  document.getElementById('barcodeViewSvg').innerHTML     = C39.svg(item.id, 300, 64);
+  document.getElementById('barcodeViewModal').dataset.itemId = id;
+  document.getElementById('barcodeViewModal').classList.add('open');
+}
+function printItemBarcode() {
+  const id   = document.getElementById('barcodeViewModal').dataset.itemId;
+  const item = DormDB.getInventory().find(i => i.id === id);
+  if (!item) return;
+  const side   = item.side ? ` — Side ${item.side}` : '';
+  const loc    = getLocLabel(item.location) + side;
+  const svg    = C39.svg(item.id, 220, 56);
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Label — ${item.name}</title>
+  <style>*{box-sizing:border-box;font-family:Arial,sans-serif;margin:0;padding:0}
+  body{display:flex;align-items:center;justify-content:center;height:100vh;background:#fff}
+  .lbl{border:1pt solid #333;border-radius:3mm;padding:5mm;text-align:center;width:80mm}
+  .lbl svg{width:100%;height:auto}
+  .pl-name{font-size:9pt;font-weight:bold;margin-top:3mm;word-break:break-word}
+  .pl-side{background:#1e3a5f;color:#fff;border-radius:2pt;padding:1pt 4pt;font-size:7pt}
+  .pl-loc{font-size:7pt;color:#555;margin-top:1.5mm}
+  .pl-id{font-family:monospace;font-size:6.5pt;color:#999;margin-top:1mm;letter-spacing:.5pt}
+  @page{size:80mm 50mm;margin:0}
+  @media print{body{height:auto}}</style></head><body>
+  <div class="lbl">
+    ${svg}
+    <div class="pl-name">${escapeHtml(item.name)}${item.side?` <span class="pl-side">Side ${escapeHtml(item.side)}</span>`:''}</div>
+    <div class="pl-loc">${escapeHtml(loc)}</div>
+    <div class="pl-id">${escapeHtml(item.id)}</div>
+  </div>
+  <script>window.onload=()=>setTimeout(()=>window.print(),120);<\/script>
+  </body></html>`);
+  w.document.close();
+}
 
 function saveItem() {
   const name = document.getElementById('im_name').value.trim();
@@ -2244,6 +2306,7 @@ async function init() {
       closeModal('bddSaleModal'); closeModal('bddStockModal');
       closeModal('bddCountModal'); closeModal('bddSettingsModal');
       closeModal('snapshotModal');
+      closeModal('barcodeViewModal');
       closeScanModal();
     }
   });
