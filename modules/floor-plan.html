@@ -21,8 +21,9 @@ body{background:#f0f4f8;min-height:100vh}
 .btn:hover{opacity:.88}
 .btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-teal{background:#16a085}
 .floor-tabs{display:flex;gap:4px}
-.ftab{padding:5px 14px;border-radius:6px;border:2px solid #d9e6f5;background:#fff;cursor:pointer;font-size:.8rem;font-weight:700;color:#1e3a5f;transition:all .15s}
-.ftab.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+.ftab{padding:5px 14px;border-radius:6px;border:2px solid var(--dp-accent-bg);background:#fff;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--dp-accent);transition:all .15s}
+.ftab.active{background:var(--dp-accent);color:#fff;border-color:var(--dp-accent)}
+.ftab:hover:not(.active){background:var(--dp-accent-bg);border-color:var(--dp-accent)}
 .legend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.75rem;margin-left:auto}
 .leg-dot{width:12px;height:12px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
 
@@ -82,7 +83,7 @@ body{background:#f0f4f8;min-height:100vh}
   .pr-hw{font-size:6pt;color:#e65100;margin-top:2pt}
 }
 
-#scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:#1e3a5f;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}#scrollTopBtn:hover{background:#2d5282;}@media print{#scrollTopBtn{display:none}}
+#scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}@media print{#scrollTopBtn{display:none}}
 @media(max-width:768px){
   body{font-size:15px}
   input,select,textarea{font-size:16px!important}
