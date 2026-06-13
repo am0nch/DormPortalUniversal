@@ -90,6 +90,7 @@ body{background:#f0f4f8;min-height:100vh}
     <div class="menu-header-right">
       <div id="headerDate"></div>
       <div>User: <strong id="headerUser"></strong></div>
+      <div id="syncStatusChip" style="font-size:.7rem;margin-top:3px;display:none"></div>
       <div style="margin-top:8px;display:flex;align-items:center;gap:6px;justify-content:flex-end">
         <label style="font-size:.75rem;color:#888">🏢 Dorm:</label>
         <select id="menuDormSelect" onchange="updateMenuDorm()"
@@ -605,6 +606,22 @@ function _initAfterAuth() {
   DormDB.on('dormOffCampusReq', refreshStats);
   DormDB.on('dormWorkers',      refreshStats);
   DormDB.on('dormBedding',      refreshStats);
+
+  // Auto-sync: watch all data keys; fire upload after 5 s quiet window
+  [
+    DormDB.KEYS.ROOMS,          DormDB.KEYS.QUEUE,         DormDB.KEYS.HISTORY,
+    DormDB.KEYS.AWAY,           DormDB.KEYS.PROFILES,      DormDB.KEYS.KEYS_INV,
+    DormDB.KEYS.KEYS_ASSIGNED,  DormDB.KEYS.INSPECTIONS,   DormDB.KEYS.INVENTORY,
+    DormDB.KEYS.INV_AUDITS,     DormDB.KEYS.SCHEDULE,      DormDB.KEYS.MAINTENANCE,
+    DormDB.KEYS.ATTENDANCE,     DormDB.KEYS.ATT_ARCHIVE,   DormDB.KEYS.INCIDENTS,
+    DormDB.KEYS.OFFCAMPUS_REQ,  DormDB.KEYS.ASSISTANCE,    DormDB.KEYS.WORKERS,
+    DormDB.KEYS.BEDDING,        DormDB.KEYS.BEDDING_STOCK, DormDB.KEYS.BEDDING_COUNT,
+    DormDB.KEYS.UTILITIES,
+  ].forEach(k => DormDB.on(k, _markDirty));
+
+  window.addEventListener('online',  () => { if (_syncDirty) _autoSyncNow(); else _updateSyncStatus('synced'); });
+  window.addEventListener('offline', () => _updateSyncStatus('offline'));
+  _updateSyncStatus('synced'); // show last-synced time from IDB on page load
 }
 
 // Password management modal
@@ -908,6 +925,58 @@ async function confirmMerge() {
   } else {
     _toast('✅ Merged ' + result.totalAdded + ' new record' + (result.totalAdded !== 1 ? 's' : ''));
   }
+}
+
+// ── Auto-sync engine ─────────────────────────────────────────────────────
+const SYNC_DEBOUNCE_MS   = 5000;
+const SYNC_AUTO_FILENAME = 'DormPortal_Dean_AutoSync.json';
+let _syncDirty = false;
+let _syncTimer  = null;
+
+function _markDirty() {
+  _syncDirty = true;
+  _updateSyncStatus('pending');
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(_autoSyncNow, SYNC_DEBOUNCE_MS);
+}
+
+async function _autoSyncNow() {
+  if (!_syncDirty) return;
+  const cfg = DormDB.getM365Cfg();
+  if (!cfg.enabled || !cfg.clientId) return;
+  if (!navigator.onLine) { _updateSyncStatus('offline'); return; }
+  const token = await _m365EnsureToken();
+  if (!token) { _updateSyncStatus('error', 'Token expired — re-sign in'); return; }
+  _updateSyncStatus('syncing');
+  try {
+    const dump = await DormDB.exportAll();
+    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+    await m365UploadNow(blob, SYNC_AUTO_FILENAME);
+    _syncDirty = false;
+    DormDB.saveLastSynced(Date.now());
+    _updateSyncStatus('synced');
+  } catch(e) {
+    _updateSyncStatus('error', e.message);
+  }
+}
+
+function _updateSyncStatus(state, msg) {
+  const el = document.getElementById('syncStatusChip');
+  if (!el) return;
+  const cfg = DormDB.getM365Cfg();
+  if (!cfg.enabled || !cfg.clientId) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  const last    = DormDB.getLastSynced();
+  const lastStr = last ? new Date(last).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'never';
+  const map = {
+    synced:  `<span style="color:#2e7d32">☁️ Synced ${lastStr}</span>`,
+    syncing: `<span style="color:#0078d4">⏳ Syncing…</span>`,
+    pending: `<span style="color:#e65100">⏳ Sync pending</span>`,
+    offline: `<span style="color:#888">📴 Offline · last: ${lastStr}</span>`,
+    online:  `<span style="color:#555">🌐 Online</span>`,
+    error:   `<span style="color:#c62828" title="${escapeHtml(msg||'')}">⚠️ Sync error</span>`,
+  };
+  el.innerHTML = map[state] || '';
 }
 
 // ── Microsoft 365 Cloud Sync ──────────────────────────────────────────────

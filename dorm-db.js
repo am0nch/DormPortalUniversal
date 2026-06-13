@@ -62,6 +62,7 @@ const DormDB = (() => {
     // Shared semester registry
     SEMESTER_CFG:  'dormSemesterCfg',
     M365_CFG:      'dormM365Cfg',
+    LAST_SYNCED:   'dormLastSyncedAt',
     FLOOR_PLAN:      'dormFloorPlan',
     UTILITIES:       'dormUtilities',
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
@@ -404,6 +405,8 @@ const DormDB = (() => {
       return stored ? Object.assign({}, def, stored) : def;
     },
     saveM365Cfg:         (d)  => _w(K.M365_CFG, d),
+    getLastSynced:       ()   => _r(K.LAST_SYNCED, null),
+    saveLastSynced:      (ts) => _w(K.LAST_SYNCED, ts),
     getMergeLog:         ()   => _r(K.MERGE_LOG, []),
     saveMergeLog:        (d)  => _w(K.MERGE_LOG, d),
     getPortalPins()           { return _r(K.PORTAL_PINS, { raPortalHash: '', monPortalHash: '' }); },
