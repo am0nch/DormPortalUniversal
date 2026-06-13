@@ -14,6 +14,10 @@ clearance_a5_preview.html
 # Backend lives in its own private repo (DormPortalBackend)
 backend/
 
+# Serena MCP project files (local tooling only)
+.serena/
+serena/
+
 # Generated / unrelated scripts
 DormPortal API - Swagger UI.html
 DormPortal API - Swagger UI_files/

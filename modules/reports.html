@@ -15,8 +15,8 @@ body{background:#f0f4f8;padding:20px}
 .btn-green{background:#2c7a4d}.btn-orange{background:#e67e22}.btn-purple{background:#6f42c1}.btn-red{background:#c0392b}.btn-blue{background:#2980b9}
 .tabs{display:flex;gap:4px;margin-bottom:18px;flex-wrap:wrap}
 .tab-btn{background:none;color:#666;border:none;padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:.82rem;font-weight:700;transition:background .15s,color .15s}
-.tab-btn.active{background:var(--dp-accent);color:#fff}
-.tab-btn:hover:not(.active){background:var(--dp-accent-bg);color:var(--dp-accent)}
+.tabs .tab-btn.active{background:var(--dp-accent);color:#fff}
+.tabs .tab-btn:hover:not(.active){background:var(--dp-accent-bg);color:var(--dp-accent)}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 .tab-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:#e9ecef;padding:10px 14px;border-radius:10px}
@@ -48,7 +48,7 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
 .fee-rg{display:grid;grid-template-columns:22px 1fr 130px;padding:5px 8px;border-top:1px solid #eee;align-items:center;gap:6px}
 .fee-rg input[type=number]{text-align:right;width:100%}
 
-#scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;background:#1e3a5f;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}#scrollTopBtn:hover{background:#2d5282;}@media print{#scrollTopBtn{display:none}}
+#scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}@media print{#scrollTopBtn{display:none}}
 @media(max-width:768px){
   body{font-size:15px}
   input,select,textarea{font-size:16px!important}
