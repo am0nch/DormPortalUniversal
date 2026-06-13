@@ -88,6 +88,7 @@ input, select, textarea { font-size: inherit; }
 }
 /* Back link inside nav */
 .dorm-nav a, .nav a, .nav-bar a, .att-nav a, .dw-nav a, .pr-nav a, .sa-nav a, .ss-nav a, .inc-nav a,
+.page-header a,
 .nav-back, .ph-back {
   color: #fff;
   text-decoration: none;
@@ -97,6 +98,7 @@ input, select, textarea { font-size: inherit; }
 }
 .dorm-nav a:hover, .nav a:hover, .nav-bar a:hover, .att-nav a:hover, .dw-nav a:hover,
 .pr-nav a:hover, .sa-nav a:hover, .ss-nav a:hover, .inc-nav a:hover,
+.page-header a:hover,
 .nav-back:hover, .ph-back:hover { opacity: 1; }
 
 /* Nav title */
@@ -190,7 +192,7 @@ input, select, textarea { font-size: inherit; }
   transition: background .15s, color .15s;
 }
 .tab-bar .tab-btn.active { background: var(--dp-accent); color: #fff; }
-.tab-bar .tab-btn:hover:not(.active) { background: var(--dp-navy-light); color: var(--dp-navy); }
+.tab-bar .tab-btn:hover:not(.active) { background: var(--dp-accent-bg); color: var(--dp-accent); }
 
 /* Underline-style tabs (inventory secondary tabs) */
 .tabs {
@@ -212,7 +214,7 @@ input, select, textarea { font-size: inherit; }
   transition: color .15s, border-color .15s;
 }
 .tabs .tab-btn.active { color: var(--dp-accent); border-bottom-color: var(--dp-accent); }
-.tabs .tab-btn:hover:not(.active) { color: var(--dp-navy); border-bottom-color: var(--dp-navy-light); background: var(--dp-navy-light); border-radius: var(--dp-radius) var(--dp-radius) 0 0; }
+.tabs .tab-btn:hover:not(.active) { color: var(--dp-accent); border-bottom-color: var(--dp-accent-bg); background: var(--dp-accent-bg); border-radius: var(--dp-radius) var(--dp-radius) 0 0; }
 
 .tab-panel { display: none; padding-top: 16px; }
 .tab-panel.active { display: block; }
