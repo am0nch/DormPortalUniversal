@@ -58,7 +58,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/student-profiles.html` | 1,234 |
 | `modules/floor-plan.html` | 509 |
 | `modules/utilities.html` | 683 |
-| `modules/reports.html` | 1,607 |
+| `modules/reports.html` | 1,603 |
 | `modules/room-inspection.html` | 1,335 |
 | `modules/key-inventory.html` | 1,586 |
 | `modules/inventory.html` | 2,517 |
@@ -70,7 +70,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/plant-requests.html` | 720 |
 | `modules/ra-portal.html` | 603 |
 | `modules/monitor-portal.html` | 569 |
-| `modules/userguide.html` | 2,448 |
+| `modules/userguide.html` | 2,447 |
 | `modules/handbook.html` | 1,874 |
 
 ---
@@ -146,6 +146,13 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
 - [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
+
+## Completed (2026-06-13, session 2)
+
+- [x] **reports.html** — Active tab text invisible (navy-on-navy) due to CSS specificity conflict: dorm-ui.css `.tabs .tab-btn.active { color: var(--dp-accent) }` (0,3,0) beat module's (0,2,0). Fixed by switching container from `.tabs` → `.tab-bar`; dorm-ui.css handles active/hover for `.tab-bar` with no conflict
+- [x] **reports, key-inventory, room-inspection, inventory, userguide** — Removed inline `#scrollTopBtn background:#1e3a5f` and `:hover{background:#2d5282}` overrides; dorm-ui.css `var(--dp-accent)` + `brightness(.9)` hover now apply
+- [x] **sw.js** — Bumped cache to `dormportal-v4` to evict stale HTML on all devices after CSS fix commits
+- [x] **.gitignore** — Added `.serena/` and `serena/` to exclude Serena MCP project files from repo
 
 ## Completed (2026-06-13)
 
