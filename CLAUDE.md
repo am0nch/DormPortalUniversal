@@ -48,30 +48,30 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-11)
+## File stats (2026-06-13)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,524 |
+| `index.html` | 1,526 |
 | `dorm-db.js` | 673 |
-| `modules/room-reservations.html` | 2,140 |
-| `modules/student-profiles.html` | 1,233 |
-| `modules/floor-plan.html` | 507 |
-| `modules/utilities.html` | 682 |
-| `modules/reports.html` | 1,604 |
-| `modules/room-inspection.html` | 1,334 |
-| `modules/key-inventory.html` | 1,585 |
-| `modules/inventory.html` | 2,515 |
-| `modules/attendance.html` | 1,230 |
-| `modules/incidents.html` | 987 |
-| `modules/student-admin.html` | 1,012 |
-| `modules/dorm-workers.html` | 757 |
-| `modules/staff-scheduling.html` | 1,281 |
-| `modules/plant-requests.html` | 716 |
-| `modules/ra-portal.html` | 601 |
-| `modules/monitor-portal.html` | 564 |
-| `modules/userguide.html` | 2,447 |
-| `modules/handbook.html` | 1,873 |
+| `modules/room-reservations.html` | 2,141 |
+| `modules/student-profiles.html` | 1,234 |
+| `modules/floor-plan.html` | 509 |
+| `modules/utilities.html` | 683 |
+| `modules/reports.html` | 1,607 |
+| `modules/room-inspection.html` | 1,335 |
+| `modules/key-inventory.html` | 1,586 |
+| `modules/inventory.html` | 2,517 |
+| `modules/attendance.html` | 1,234 |
+| `modules/incidents.html` | 991 |
+| `modules/student-admin.html` | 1,013 |
+| `modules/dorm-workers.html` | 758 |
+| `modules/staff-scheduling.html` | 1,285 |
+| `modules/plant-requests.html` | 720 |
+| `modules/ra-portal.html` | 603 |
+| `modules/monitor-portal.html` | 569 |
+| `modules/userguide.html` | 2,448 |
+| `modules/handbook.html` | 1,874 |
 
 ---
 
@@ -146,6 +146,15 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
 - [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
+
+## Completed (2026-06-13)
+
+- [x] **dorm-ui.css** — Fixed `.page-header a` missing from nav link color/hover selectors (room-reservations gap); tab hover hardcoded `--dp-navy`/`--dp-navy-light` → `var(--dp-accent-bg)`/`var(--dp-accent)` for pill and underline tabs
+- [x] **10 modules** (dorm-workers, plant-requests, incidents, staff-scheduling, attendance, student-admin, reports, inventory, key-inventory, room-inspection) — Inline `.tab-btn` hover standardised to `var(--dp-accent-bg)`/`var(--dp-accent)`; reports hover was full-navy (looked active); inventory separated combined active+hover selector; key-inventory/room-inspection added missing hover state
+- [x] **floor-plan.html** — `.ftab` active/hover switched to `var(--dp-accent)`; added missing `.ftab:hover` state
+- [x] **student-profiles.html** — `.nav-back`/`.nav-dorm` hardcoded `#a8c8f0` → standard `color:#fff;opacity:.82` pattern with hover restore
+- [x] **floor-plan, student-profiles, utilities, room-reservations** — Removed inline `#scrollTopBtn background:#1e3a5f` override; `dorm-ui.css` `var(--dp-accent)` and `brightness(.9)` hover now apply
+- [x] **index.html, ra-portal.html, monitor-portal.html** — Added `<link rel="icon">` favicon tag
 
 ## Completed (2026-06-11)
 
