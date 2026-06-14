@@ -55,7 +55,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `index.html` | 1,595 |
 | `dorm-db.js` | 676 |
 | `modules/room-reservations.html` | 2,141 |
-| `modules/student-profiles.html` | 1,234 |
+| `modules/student-profiles.html` | 1,244 |
 | `modules/floor-plan.html` | 513 |
 | `modules/utilities.html` | 687 |
 | `modules/reports.html` | 1,603 |
@@ -144,9 +144,15 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 - [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow (scanner/audit/slot/master docs done; these 4 remain)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v7)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
+
+## Completed (2026-06-14, session 3)
+
+- [x] **student-profiles.html** — Print photo fix: `window.print()` now waits for blob-URL `<img>` `load` event before firing (photo was blank in every print/PDF because `#printCard` is `display:none` on screen so the browser never decoded the image). Also replaced `window.onafterprint =` assignment with `addEventListener('afterprint', ..., { once: true })` to prevent blob URL leaks on consecutive prints. 1,234 → 1,244 lines
+- [x] **student-profiles.html** — Print background forced to `#fff` (`body,#printCard{background:#fff!important}` in `@media print`)
+- [x] **sw.js** — Bumped cache `dormportal-v6` → `dormportal-v7` after student-profiles deploy
 
 ## Completed (2026-06-14, session 2)
 
