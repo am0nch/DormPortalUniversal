@@ -158,7 +158,7 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 - [x] **reports.html** — Active tab text invisible (navy-on-navy) due to CSS specificity conflict: dorm-ui.css `.tabs .tab-btn.active { color: var(--dp-accent) }` (0,3,0) beat module's (0,2,0). Fixed by switching container from `.tabs` → `.tab-bar`; dorm-ui.css handles active/hover for `.tab-bar` with no conflict
 - [x] **reports, key-inventory, room-inspection, inventory, userguide** — Removed inline `#scrollTopBtn background:#1e3a5f` and `:hover{background:#2d5282}` overrides; dorm-ui.css `var(--dp-accent)` + `brightness(.9)` hover now apply
-- [x] **sw.js** — Bumped cache to `dormportal-v5` (v4 after CSS fix; v5 after 2026-06-14 deploy)
+- [x] **sw.js** — Bumped cache to `dormportal-v6` (v4→CSS fix; v5→2026-06-14 M365 deploy; v6→XSS/CSS-token fixes)
 - [x] **.gitignore** — Added `.serena/` and `serena/` to exclude Serena MCP project files from repo
 
 ## Completed (2026-06-13)
