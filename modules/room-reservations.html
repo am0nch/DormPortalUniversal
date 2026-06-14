@@ -596,8 +596,17 @@ function undo(){if(historyIndex>0){historyIndex--;fullData=JSON.parse(JSON.strin
 function redo(){if(historyIndex<historyStack.length-1){historyIndex++;fullData=JSON.parse(JSON.stringify(historyStack[historyIndex]));recalcWaiting();applyFilter();recordUpdate();}}
 
 // ═══ USER / AUTO-SAVE ═══
-let currentUser=DormDB.getCurrentUser();
-if(currentUser==='Unknown'){currentUser=prompt('Your name:','User')||'Unknown';DormDB.saveCurrentUser(currentUser);}
+let currentUser = DormDB.getCurrentUser();
+if (currentUser === 'Unknown') {
+  const _m = DormDB.getM365Cfg();
+  const _m365Name = _m.enabled && (_m.displayName || _m.userEmail);
+  if (_m365Name) {
+    currentUser = _m365Name;
+  } else {
+    currentUser = prompt('Your name:', 'User') || 'Unknown';
+  }
+  DormDB.saveCurrentUser(currentUser);
+}
 function recordUpdate(){
   const t=new Date().toLocaleString();
   document.getElementById('lastUpdateTime').innerText=t;

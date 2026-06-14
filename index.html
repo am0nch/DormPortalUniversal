@@ -1277,8 +1277,14 @@ async function _m365HandleRedirect() {
       cfg.refreshToken = data.refresh_token || '';
       cfg.tokenExpiry = Date.now() + (data.expires_in||3600)*1000;
       const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers:{ Authorization:'Bearer '+cfg.accessToken } }).then(r=>r.json()).catch(()=>({}));
-      cfg.userEmail = me.userPrincipalName || me.mail || '';
+      cfg.userEmail    = me.userPrincipalName || me.mail || '';
+      cfg.displayName  = me.displayName || '';
       DormDB.saveM365Cfg(cfg);
+      // Bridge M365 identity to the shared currentUser slot so modules
+      // don't prompt for a name when M365 is already signed in.
+      if (cfg.displayName || cfg.userEmail) {
+        DormDB.saveCurrentUser(cfg.displayName || cfg.userEmail);
+      }
       sessionStorage.removeItem('dormM365Verifier');
       // If redirect was triggered for portal auth, unlock the gate
       if (sessionStorage.getItem('dormAuthIntent') === 'portal') {
