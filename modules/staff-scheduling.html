@@ -628,14 +628,13 @@ function renderMaster() {
           if (e.category === cat && e.day === d && isShiftInSlot({ startTime: e.startTime, endTime: e.endTime }, slotStart, cat))
             matched.push({ e, ei });
         });
-        const slotFull = matched.length > 0;
         return `<td>
           ${matched.map(({ e, ei }) => `<span class="slot-name master-name"
             onclick="openMasterModal(${JSON.stringify(d)},${JSON.stringify(e.startTime)},${JSON.stringify(e.endTime)},${ei})"
             title="Click to edit">${esc(displayName(e.workerName))}</span>`).join('')}
-          ${slotFull ? '' : `<span class="slot-add"
+          <span class="slot-add"
             onclick="openMasterModal(${JSON.stringify(d)},${JSON.stringify(addStart)},${JSON.stringify(addEnd)},-1)"
-            title="Assign ${cat} to this slot">+</span>`}
+            title="Assign ${cat} to this slot">+</span>
         </td>`;
       }).join('')}
     </tr>`;
@@ -822,11 +821,7 @@ function saveMasterEntry() {
     }
   }
 
-  // Duplicate check: same category, day, startTime — cannot be taken by another worker
   const allEntries = masterEntries();
-  const conflict = allEntries.find((e, i) =>
-    i !== entryIdx && e.category === w.category && e.day === day && e.startTime === start && e.workerId !== wId);
-  if (conflict) { showToast(`⚠️ Slot already assigned to ${conflict.workerName} in Master Schedule`); return; }
   const selfDup = allEntries.find((e, i) =>
     i !== entryIdx && e.workerId === wId && e.day === day && e.startTime === start);
   if (selfDup) { showToast('⚠️ This worker already has this slot in the Master Schedule'); return; }
