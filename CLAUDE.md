@@ -48,12 +48,12 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-13)
+## File stats (2026-06-14)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,526 |
-| `dorm-db.js` | 673 |
+| `index.html` | 1,595 |
+| `dorm-db.js` | 676 |
 | `modules/room-reservations.html` | 2,141 |
 | `modules/student-profiles.html` | 1,234 |
 | `modules/floor-plan.html` | 509 |
@@ -142,10 +142,17 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow
+- [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow (scanner/audit/slot/master docs done; these 4 remain)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
 - [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
+- [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
+
+## Completed (2026-06-14)
+
+- [x] **userguide.html** — 5 new subsections: Barcode Scanner, Audit Log, Print Check Form (Inventory); Slot View, Master Schedule & Auto-Populate (Staff Scheduling). 4 existing subsections updated (Items: Side A/B field; By Location: Side grouping; Settings: Clear Room Items; Weekly: overnight chip + CSV import). TOC JS updated. 2,447 → 2,545 lines
+- [x] **index.html + dorm-db.js** — M365 OneDrive auto-sync on data change merged from Ultraplan branch (1,526→1,595 / 673→676)
+- [x] **Branch merge** — `claude/refine-local-plan-jkvjic` fast-forward merged to main (097cc11)
 
 ## Completed (2026-06-13, session 2)
 
