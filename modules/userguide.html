@@ -1030,8 +1030,12 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <div class="info-card">
             <h4>🏷️ Barcode System</h4>
             <p>Each item gets a unique ID in the format <code>INV-XXXXXXXX</code>. Code 39 barcodes are generated entirely in-browser (no internet needed) and are compatible with any standard USB barcode scanner.</p>
-            <p style="margin-top:6px">Scanning the barcode reads the item ID as keyboard input — you can search by ID in the Items tab.</p>
+            <p style="margin-top:6px">Scanning the barcode reads the item ID as keyboard input — you can search by ID in the Items tab, or use the 📷 Scan Barcode modal for instant condition updates.</p>
           </div>
+        </div>
+        <div class="info-card" style="margin-top:10px">
+          <h4>📑 Module Tabs</h4>
+          <p>📦 Items &nbsp;·&nbsp; 📍 By Location &nbsp;·&nbsp; 🏷️ Labels &nbsp;·&nbsp; 📅 Audit Log &nbsp;·&nbsp; 🔧 Maintenance Flags &nbsp;·&nbsp; ⚙️ Settings &nbsp;·&nbsp; 🛏️ Bedding</p>
         </div>
       </div>
     </div>
@@ -1054,10 +1058,32 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         <ol class="steps">
           <li>Click <strong>+ Add Item</strong> in the Items tab, or <strong>+ Add Missing Item</strong> from the By Location tab.</li>
           <li>Fill in: Name, Category, Location, Condition (Good / Fair / Poor / Damaged / Missing), Description, Serial No., Brand, Purchase Date, and Purchase Price.</li>
+          <li>For items in student rooms, set the <strong>Side</strong> field to <strong>A</strong> or <strong>B</strong> to assign the item to a specific bed; leave blank for shared items (e.g., a ceiling fan). Items seeded from the room template with qty ≥ 2 are automatically split into one Side A and one Side B record.</li>
           <li>For supply items (toilet paper, bulbs), check <strong>Is Consumable</strong> and set a <strong>Reorder At</strong> quantity. When stock falls to or below this level, the item is counted in the "Low Stock" stat on the main menu card.</li>
           <li>To flag the item for repair, check <strong>Flag for Maintenance</strong> and add notes. The item will appear in the Maintenance Flags tab.</li>
           <li>The modal shows a live Code 39 barcode preview of the item's ID.</li>
         </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span>The Items tab has a <strong>Side filter</strong> dropdown (All / Side A / Side B / Shared) to narrow the list to items belonging to one bed.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-scanner">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Barcode Scanner</div>
+      <div class="collapse-body">
+        <p>The <strong>📷 Scan Barcode</strong> toolbar button opens the scanner modal with two modes:</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📷 Camera Mode</h4>
+            <p>Uses the browser's BarcodeDetector API — available in Chrome/Edge 88+ over HTTPS or localhost. Point the camera at a Code 39, Code 128, QR, or Data Matrix label. Not available over <code>file://</code>.</p>
+            <p style="margin-top:6px">If the API is unsupported, the scanner falls back with a warning and suggests the USB tab.</p>
+          </div>
+          <div class="info-card">
+            <h4>🔌 USB / Manual Mode</h4>
+            <p>Plug in a standard USB barcode scanner — it types the barcode value as keyboard input. You can also type or paste an Item ID manually. Works in any browser with no extra permissions.</p>
+          </div>
+        </div>
+        <p style="margin-top:10px">When a match is found, a result card shows the item name, location, and current condition badge. One-tap condition buttons (<strong>Good / Fair / Poor / Damaged / Missing</strong>) let you update the condition immediately without opening the full edit modal.</p>
+        <div class="tip"><span class="tip-icon">💡</span><span>The <strong>🏷️ button</strong> on each row in the Items tab is a barcode quick-view — shows the existing barcode graphic for that item without creating a new scan record.</span></div>
       </div>
     </div>
 
@@ -1066,7 +1092,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <div class="collapse-body">
         <p>Select any location from the dropdown to see:</p>
         <ul>
-          <li><strong>Present Items</strong> — all items currently recorded at that location, with condition badges</li>
+          <li><strong>Present Items</strong> — all items currently recorded at that location, with condition badges. For student rooms, items are grouped by <strong>🔵 Side A / 🔴 Side B / Shared</strong>.</li>
           <li><strong>Missing Items</strong> (student rooms only) — items in the template that are not found at this location, each with a one-click <strong>+ Add</strong> button to create the record instantly</li>
         </ul>
         <div class="tip"><span class="tip-icon">💡</span><span>This tab is ideal for room walkthrough inspections — go room by room, check what's present, and add missing records on the spot without switching tabs.</span></div>
@@ -1084,6 +1110,31 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <li>Print on label paper or plain paper, cut, and attach labels to each physical item.</li>
         </ol>
         <div class="note"><span class="note-icon">ℹ️</span><span>Each label shows the Code 39 barcode, the item name in bold, location, and the ID in monospace. Scannable with any standard USB barcode scanner — the scanner types the ID as keyboard input.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-audit">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Audit Log Tab</div>
+      <div class="collapse-body">
+        <p>The <strong>📅 Audit Log</strong> tab holds condition snapshots of the entire inventory. Use it to create a timestamped record of item conditions at key moments (move-in, move-out, end of semester).</p>
+        <ol class="steps">
+          <li>Click <strong>📸 Take Snapshot</strong>. The current condition of every item is saved with a timestamp.</li>
+          <li>To review changes, select a snapshot — a diff view compares it against the previous snapshot and highlights condition upgrades and downgrades.</li>
+          <li>Snapshots are stored in the <code>dormInventoryAudits</code> key (separate from the main inventory data).</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span>Take a snapshot at move-in and another at move-out — the diff shows exactly what changed during the occupancy period, making damage charge disputes much easier to resolve.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-inv-printform">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Print Check Form</div>
+      <div class="collapse-body">
+        <p>The <strong>📋 Print Check Form</strong> toolbar button generates a physical sign-off sheet for room walkthroughs.</p>
+        <ul>
+          <li>Format: A4 landscape, current conditions pre-filled, items grouped by room then by Side A / Side B / Shared.</li>
+          <li>Includes a signature block at the bottom for the RA or Dean to countersign the recorded condition state.</li>
+          <li>Useful for move-in/move-out documentation alongside the Room Inspection module checklist.</li>
+        </ul>
       </div>
     </div>
 
@@ -1107,6 +1158,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <li><strong>Category Manager</strong> — Add or remove item categories (default: Furniture, Appliances, Fixtures, Electronics, Security, Bathroom, Safety, Supplies, Office).</li>
           <li><strong>Custom Locations</strong> — Add non-standard locations (e.g., "Prayer Room", "Rooftop") that don't appear in the default common areas list.</li>
           <li><strong>🌱 Seed All Rooms</strong> — Creates template items for all rooms from Room Reservations data.</li>
+          <li><strong>🗑️ Clear Room Items</strong> — Removes all room-type items for the selected room template without touching common area or custom location items. Use before re-seeding when the template has changed.</li>
         </ul>
       </div>
     </div>
@@ -1595,8 +1647,49 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <li>Shifts are color-coded by category: <span class="badge badge-blue">RA</span> <span class="badge badge-orange">Monitor</span> <span class="badge badge-green">Janitor</span> <span class="badge badge-gray">SWP</span></li>
           <li>Navigate weeks with the <strong>← Previous</strong> / <strong>Next →</strong> buttons.</li>
           <li>Filter by category using the filter chips to show only one category at a time.</li>
+          <li>Overnight shifts (end time before start time, e.g., 23:00–07:00) are displayed as a dark <strong>🌙</strong> chip. Categories not configured for overnight shifts show a confirmation dialog before saving.</li>
+          <li>The toolbar also has <strong>📥 Import CSV</strong> (bulk-import shifts from a spreadsheet) and <strong>🔄 Auto-Populate</strong> (stamp the Master Schedule across a date range) — see Master Schedule section below.</li>
         </ul>
         <div class="tip"><span class="tip-icon">💡</span><span>The <strong>Settings</strong> tab has default start/end times per category — set typical hours once and they pre-fill every new shift for that category.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sched-slot">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Slot View</div>
+      <div class="collapse-body">
+        <p>The <strong>🕐 Slot View</strong> tab shows a structured time-slot table — rows are defined time slots (e.g., 07:00–09:00) and columns are Mon–Sun. It is an alternative to the free-form weekly grid when coverage must fit a fixed rotation.</p>
+        <ul>
+          <li>Slot configuration is per category — set in <strong>Settings → Slot Configuration</strong>. Options: slot duration, day start/end, overnight toggle. Default examples: Monitors use 2-hour slots 07:00–23:00; Janitors use 4-hour slots 07:00–19:00.</li>
+          <li>The Monitor category has a special <strong>🌙 Overnight</strong> slot (23:00–07:00, counted as 4 hours). Other categories can have overnight enabled in Settings.</li>
+          <li>Click any cell to assign a worker to that slot. Multiple workers can occupy the same slot; their names appear as chips.</li>
+          <li>Navigate weeks with the ← / → buttons. <strong>📥 Import CSV</strong> and <strong>🔄 Auto-Populate</strong> are available in the Slot View toolbar as well.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sched-master">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Master Schedule &amp; Auto-Populate</div>
+      <div class="collapse-body">
+        <p>The <strong>📋 Master Schedule</strong> tab lets you define a recurring weekly template — who covers which slot, every week. Configure it once per semester; update it only when staffing changes.</p>
+        <ul>
+          <li>Click any cell in the Master grid to assign a worker name to that slot. The template is shared across all weeks.</li>
+        </ul>
+        <h4 style="margin:12px 0 6px;font-size:.85rem">🔄 Auto-Populate</h4>
+        <ol class="steps">
+          <li>Click <strong>🔄 Auto-Populate</strong> in the Weekly, Slot View, or Master Schedule toolbar.</li>
+          <li>A modal opens — pick a start date and end date (typically semester start and end).</li>
+          <li>The system writes the Master Schedule into every week of the selected range. <strong>Existing blocks are not overwritten</strong> — only empty cells are filled, so manual exceptions are preserved.</li>
+        </ol>
+        <h4 style="margin:12px 0 6px;font-size:.85rem">📥 CSV Import</h4>
+        <p>Bulk-import shifts from a spreadsheet via <strong>📥 Import CSV</strong>. Required CSV columns:</p>
+        <ul>
+          <li><code>workerName</code> — must match a name in the Dorm Workers roster</li>
+          <li><code>category</code> — RA / Monitor / Janitor / SWP</li>
+          <li><code>weekStart</code> — Monday date in YYYY-MM-DD format</li>
+          <li><code>startTime</code> / <code>endTime</code> — HH:MM (24-hour)</li>
+          <li><code>area</code> — floor or area description</li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span>CSV Import is useful when migrating from an existing spreadsheet schedule — export the spreadsheet to CSV, reformat the columns, and import in one step.</span></div>
       </div>
     </div>
 
@@ -2195,8 +2288,11 @@ const TOC = [
       { id:'sub-inv-overview',    text:'Overview' },
       { id:'sub-inv-seed',        text:'Seed All Rooms' },
       { id:'sub-inv-items',       text:'Adding & Editing Items' },
+      { id:'sub-inv-scanner',     text:'📷 Barcode Scanner' },
       { id:'sub-inv-location',    text:'By Location Tab' },
       { id:'sub-inv-labels',      text:'Barcode Labels' },
+      { id:'sub-inv-audit',       text:'📅 Audit Log' },
+      { id:'sub-inv-printform',   text:'📋 Print Check Form' },
       { id:'sub-inv-maintenance', text:'Maintenance Flags' },
       { id:'sub-inv-settings',    text:'Settings' },
       { id:'sub-inv-bedding',     text:'Bedding Inventory Tab' },
@@ -2230,6 +2326,8 @@ const TOC = [
     ]},
     { id:'sec-scheduling', text:'📆 Staff Scheduling', subs:[
       { id:'sub-sched-weekly',  text:'Weekly View' },
+      { id:'sub-sched-slot',    text:'🕐 Slot View' },
+      { id:'sub-sched-master',  text:'📋 Master Schedule & Auto-Populate' },
       { id:'sub-sched-onduty',  text:'On-Duty Detection' },
       { id:'sub-sched-print',   text:'My Schedule & Print' },
     ]},
