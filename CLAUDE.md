@@ -148,6 +148,14 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 
+## Completed (2026-06-14, session 2)
+
+- [x] **Serena MCP onboarding** — 6 memory files written: `mem:core`, `mem:tech_stack`, `mem:suggested_commands`, `mem:conventions`, `mem:task_completion`, `mem:data_model`
+- [x] **Security — XSS fix** — `floor-plan.html`: added `escapeHtml`, escaped `s.name`/`s.id` in room grid innerHTML (no escape function existed)
+- [x] **Security — XSS fix** — `utilities.html`: added `escapeHtml`, escaped `b.room`/`b.name`/`b.studentId` in billing table innerHTML
+- [x] **CSS tokens** — `floor-plan.html`: replaced 11 hardcoded hex values with CSS variables (`#1e3a5f`→`var(--dp-accent)`, `#f0f4f8`→`var(--dp-bg)`, `#1565c0`→`var(--dp-blue)`, `#e67e22`→`var(--dp-orange)`, `#e0e0e0`→`var(--dp-border)`, `#aaa`/`#666`→text tokens). 509→513 lines
+- [x] **sw.js** — Bumped cache `dormportal-v5` → `dormportal-v6` after deploy
+
 ## Completed (2026-06-14)
 
 - [x] **userguide.html** — 5 new subsections: Barcode Scanner, Audit Log, Print Check Form (Inventory); Slot View, Master Schedule & Auto-Populate (Staff Scheduling). 4 existing subsections updated (Items: Side A/B field; By Location: Side grouping; Settings: Clear Room Items; Weekly: overnight chip + CSV import). TOC JS updated. 2,447 → 2,545 lines
