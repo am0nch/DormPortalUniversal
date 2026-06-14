@@ -228,6 +228,10 @@ td input[type=number]:focus{outline:none;border-color:#1e3a5f;background:#f0f7ff
 <div id="toastEl" class="toast"></div>
 
 <script>
+function escapeHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 let currentTab = 'elec';
 let currentPeriod = '';
 let rooms = [];
@@ -552,9 +556,9 @@ function renderSummary() {
   const tbody = document.getElementById('billListBody');
   tbody.innerHTML = billRows.length ? billRows.map((b, i) => `
     <tr style="${i % 2 ? 'background:#f8faff' : ''}">
-      <td style="border-bottom:1px solid #eee;padding:5px 10px"><span class="room-tag">${b.room}</span></td>
-      <td style="border-bottom:1px solid #eee;padding:5px 10px">${b.name}</td>
-      <td style="border-bottom:1px solid #eee;padding:5px 10px;color:#888;font-size:.75rem">${b.studentId || '—'}</td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px"><span class="room-tag">${escapeHtml(b.room)}</span></td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px">${escapeHtml(b.name)}</td>
+      <td style="border-bottom:1px solid #eee;padding:5px 10px;color:#888;font-size:.75rem">${escapeHtml(b.studentId || '—')}</td>
       <td style="border-bottom:1px solid #eee;padding:5px 10px;text-align:right">${b.elec.toFixed(2)}</td>
       <td style="border-bottom:1px solid #eee;padding:5px 10px;text-align:right">${b.hw.toFixed(2)}</td>
       <td style="border-bottom:1px solid #eee;padding:5px 10px;text-align:right;font-weight:700;color:#1e3a5f">${(b.elec + b.hw).toFixed(2)}</td>
