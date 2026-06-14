@@ -66,7 +66,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/incidents.html` | 991 |
 | `modules/student-admin.html` | 1,013 |
 | `modules/dorm-workers.html` | 758 |
-| `modules/staff-scheduling.html` | 1,285 |
+| `modules/staff-scheduling.html` | 1,280 |
 | `modules/plant-requests.html` | 720 |
 | `modules/ra-portal.html` | 603 |
 | `modules/monitor-portal.html` | 569 |
@@ -144,7 +144,7 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 - [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow (scanner/audit/slot/master docs done; these 4 remain)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v8)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v9)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 
@@ -155,6 +155,8 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [x] **sw.js** — Bumped cache `dormportal-v7` after student-profiles deploy
 - [x] **index.html + room-reservations.html** — M365 username auto-fill: OAuth `/me` response now saves `cfg.displayName` and calls `DormDB.saveCurrentUser()` immediately on sign-in; room-reservations checks M365 identity before falling through to `window.prompt()`. 1,595→1,601 / 2,141→2,150 lines
 - [x] **sw.js** — Bumped cache `dormportal-v8` after M365/room-reservations deploy
+- [x] **staff-scheduling.html** — Master Schedule "+" bug: removed `slotFull = matched.length > 0` guard (was hiding "+" after first assignment) and removed single-worker-per-slot conflict check in `saveMasterEntry()`. Multiple workers (e.g. one per floor) can now be assigned to the same time slot. 1,285 → 1,280 lines
+- [x] **sw.js** — Bumped cache `dormportal-v9` after Master Schedule fix
 
 ## Completed (2026-06-14, session 2)
 
