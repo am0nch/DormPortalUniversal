@@ -1,6 +1,6 @@
 // DormPortalUniversal — Service Worker
 // Bump CACHE_NAME after any deploy to force cache refresh on all devices
-const CACHE_NAME = 'dormportal-v8';
+const CACHE_NAME = 'dormportal-v9';
 
 // All files the app needs to work fully offline.
 // Paths are relative to this SW file (repo root).
