@@ -1165,10 +1165,20 @@ async function printCard(id) {
     <div class="pc-footer">DormPortalUniversal v4 &nbsp;·&nbsp; Developed using Claude Code by Richmond Ilao</div>
   `;
 
+  const triggerPrint = () => {
+    if (printPhotoURL) {
+      window.addEventListener('afterprint', () => URL.revokeObjectURL(printPhotoURL), { once: true });
+    }
+    window.print();
+  };
+
   if (printPhotoURL) {
-    window.onafterprint = () => { URL.revokeObjectURL(printPhotoURL); window.onafterprint = null; };
+    const img = document.querySelector('#pcContent .pc-photo img');
+    if (img) { img.onload = triggerPrint; img.onerror = triggerPrint; }
+    else triggerPrint();
+  } else {
+    triggerPrint();
   }
-  window.print();
 }
 
 // ── Excel export ───────────────────────────────────────────────────────────
