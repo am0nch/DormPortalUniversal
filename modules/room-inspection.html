@@ -861,24 +861,34 @@ const COND_MAP={good:'Good',average:'Fair',poor:'Poor',missing:'Missing'};
 
 function _syncInventoryConditions(room,sideA,sideB,shared){
   const inv=DormDB.getInventory();
-  // Pre-collect indices (not references) so spread-replace doesn't create stale refs
   const roomIdxs=inv.reduce((acc,item,i)=>{if(item.location===room)acc.push(i);return acc;},[]);
   if(!roomIdxs.length)return;
   let changed=false;
-  const allItems=[...Object.entries(sideA||{}),...Object.entries(sideB||{}),...Object.entries(shared||{})];
-  allItems.forEach(([key,data])=>{
-    if(!data||!data.condition||data.condition==='n/a')return;
-    const newCond=COND_MAP[data.condition];if(!newCond)return;
-    const keywords=INSP_TO_INV[key]||[];if(!keywords.length)return;
-    roomIdxs.forEach(globalIdx=>{
-      const nameLow=(inv[globalIdx].name||'').toLowerCase();
-      if(!keywords.some(kw=>nameLow.includes(kw)))return;
-      if(inv[globalIdx].condition===newCond)return;
-      inv[globalIdx]={...inv[globalIdx],condition:newCond,
-        lastChecked:new Date().toISOString().split('T')[0],
-        maintenanceFlag:(newCond==='Poor'||newCond==='Missing')?true:inv[globalIdx].maintenanceFlag,
-        maintenancePushed:(newCond==='Poor'||newCond==='Missing')?false:inv[globalIdx].maintenancePushed};
-      changed=true;
+  // Process each group separately so side filtering can be applied.
+  // sideA/sideB entries only update same-side (or unassigned) inventory items.
+  // shared entries only update unassigned inventory items.
+  const groups=[
+    {entries:Object.entries(sideA||{}),allowedSides:['A','']},
+    {entries:Object.entries(sideB||{}),allowedSides:['B','']},
+    {entries:Object.entries(shared||{}),allowedSides:['']},
+  ];
+  groups.forEach(({entries,allowedSides})=>{
+    entries.forEach(([key,data])=>{
+      if(!data||!data.condition||data.condition==='n/a')return;
+      const newCond=COND_MAP[data.condition];if(!newCond)return;
+      const keywords=INSP_TO_INV[key]||[];if(!keywords.length)return;
+      roomIdxs.forEach(globalIdx=>{
+        const item=inv[globalIdx];
+        if(!allowedSides.includes(item.side||''))return;
+        const nameLow=(item.name||'').toLowerCase();
+        if(!keywords.some(kw=>nameLow.includes(kw)))return;
+        if(item.condition===newCond)return;
+        inv[globalIdx]={...item,condition:newCond,
+          lastChecked:new Date().toISOString().split('T')[0],
+          maintenanceFlag:(newCond==='Poor'||newCond==='Missing')?true:item.maintenanceFlag,
+          maintenancePushed:(newCond==='Poor'||newCond==='Missing')?false:item.maintenancePushed};
+        changed=true;
+      });
     });
   });
   if(changed){DormDB.saveInventory(inv);showToast('📦 Inventory conditions updated from inspection');}
