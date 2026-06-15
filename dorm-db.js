@@ -720,6 +720,78 @@ const DormDB = (() => {
       return { totalAdded, summary };
     },
 
+    // Archive methods — move old semester records to dormkv_archive (lazy-loaded, never in _cache)
+    async archiveSemester(semLabel, keyList) {
+      const keys   = keyList || [K.INSPECTIONS, K.INV_AUDITS, K.HISTORY, K.INCIDENTS];
+      const semCfg = _r(K.SEMESTER_CFG, { list: [] });
+      const semDef = (semCfg.list || []).find(s => s.label === semLabel);
+      const result = {};
+
+      for (const key of keys) {
+        const meta = ARCHIVE_SEM_FIELD[key];
+        if (!meta) continue;
+        const live = _r(key, []);
+        let toArchive, remaining;
+
+        if (meta.type === 'field') {
+          toArchive = live.filter(r => r[meta.field] === semLabel);
+          remaining = live.filter(r => r[meta.field] !== semLabel);
+        } else {
+          if (!semDef) { toArchive = []; remaining = live; }
+          else {
+            toArchive = live.filter(r => r[meta.field] >= semDef.startDate && r[meta.field] <= semDef.endDate);
+            remaining = live.filter(r => !(r[meta.field] >= semDef.startDate && r[meta.field] <= semDef.endDate));
+          }
+        }
+
+        if (!toArchive.length) continue;
+
+        const existing = await _arcGet(key, semLabel);
+        const merged   = existing ? [...existing.records, ...toArchive] : toArchive;
+        await _arcSet(key, semLabel, {
+          dormKey: key, semLabel,
+          records: merged,
+          archivedAt: new Date().toISOString(),
+          count: merged.length,
+        });
+
+        _cache[key] = remaining;
+        _idbSet(key, remaining);
+        _broadcast(key);
+        result[key] = toArchive.length;
+      }
+      return result;
+    },
+
+    async getArchivedSemesters() {
+      const entries = await _arcReadAll();
+      return entries
+        .map(e => ({ dormKey: e.dormKey, semLabel: e.semLabel, count: e.count, archivedAt: e.archivedAt }))
+        .sort((a, b) => b.semLabel.localeCompare(a.semLabel) || a.dormKey.localeCompare(b.dormKey));
+    },
+
+    async getArchiveRecords(dormKey, semLabel) {
+      const entry = await _arcGet(dormKey, semLabel);
+      return entry ? entry.records : [];
+    },
+
+    async restoreArchive(dormKey, semLabel) {
+      const entry = await _arcGet(dormKey, semLabel);
+      if (!entry) return 0;
+      const live  = _r(dormKey, []);
+      const uq    = dormKey === K.HISTORY ? 'archivedAt' : 'id';
+      const seen  = new Set(live.map(r => r[uq]).filter(Boolean));
+      const toAdd = entry.records.filter(r => r[uq] && !seen.has(r[uq]));
+      if (toAdd.length) {
+        const merged = [...live, ...toAdd];
+        _cache[dormKey] = merged;
+        _idbSet(dormKey, merged);
+        _broadcast(dormKey);
+      }
+      await _arcDel(dormKey, semLabel);
+      return toAdd.length;
+    },
+
     // Expose key constants for modules that need them
     KEYS: K,
   };
