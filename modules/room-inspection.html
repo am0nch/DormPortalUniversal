@@ -876,7 +876,8 @@ function _syncInventoryConditions(room,sideA,sideB,shared){
       if(inv[globalIdx].condition===newCond)return;
       inv[globalIdx]={...inv[globalIdx],condition:newCond,
         lastChecked:new Date().toISOString().split('T')[0],
-        maintenanceFlag:(newCond==='Poor'||newCond==='Missing')?true:inv[globalIdx].maintenanceFlag};
+        maintenanceFlag:(newCond==='Poor'||newCond==='Missing')?true:inv[globalIdx].maintenanceFlag,
+        maintenancePushed:(newCond==='Poor'||newCond==='Missing')?false:inv[globalIdx].maintenancePushed};
       changed=true;
     });
   });
