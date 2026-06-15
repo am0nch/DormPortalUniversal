@@ -84,9 +84,10 @@ const DormDB = (() => {
   // Re-use the existing 'DormManagerDB' database (already holds 'photos').
   // Version bumped from 1 → 2 to add the 'dormkv' key-value store.
   const IDB_NAME    = 'DormManagerDB';
-  const IDB_VERSION = 2;
+  const IDB_VERSION = 3;
   const IDB_KV      = 'dormkv';   // store for all DormDB key-value data
   const IDB_PHOTOS  = 'photos';
+  const IDB_KV_ARC  = 'dormkv_archive';
 
   let _dbPromise = null;
   function _openIDB() {
@@ -95,8 +96,9 @@ const DormDB = (() => {
       const req = indexedDB.open(IDB_NAME, IDB_VERSION);
       req.onupgradeneeded = e => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains(IDB_PHOTOS)) db.createObjectStore(IDB_PHOTOS, { keyPath: 'id' });
-        if (!db.objectStoreNames.contains(IDB_KV))     db.createObjectStore(IDB_KV);
+        if (!db.objectStoreNames.contains(IDB_PHOTOS))  db.createObjectStore(IDB_PHOTOS, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(IDB_KV))      db.createObjectStore(IDB_KV);
+        if (!db.objectStoreNames.contains(IDB_KV_ARC))  db.createObjectStore(IDB_KV_ARC);
       };
       req.onsuccess = e => resolve(e.target.result);
       req.onerror   = ()  => { _dbPromise = null; reject(req.error); };
