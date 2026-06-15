@@ -601,11 +601,12 @@ function exportSarra2CSV(ids) {
         inc.id, inc.date, inc.type, inc.severity,
         s.studentId||'', s.name||'', s.room||'', s.role||'',
         s.citizenshipPointsSuggested||0, s.fineSuggested||0,
-        (inc.description||'').replace(/[\r\n]+/g,' ').replace(/,/g,';')
+        (inc.description||'').replace(/[\r\n]+/g,' ')
       ]);
     }
   }
-  const csv = rows.map(r => r.join(',')).join('\n');
+  const escapeCsv = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const csv = rows.map(r => r.map(escapeCsv).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -821,7 +822,7 @@ function printIncident(id) {
   if (!inc) return;
   const studs = (inc.studentsInvolved||[]).map(s =>
     `<tr><td>${escapeHtml(s.studentId||'—')}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.room||'—')}</td>
-     <td>${s.role}</td><td>${s.fineSuggested||0} ฿</td><td>${s.citizenshipPointsSuggested||0} pts</td></tr>`).join('');
+     <td>${escapeHtml(s.role||'—')}</td><td>${s.fineSuggested||0} ฿</td><td>${s.citizenshipPointsSuggested||0} pts</td></tr>`).join('');
   const w = window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>

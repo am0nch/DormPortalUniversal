@@ -514,9 +514,6 @@ async function checkAuth() {
     return false;
   }
 
-  // Password set but M365 backup not yet configured → skip password gate (no recovery path)
-  if (hashStr && !m365BackupReady) return true;
-
   // Password set, valid session → pass
   if (sessionStorage.getItem('dormPortalSession') === hashStr) return true;
 
