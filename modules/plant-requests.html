@@ -711,6 +711,7 @@ async function init() {
     if (active?.id === 'tab-requests')  renderRequests();
     if (active?.id === 'tab-history')   renderHistory();
   });
+  DormDB.on(DormDB.KEYS.MAINTENANCE_CFG, () => { cfg = DormDB.getMaintenanceCfg(); renderRequests(); });
 
   renderDashboard();
 }
