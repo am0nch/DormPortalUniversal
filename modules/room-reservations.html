@@ -2076,7 +2076,9 @@ async function _runInit(){
   initColPicker();initTableDelegation();
   const _rfSem=()=>{const el=document.getElementById('rrSemLabel');if(el)el.textContent=DormDB.getCurrentSemester();};
   _rfSem();populateSemesterFilter();
-  DormDB.on(DormDB.KEYS.SEMESTER_CFG,()=>{_rfSem();populateSemesterFilter();applyFilter();});
+  DormDB.on(DormDB.KEYS.SEMESTER_CFG,  ()=>{_rfSem();populateSemesterFilter();applyFilter();});
+  DormDB.on(DormDB.KEYS.PROFILES,      ()=>{buildMasterList();renderTable();});
+  DormDB.on(DormDB.KEYS.INSPECTIONS,   ()=>{renderTable();});
   _initDone=true;
 }
 _runInit();
