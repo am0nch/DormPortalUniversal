@@ -172,7 +172,7 @@ const MODULES = [
     title: 'Floor Plan',
     desc: 'Visual room grid with occupancy status and hot water bathroom pairing configuration.',
     file: 'modules/floor-plan.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats(s) {
       const pills = [];
       if (s.totalStudents > 0) pills.push({ label: s.totalStudents + ' students', cls: 'blue' });
@@ -221,7 +221,7 @@ const MODULES = [
     title: 'Room Inspection',
     desc: 'Move-in and move-out checklists per room side (A=door / B=balcony). Auto-calculates damage charges and pre-fills clearance forms.',
     file: 'modules/room-inspection.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats(s) {
       const pills = [];
       if (s.failedInspections > 0) pills.push({ label: s.failedInspections + ' with charges', cls: 'orange' });
@@ -252,7 +252,7 @@ const MODULES = [
     title: 'Nightly Attendance',
     desc: 'Nightly bed checks and curfew tracking — pre-filled from SARRA2 leave records. Mobile-friendly roster.',
     file: 'modules/attendance.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats(s) {
       const pills = [];
       if (s.lastNightAbsent > 0)  pills.push({ label: s.lastNightAbsent + ' absent last night', cls: 'orange' });
@@ -267,7 +267,7 @@ const MODULES = [
     title: 'Incident Reports',
     desc: 'Document behavioral incidents, track follow-ups, and export citizenship point deductions for SARRA2.',
     file: 'modules/incidents.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats(s) {
       const pills = [];
       if (s.unresolvedIncidents > 0) pills.push({ label: s.unresolvedIncidents + ' unresolved', cls: 'red' });
@@ -319,7 +319,7 @@ const MODULES = [
     title: 'Maintenance',
     desc: 'Log plant and repair service requests — track status from open to resolved.',
     file: 'modules/plant-requests.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats(s) {
       const pills = [];
       if (s.openMaintenance > 0) pills.push({ label: s.openMaintenance + ' open', cls: 'orange' });
@@ -333,7 +333,7 @@ const MODULES = [
     title: 'RA Portal',
     desc: 'Mobile-first launcher for Resident Assistants — nightly attendance, room inspection, and incident reports. Each RA identified by name with their floor assignment shown.',
     file: 'modules/ra-portal.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats() {
       const workers = DormDB.getWorkers ? DormDB.getWorkers() : [];
       const raCount = workers.filter(w => w.category === 'RA').length;
@@ -349,7 +349,7 @@ const MODULES = [
     title: 'Monitor Portal',
     desc: 'Mobile-first launcher for Monitors — incident reports and key borrowing log with Microsoft 365 sign-in and automatic OneDrive backup.',
     file: 'modules/monitor-portal.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats() {
       const workers = DormDB.getWorkers ? DormDB.getWorkers() : [];
       const cnt = workers.filter(w => w.category === 'Monitor').length;
@@ -366,7 +366,7 @@ const MODULES = [
     title: "Dean's User Guide",
     desc: 'Complete reference for all modules — room reservations, inspections, inventory, key tracking, reports, and more.',
     file: 'modules/userguide.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats() {
       return [{ label: '16 modules covered', cls: 'blue' }];
     }
@@ -377,7 +377,7 @@ const MODULES = [
     title: 'Residence Hall Handbook',
     desc: 'Interactive reference for all APIU hall policies — fines, leave rules, conduct, safety, and the system development roadmap.',
     file: 'modules/handbook.html',
-    ready: true,
+    ready: true, staffAccess: true,
     getStats() {
       return [{ label: '50+ policies', cls: 'blue' }, { label: 'Fines reference', cls: 'orange' }];
     }
@@ -387,8 +387,10 @@ const MODULES = [
 function renderCards(stats) {
   const grid = document.getElementById('moduleGrid');
   grid.innerHTML = '';
+  const isStaff = sessionStorage.getItem('dormPortalRole') === 'staff';
   let lastSection = null;
   MODULES.forEach(m => {
+    if (isStaff && !m.staffAccess) return;
     if (m.section !== lastSection) {
       lastSection = m.section;
       const h = document.createElement('h2');
@@ -505,8 +507,8 @@ async function checkAuth() {
   const m365BackupReady = !!(m365.enabled && m365.clientId && m365.sharedFolderItemId);
   const hashStr         = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
 
-  // No password set AND no M365 configured → open access
-  if (!hashStr && !m365Active) return true;
+  // No password set AND no M365 configured → open access (admin role)
+  if (!hashStr && !m365Active) { sessionStorage.setItem('dormPortalRole', 'admin'); return true; }
 
   // No password set but M365 is active → show M365-only gate
   if (!hashStr && m365Active) {
@@ -555,14 +557,23 @@ async function submitAuth() {
   }
   const btn = document.getElementById('authBtn');
   btn.disabled = true; btn.textContent = 'Checking…';
-  const ok = await DormDB.verifyPwd(pin);
-  if (ok) {
-    sessionStorage.removeItem('_dormAuthFails');
-    sessionStorage.removeItem('_dormAuthLock');
+  const okAdmin = await DormDB.verifyPwd(pin);
+  let role = null;
+  if (okAdmin) {
+    role = 'admin';
     // Auto-upgrade legacy fixed-salt hash to random-salt PBKDF2 on next successful login
     if (typeof DormDB.getPwdHash() === 'string') {
       DormDB.savePwdHash(await DormDB.hashPwd(pin));
     }
+  } else {
+    // Try staff PIN (grants limited module access)
+    const staffPin = DormDB.getStaffPin ? DormDB.getStaffPin() : null;
+    if (staffPin && await DormDB.verifyPin(pin, staffPin)) role = 'staff';
+  }
+  if (role) {
+    sessionStorage.removeItem('_dormAuthFails');
+    sessionStorage.removeItem('_dormAuthLock');
+    sessionStorage.setItem('dormPortalRole', role);
     sessionStorage.setItem('dormPortalSession', DormDB.getPwdHashStr());
     document.getElementById('authOverlay').style.display = 'none';
     document.body.style.overflow = '';
@@ -599,6 +610,18 @@ function authViaM365() {
 }
 
 function _initAfterAuth() {
+  const role = sessionStorage.getItem('dormPortalRole') || 'admin';
+  if (role === 'staff') {
+    // Hide data export/import controls — staff have read/write access to their modules only
+    document.querySelectorAll('.btn-export').forEach(b => b.style.display = 'none');
+    document.querySelectorAll('#restoreInput,#mergeInput').forEach(el => el.style.display = 'none');
+    // Hide admin-only header buttons
+    document.querySelectorAll('button[onclick="openPwdModal()"],button[onclick="openPortalModal()"]')
+      .forEach(b => b.style.display = 'none');
+    // Show staff badge next to username
+    const userEl = document.getElementById('headerUser');
+    if (userEl) userEl.insertAdjacentText('afterend', ' · Staff Access');
+  }
   updateHeader();
   refreshStats();
   // Show Sync Backups button if shared folder is configured
@@ -719,7 +742,9 @@ function openPortalModal() {
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
   document.getElementById('paRaCurrent').textContent  = pins.raPortalHash  ? '✅ RA Portal PIN is set'     : '⚠️ No PIN set — portal is open';
   document.getElementById('paMonCurrent').textContent = pins.monPortalHash ? '✅ Monitor Portal PIN is set' : '⚠️ No PIN set — portal is open';
-  ['paRaNew','paRaConfirm','paMonNew','paMonConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  const staffPin = DormDB.getStaffPin ? DormDB.getStaffPin() : null;
+  document.getElementById('paStaffCurrent').textContent = staffPin ? '✅ Staff Access PIN is set' : '⚠️ No PIN set — staff login disabled';
+  ['paRaNew','paRaConfirm','paMonNew','paMonConfirm','paStaffNew','paStaffConfirm'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('paError').style.display = 'none';
   document.getElementById('portalModal').style.display = 'flex';
 }
@@ -728,22 +753,27 @@ function closePortalModal() { document.getElementById('portalModal').style.displ
 async function savePortalAccess() {
   const errEl = document.getElementById('paError');
   errEl.style.display = 'none';
-  const raNew   = document.getElementById('paRaNew').value.trim();
-  const raConf  = document.getElementById('paRaConfirm').value.trim();
-  const monNew  = document.getElementById('paMonNew').value.trim();
-  const monConf = document.getElementById('paMonConfirm').value.trim();
-  if (raNew  && raNew  !== raConf)  { errEl.textContent = 'RA Portal PINs do not match.';      errEl.style.display = 'block'; return; }
-  if (monNew && monNew !== monConf) { errEl.textContent = 'Monitor Portal PINs do not match.'; errEl.style.display = 'block'; return; }
+  const raNew     = document.getElementById('paRaNew').value.trim();
+  const raConf    = document.getElementById('paRaConfirm').value.trim();
+  const monNew    = document.getElementById('paMonNew').value.trim();
+  const monConf   = document.getElementById('paMonConfirm').value.trim();
+  const staffNew  = document.getElementById('paStaffNew').value.trim();
+  const staffConf = document.getElementById('paStaffConfirm').value.trim();
+  if (raNew    && raNew    !== raConf)    { errEl.textContent = 'RA Portal PINs do not match.';      errEl.style.display = 'block'; return; }
+  if (monNew   && monNew   !== monConf)   { errEl.textContent = 'Monitor Portal PINs do not match.'; errEl.style.display = 'block'; return; }
+  if (staffNew && staffNew !== staffConf) { errEl.textContent = 'Staff Access PINs do not match.';   errEl.style.display = 'block'; return; }
   const pins = DormDB.getPortalPins ? DormDB.getPortalPins() : { raPortalHash: '', monPortalHash: '' };
-  if (raNew)  pins.raPortalHash  = await DormDB.hashPwd(raNew);   // { hash, salt }
-  if (monNew) pins.monPortalHash = await DormDB.hashPwd(monNew); // { hash, salt }
+  if (raNew)    pins.raPortalHash  = await DormDB.hashPwd(raNew);
+  if (monNew)   pins.monPortalHash = await DormDB.hashPwd(monNew);
   DormDB.savePortalPins(pins);
+  if (staffNew) DormDB.saveStaffPin(await DormDB.hashPwd(staffNew));
   _toast('✅ Portal PINs saved');
   closePortalModal();
 }
 
 function removePortalPins() {
   if (DormDB.savePortalPins) DormDB.savePortalPins({ raPortalHash: '', monPortalHash: '' });
+  if (DormDB.saveStaffPin)  DormDB.saveStaffPin(null);
   _toast('🔓 All portal PINs removed');
   closePortalModal();
 }
@@ -1312,6 +1342,7 @@ async function _m365HandleRedirect() {
       // If redirect was triggered for portal auth, unlock the gate
       if (sessionStorage.getItem('dormAuthIntent') === 'portal') {
         sessionStorage.setItem('dormPortalM365', 'valid');
+        sessionStorage.setItem('dormPortalRole', 'admin');
         sessionStorage.removeItem('dormAuthIntent');
         document.getElementById('authOverlay').style.display = 'none';
         document.body.style.overflow = '';
@@ -1537,6 +1568,14 @@ async function _m365HandleRedirect() {
     <input type="password" id="paMonNew" placeholder="New Monitor Portal PIN"
       style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:6px">
     <input type="password" id="paMonConfirm" placeholder="Confirm Monitor Portal PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:8px">
+
+    <div style="font-size:.8rem;font-weight:700;color:#555;margin:10px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px">Staff Access PIN</div>
+    <div style="font-size:.74rem;color:#888;margin-bottom:6px">Staff with this PIN see only: Floor Plan, Room Inspection, Attendance, Incidents, Maintenance, RA/Monitor portals, and Reference docs. No data export or admin settings.</div>
+    <div id="paStaffCurrent" style="font-size:.75rem;color:#2e7d32;margin-bottom:6px"></div>
+    <input type="password" id="paStaffNew" placeholder="New Staff Access PIN"
+      style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:6px">
+    <input type="password" id="paStaffConfirm" placeholder="Confirm Staff Access PIN"
       style="width:100%;font-size:.85rem;padding:7px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box;margin-bottom:8px">
 
     <div id="paError" style="color:#c0392b;font-size:.78rem;margin-bottom:8px;display:none"></div>

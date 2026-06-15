@@ -68,6 +68,7 @@ const DormDB = (() => {
     PHOTOS_MIGRATED: 'dormPhotosInIDB',
     MAINTENANCE_IMPORTS: 'dormMaintenanceImports',
     PORTAL_PINS:         'dormPortalPins',
+    STAFF_PIN:           'dormStaffPin',
     LAST_ROSTER_PULL:    'dormLastRosterPull',
     MERGE_LOG:           'dormMergeLog',
   };
@@ -411,6 +412,8 @@ const DormDB = (() => {
     saveMergeLog:        (d)  => _w(K.MERGE_LOG, d),
     getPortalPins()           { return _r(K.PORTAL_PINS, { raPortalHash: '', monPortalHash: '' }); },
     savePortalPins:      (d)  => _w(K.PORTAL_PINS, d),
+    getStaffPin:         ()   => _r(K.STAFF_PIN, null),
+    saveStaffPin:        (h)  => h ? _w(K.STAFF_PIN, h) : _del(K.STAFF_PIN),
     getLastRosterPull:   ()   => _r(K.LAST_ROSTER_PULL, ''),
     saveLastRosterPull:  (ts) => _w(K.LAST_ROSTER_PULL, ts),
     getFloorPlan:        ()   => _r(K.FLOOR_PLAN, { bathroomPairs: [], soloPairs: [] }),
