@@ -48,30 +48,30 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-14)
+## File stats (2026-06-15)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,601 |
-| `dorm-db.js` | 676 |
-| `modules/room-reservations.html` | 2,150 |
-| `modules/student-profiles.html` | 1,245 |
-| `modules/floor-plan.html` | 513 |
-| `modules/utilities.html` | 687 |
-| `modules/reports.html` | 1,603 |
-| `modules/room-inspection.html` | 1,335 |
-| `modules/key-inventory.html` | 1,586 |
-| `modules/inventory.html` | 2,517 |
-| `modules/attendance.html` | 1,234 |
-| `modules/incidents.html` | 991 |
-| `modules/student-admin.html` | 1,013 |
-| `modules/dorm-workers.html` | 758 |
-| `modules/staff-scheduling.html` | 1,280 |
-| `modules/plant-requests.html` | 720 |
-| `modules/ra-portal.html` | 603 |
-| `modules/monitor-portal.html` | 569 |
-| `modules/userguide.html` | 2,545 |
-| `modules/handbook.html` | 1,874 |
+| `index.html` | 1,691 |
+| `dorm-db.js` | 679 |
+| `modules/room-reservations.html` | 2,151 |
+| `modules/student-profiles.html` | 1,246 |
+| `modules/floor-plan.html` | 514 |
+| `modules/utilities.html` | 688 |
+| `modules/reports.html` | 1,604 |
+| `modules/room-inspection.html` | 1,358 |
+| `modules/key-inventory.html` | 1,587 |
+| `modules/inventory.html` | 2,518 |
+| `modules/attendance.html` | 1,235 |
+| `modules/incidents.html` | 993 |
+| `modules/student-admin.html` | 1,014 |
+| `modules/dorm-workers.html` | 759 |
+| `modules/staff-scheduling.html` | 1,281 |
+| `modules/plant-requests.html` | 721 |
+| `modules/ra-portal.html` | 604 |
+| `modules/monitor-portal.html` | 570 |
+| `modules/userguide.html` | 2,546 |
+| `modules/handbook.html` | 1,875 |
 
 ---
 
