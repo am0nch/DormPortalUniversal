@@ -1041,6 +1041,135 @@ function closeMergeModal() {
   _pendingMergeDump = null;
 }
 
+// ── Archive ───────────────────────────────────────────────────────────────────
+function openArchiveModal() {
+  const semCfg  = DormDB.getSemesterCfg();
+  const current = DormDB.getCurrentSemester();
+  const list    = (semCfg.list || []).filter(s => s.label !== current);
+  document.getElementById('arcSemList').innerHTML = list.length
+    ? list.map(s => `<label class="arc-sem-row"><input type="checkbox" class="arc-sem-cb" value="${escapeHtml(s.label)}" onchange="loadArchivePreview()">${escapeHtml(s.label)}</label>`).join('')
+    : '<p style="color:#888;font-size:.85rem;margin:4px 0">No archivable semesters. Add past semesters in Settings → Semesters.</p>';
+  document.getElementById('arcPreviewTable').innerHTML = '';
+  document.getElementById('arcRunBtn').disabled = true;
+  document.getElementById('arcRunBtn').style.opacity = '.5';
+  document.getElementById('archiveModal').style.display = 'flex';
+}
+
+function closeArchiveModal() { document.getElementById('archiveModal').style.display = 'none'; }
+
+function loadArchivePreview() {
+  const checked = [...document.querySelectorAll('.arc-sem-cb:checked')].map(c => c.value);
+  const runBtn  = document.getElementById('arcRunBtn');
+  if (!checked.length) {
+    document.getElementById('arcPreviewTable').innerHTML = '';
+    runBtn.disabled = true; runBtn.style.opacity = '.5';
+    return;
+  }
+  const semCfg = DormDB.getSemesterCfg();
+  const KEYS   = [
+    { key: DormDB.KEYS.INSPECTIONS, label: 'Inspections',      getter: () => DormDB.getInspections(), semField: 'semester'      },
+    { key: DormDB.KEYS.INV_AUDITS,  label: 'Inventory Audits', getter: () => DormDB.getInvAudits(),   semField: null            },
+    { key: DormDB.KEYS.HISTORY,     label: 'History',          getter: () => DormDB.getHistory(),     semField: 'semester'      },
+    { key: DormDB.KEYS.INCIDENTS,   label: 'Incidents',        getter: () => DormDB.getIncidents(),   semField: 'semesterLabel' },
+  ];
+  let rows = ''; let grandTotal = 0;
+  for (const semLabel of checked) {
+    const semDef = (semCfg.list || []).find(s => s.label === semLabel);
+    let cols = ''; let rowTotal = 0;
+    for (const kd of KEYS) {
+      const live = kd.getter();
+      const count = kd.semField
+        ? live.filter(r => r[kd.semField] === semLabel).length
+        : (semDef ? live.filter(r => r.date >= semDef.startDate && r.date <= semDef.endDate).length : 0);
+      cols += `<td>${count}</td>`; rowTotal += count;
+    }
+    grandTotal += rowTotal;
+    rows += `<tr><td>${escapeHtml(semLabel)}</td>${cols}<td style="font-weight:600">${rowTotal}</td></tr>`;
+  }
+  document.getElementById('arcPreviewTable').innerHTML = rows
+    ? `<table class="arc-preview-tbl"><thead><tr><th>Semester</th><th>Inspections</th><th>Inv. Audits</th><th>History</th><th>Incidents</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>`
+    : '<p style="color:#888;font-size:.82rem;margin-top:8px">No matching records found for selected semesters.</p>';
+  runBtn.disabled = grandTotal === 0;
+  runBtn.style.opacity = grandTotal === 0 ? '.5' : '1';
+}
+
+async function runArchive() {
+  const checked = [...document.querySelectorAll('.arc-sem-cb:checked')].map(c => c.value);
+  if (!checked.length) return;
+  const btn = document.getElementById('arcRunBtn');
+  btn.disabled = true; btn.textContent = 'Archiving…';
+  let totalMoved = 0;
+  const jsonPayload = { exportedAt: new Date().toISOString(), semesters: {} };
+  for (const semLabel of checked) {
+    const counts = await DormDB.archiveSemester(semLabel);
+    const semTotal = Object.values(counts).reduce((a, b) => a + b, 0);
+    totalMoved += semTotal;
+    if (semTotal > 0) {
+      jsonPayload.semesters[semLabel] = {};
+      for (const [key, count] of Object.entries(counts)) {
+        if (count > 0) jsonPayload.semesters[semLabel][key] = await DormDB.getArchiveRecords(key, semLabel);
+      }
+    }
+  }
+  const slug  = checked.join('_').replace(/[^a-z0-9]/gi, '-').slice(0, 50);
+  const fname = `dorm-archive-${slug}-${new Date().toISOString().slice(0, 10)}.json`;
+  const blob  = new Blob([JSON.stringify(jsonPayload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  closeArchiveModal();
+  _toast(`✅ Archived ${totalMoved} records from ${checked.length} semester(s) — JSON downloaded`);
+  btn.disabled = false; btn.textContent = 'Archive & Download JSON';
+}
+
+async function openArchiveViewer() {
+  await renderArchiveViewer();
+  document.getElementById('archiveViewerModal').style.display = 'flex';
+}
+
+function closeArchiveViewer() { document.getElementById('archiveViewerModal').style.display = 'none'; }
+
+async function renderArchiveViewer() {
+  const entries = await DormDB.getArchivedSemesters();
+  const el = document.getElementById('arcViewerList');
+  if (!entries.length) { el.innerHTML = '<p style="color:#888;font-size:.85rem;padding:12px 0">No archived data found.</p>'; return; }
+  const KEY_LABELS = {
+    [DormDB.KEYS.INSPECTIONS]: 'Inspections',
+    [DormDB.KEYS.INV_AUDITS]:  'Inventory Audits',
+    [DormDB.KEYS.HISTORY]:     'History',
+    [DormDB.KEYS.INCIDENTS]:   'Incidents',
+  };
+  const bySem = {};
+  for (const e of entries) { if (!bySem[e.semLabel]) bySem[e.semLabel] = []; bySem[e.semLabel].push(e); }
+  el.innerHTML = Object.entries(bySem).map(([sem, group]) =>
+    `<div class="arc-sem-block">
+      <div class="arc-sem-header">${escapeHtml(sem)}</div>
+      <table class="arc-entry-tbl"><tbody>
+        ${group.map(e => `<tr>
+          <td>${escapeHtml(KEY_LABELS[e.dormKey] || e.dormKey)}</td>
+          <td style="text-align:center;color:#555">${e.count} records</td>
+          <td style="color:#888;font-size:.76rem">${new Date(e.archivedAt).toLocaleDateString()}</td>
+          <td style="text-align:right"><button class="btn-export" style="font-size:.76rem;padding:3px 10px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7"
+            onclick="confirmRestoreArchive(${JSON.stringify(e.dormKey)},${JSON.stringify(e.semLabel)},${e.count})">↩ Restore</button></td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>`
+  ).join('');
+}
+
+async function confirmRestoreArchive(dormKey, semLabel, count) {
+  const KEY_LABELS = {
+    [DormDB.KEYS.INSPECTIONS]: 'inspection',
+    [DormDB.KEYS.INV_AUDITS]:  'inventory audit',
+    [DormDB.KEYS.HISTORY]:     'history',
+    [DormDB.KEYS.INCIDENTS]:   'incident',
+  };
+  const label = KEY_LABELS[dormKey] || dormKey;
+  if (!confirm(`Restore ${count} ${label} record(s) from "${semLabel}" into live data?`)) return;
+  const restored = await DormDB.restoreArchive(dormKey, semLabel);
+  _toast(`✅ ${restored} ${label} record(s) restored from ${semLabel}`);
+  await renderArchiveViewer();
+}
+
 async function confirmMerge() {
   const dump = _pendingMergeDump;
   closeMergeModal();
