@@ -544,16 +544,40 @@ function _showAuthOverlay({ m365Only }) {
 async function submitAuth() {
   const pin = (document.getElementById('authPin').value || '').trim();
   if (!pin) return;
+  const errEl = document.getElementById('authError');
+  // Brute-force lockout: 5 consecutive failures → 30-second cooldown
+  const lockUntil = parseInt(sessionStorage.getItem('_dormAuthLock') || '0');
+  if (Date.now() < lockUntil) {
+    const secs = Math.ceil((lockUntil - Date.now()) / 1000);
+    errEl.textContent = `Too many attempts. Try again in ${secs}s.`;
+    errEl.style.display = 'block';
+    return;
+  }
   const btn = document.getElementById('authBtn');
   btn.disabled = true; btn.textContent = 'Checking…';
   const ok = await DormDB.verifyPwd(pin);
   if (ok) {
+    sessionStorage.removeItem('_dormAuthFails');
+    sessionStorage.removeItem('_dormAuthLock');
+    // Auto-upgrade legacy fixed-salt hash to random-salt PBKDF2 on next successful login
+    if (typeof DormDB.getPwdHash() === 'string') {
+      DormDB.savePwdHash(await DormDB.hashPwd(pin));
+    }
     sessionStorage.setItem('dormPortalSession', DormDB.getPwdHashStr());
     document.getElementById('authOverlay').style.display = 'none';
     document.body.style.overflow = '';
     _initAfterAuth();
   } else {
-    document.getElementById('authError').style.display = 'block';
+    const fails = (parseInt(sessionStorage.getItem('_dormAuthFails') || '0')) + 1;
+    sessionStorage.setItem('_dormAuthFails', fails);
+    if (fails >= 5) {
+      sessionStorage.setItem('_dormAuthLock', Date.now() + 30000);
+      sessionStorage.removeItem('_dormAuthFails');
+      errEl.textContent = 'Too many failed attempts. Locked for 30 seconds.';
+    } else {
+      errEl.textContent = 'Incorrect password — try again.';
+    }
+    errEl.style.display = 'block';
     document.getElementById('authPin').value = '';
     btn.disabled = false; btn.textContent = '🔓 Unlock';
     document.getElementById('authPin').addEventListener('keydown', e => {
