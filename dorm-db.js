@@ -134,6 +134,44 @@ const DormDB = (() => {
     });
   }
 
+  // ── Archive IDB helpers (dormkv_archive store) ────────────────────────────
+  function _arcGet(dormKey, semLabel) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(IDB_KV_ARC, 'readonly').objectStore(IDB_KV_ARC).get(`${dormKey}__${semLabel}`);
+      req.onsuccess = () => res(req.result || null);
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
+  function _arcSet(dormKey, semLabel, entry) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(IDB_KV_ARC, 'readwrite').objectStore(IDB_KV_ARC).put(entry, `${dormKey}__${semLabel}`);
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
+  function _arcDel(dormKey, semLabel) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(IDB_KV_ARC, 'readwrite').objectStore(IDB_KV_ARC).delete(`${dormKey}__${semLabel}`);
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
+  function _arcReadAll() {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const result = [];
+      const req = db.transaction(IDB_KV_ARC, 'readonly').objectStore(IDB_KV_ARC).openCursor();
+      req.onsuccess = e => {
+        const cur = e.target.result;
+        if (cur) { result.push(cur.value); cur.continue(); }
+        else res(result);
+      };
+      req.onerror = () => rej(req.error);
+    }));
+  }
+
   // ── Generic read / write (synchronous via cache) ──────────────────────────
   function _r(key, def) {
     return key in _cache ? _cache[key] : def;
@@ -159,6 +197,14 @@ const DormDB = (() => {
   const _DELETED = '__DORMDB_DELETED__'; // sentinel for deletions
   let _channel = null;
   const _subs = {};
+
+  // Semester field mapping for archivable keys
+  const ARCHIVE_SEM_FIELD = {
+    [K.INSPECTIONS]: { type: 'field',     field: 'semester'      },
+    [K.INCIDENTS]:   { type: 'field',     field: 'semesterLabel' },
+    [K.HISTORY]:     { type: 'field',     field: 'semester'      },
+    [K.INV_AUDITS]:  { type: 'dateRange', field: 'date'          },
+  };
 
   try { _channel = new BroadcastChannel('dorm-sync'); } catch(e) { /* private/unsupported */ }
 
