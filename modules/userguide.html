@@ -325,6 +325,67 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       </div>
     </div>
 
+    <div class="subsection" id="sub-archive">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Archive Old Semesters</div>
+      <div class="collapse-body">
+        <p>At the end of each semester, use the archive system to move historical records out of the live database. This keeps page-load fast as the dorm accumulates years of data — without deleting anything.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📦 What gets archived</h4>
+            <p>Four record types can be archived per semester: <strong>Inspections</strong>, <strong>Inventory Audits</strong>, <strong>Room History</strong>, and <strong>Incidents</strong>. Student profiles, room reservations, and all other live data are never touched.</p>
+          </div>
+          <div class="info-card">
+            <h4>🖼️ What happens to photos</h4>
+            <p>Inspection photos are stored separately in the browser's IndexedDB and are <strong>never moved or deleted</strong> during archiving. Archived inspections still display their full photos in-app via the same viewer.</p>
+          </div>
+        </div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Archiving a semester</h4>
+        <ol class="steps">
+          <li>Click <strong>🗄️ Archive Data</strong> in the menu footer. The archive modal opens.</li>
+          <li>Check one or more <strong>past semesters</strong> from the list. (The current semester is always excluded.)</li>
+          <li>A preview table appears showing how many records will be moved per data type. Review it before proceeding.</li>
+          <li>Click <strong>Archive &amp; Download JSON</strong>. Two things happen simultaneously:
+            <ul>
+              <li>Records are moved into a private archive store inside the browser — they are removed from live data and no longer loaded at startup.</li>
+              <li>A <code>dorm-archive-[semester]-[date].json</code> file downloads automatically as a safety backup (records only — no photos).</li>
+            </ul>
+          </li>
+          <li>A success toast confirms how many records were archived. The live data is immediately shorter.</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span><strong>Tip:</strong> Save the downloaded JSON file alongside your regular backups. If the browser's IndexedDB is ever cleared, this JSON lets you restore archived records manually.</span></div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Viewing archived data</h4>
+        <ol class="steps">
+          <li>Click <strong>📦 View Archive</strong> in the menu footer.</li>
+          <li>The viewer shows all archived entries grouped by semester, with record counts and the date each batch was archived.</li>
+          <li>Use the viewer to confirm what was archived and when — no data modification happens here unless you click Restore.</li>
+        </ol>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Restoring archived data</h4>
+        <ol class="steps">
+          <li>Open <strong>📦 View Archive</strong>.</li>
+          <li>Find the semester and data type you want to restore. Click <strong>↩ Restore</strong>.</li>
+          <li>Confirm the prompt — e.g. "Restore 320 inspection records from 1st Semester 2022 into live data?"</li>
+          <li>Records are merged back into the live database. Duplicates are automatically skipped (matched by record ID). A toast confirms how many records were restored.</li>
+          <li>The archive entry is removed once restored — it is no longer shown in the viewer.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Restore merges — it does not overwrite. If you have already added new data for the same semester (e.g. new inspections), both sets coexist safely after restore.</span></div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Archive vs. Export — when to use each</h4>
+        <table class="guide-table">
+          <thead><tr><th>Need</th><th>Use</th></tr></thead>
+          <tbody>
+            <tr><td>Keep live data lean after semester ends</td><td>🗄️ Archive Data</td></tr>
+            <tr><td>View or restore old semester records in-app</td><td>📦 View Archive</td></tr>
+            <tr><td>Full off-device backup including photos</td><td>💾 Export All Data</td></tr>
+            <tr><td>Move data to a new browser or computer</td><td>💾 Export All Data + 📂 Restore Backup</td></tr>
+          </tbody>
+        </table>
+        <div class="danger"><span class="danger-icon">⚠️</span><span><strong>Before clearing browser data:</strong> Run <strong>💾 Export All Data</strong> first. Clearing the browser deletes <em>both</em> the live database and the archive store. The downloaded archive JSON files and export backup are the only copies that survive.</span></div>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-modules-overview">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Available Modules</div>
       <div class="collapse-body">
@@ -1986,6 +2047,23 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       </div>
     </div>
 
+    <div class="subsection" id="sub-ver-v42">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.2 — Archive System &amp; Data Quality (June 2026)</div>
+      <div class="collapse-body">
+        <p>v4.2 addresses long-term data accumulation and cross-tab reliability. Key additions: a two-tier semester archive system, canvas photo compression for room inspections, and cross-tab subscription fixes across four modules.</p>
+        <table class="guide-table">
+          <thead><tr><th>Feature</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>🗄️ Semester Archive (Tier 1)</strong></td><td>Inspections, Inventory Audits, Room History, and Incidents can be archived by semester into a private IDB store. Records leave the live startup cache but remain fully accessible in-app. Photos are unaffected.</td></tr>
+            <tr><td><strong>📥 Archive JSON backup (Tier 2)</strong></td><td>Every archive operation auto-downloads a <code>.json</code> safety file with all archived records (no photos). Protects against browser-cache clearing wiping the IDB archive.</td></tr>
+            <tr><td><strong>↩ Restore</strong></td><td>Archived records can be merged back into live data at any time via the 📦 View Archive modal. Restore is deduped — re-importing the same records is safe.</td></tr>
+            <tr><td><strong>📷 Photo compression</strong></td><td>Room inspection photos are now compressed to ~100–150 KB (from 2–8 MB raw) using canvas resize to 1024 px / JPEG q=0.75 before saving. Existing photos are unaffected.</td></tr>
+            <tr><td><strong>🔄 Cross-tab sync fixes</strong></td><td>Four modules now subscribe to shared data keys so their UI refreshes when another browser tab writes: RA Portal and Monitor Portal (workers list), Room Reservations (profiles + inspections), Maintenance (config changes).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-ver-v41">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.1 — Behavioral &amp; Staff Modules (June 2026)</div>
       <div class="collapse-body">
@@ -2223,6 +2301,7 @@ const TOC = [
       { id:'sub-overview',         text:'System Overview' },
       { id:'sub-first-launch',     text:'First Launch' },
       { id:'sub-backup',           text:'Backup & Restore' },
+      { id:'sub-archive',          text:'Archive Old Semesters' },
       { id:'sub-modules-overview', text:'Available Modules' },
     ]},
   ]},
@@ -2352,6 +2431,7 @@ const TOC = [
       { id:'sub-about-updates',   text:'Requesting Future Updates' },
     ]},
     { id:'sec-version', text:'📋 Version History', subs:[
+      { id:'sub-ver-v42', text:'v4.2 — Archive System & Data Quality' },
       { id:'sub-ver-v4',  text:'v4.0 — Multi-Module System' },
       { id:'sub-ver-v41', text:'v4.1 — Behavioral & Staff Modules' },
       { id:'sub-ver-v3',  text:'Earlier Versions' },
