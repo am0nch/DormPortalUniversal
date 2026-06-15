@@ -142,6 +142,39 @@ body{background:#f0f4f8;min-height:100vh}
     <button class="btn-export" onclick="openM365Modal()">☁️ Cloud Sync</button>
     <button class="btn-export" id="syncBackupsBtn" onclick="openSyncModal()" style="display:none">☁️ Sync Backups</button>
     <button class="btn-export" onclick="exportAll()">💾 Export All Data</button>
+    <button class="btn-export" onclick="openArchiveModal()">🗄️ Archive Data</button>
+    <button class="btn-export" onclick="openArchiveViewer()">📦 View Archive</button>
+  </div>
+</div>
+
+<!-- Archive Modal -->
+<div id="archiveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px 32px;max-width:560px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <strong style="font-size:1rem">🗄️ Archive Old Semesters</strong>
+      <button onclick="closeArchiveModal()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#666">✕</button>
+    </div>
+    <p style="font-size:.82rem;color:#555;margin:0 0 14px">Select semesters to archive. Records move out of the live database and a JSON backup downloads automatically. Photos remain accessible in-app.</p>
+    <div id="arcSemList" style="max-height:160px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;padding:8px 12px;margin-bottom:12px"></div>
+    <div id="arcPreviewTable"></div>
+    <div style="margin-top:18px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeArchiveModal()" class="btn-export" style="background:#eee;color:#333">Cancel</button>
+      <button id="arcRunBtn" onclick="runArchive()" class="btn-export" disabled style="opacity:.5">Archive &amp; Download JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive Viewer Modal -->
+<div id="archiveViewerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px 32px;max-width:600px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <strong style="font-size:1rem">📦 Archive Viewer</strong>
+      <button onclick="closeArchiveViewer()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#666">✕</button>
+    </div>
+    <div id="arcViewerList"></div>
+    <div style="margin-top:18px;text-align:right">
+      <button onclick="closeArchiveViewer()" class="btn-export" style="background:#eee;color:#333">Close</button>
+    </div>
   </div>
 </div>
 
