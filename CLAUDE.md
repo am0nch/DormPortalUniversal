@@ -70,7 +70,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/plant-requests.html` | 722 |
 | `modules/ra-portal.html` | 605 |
 | `modules/monitor-portal.html` | 571 |
-| `modules/userguide.html` | 2,546 |
+| `modules/userguide.html` | 2,626 |
 | `modules/handbook.html` | 1,875 |
 
 ---
@@ -142,7 +142,7 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab, archive restore flow (scanner/audit/slot/master docs done; these 4 remain)
+- [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab (scanner/audit/slot/master/archive docs done; these 3 remain)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
 - [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v9)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
