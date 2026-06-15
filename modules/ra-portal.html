@@ -211,6 +211,7 @@ let _rpLockedUntil = 0;
 
 async function rpInit() {
   await DormDB.ready;
+  DormDB.on(DormDB.KEYS.WORKERS, () => { applyIdentity(null, DormDB.getWorkers()); });
   await _rpHandleRedirect();
 
   // M365 gate: if M365 is configured and enabled, require sign-in before loading portal
