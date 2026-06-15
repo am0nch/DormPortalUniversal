@@ -975,16 +975,36 @@ function pushMaintenanceStubs(room,sideA,sideB,shared,bathCond,inspectionId){
 }
 
 // ══ Photo capture & viewer ═════════════════════════════════════════════════
-function onItemPhotoChange(input,slotKey){
+function _compressImage(file, maxDim = 1024, quality = 0.75) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width  * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+async function onItemPhotoChange(input,slotKey){
   const file=input.files[0];if(!file)return;
-  _pendingPhotos[slotKey]=file;
+  const compressed=await _compressImage(file);
+  _pendingPhotos[slotKey]=compressed;
   const lbl=input.closest('label');
   let preview=lbl.querySelector('.ph-preview');
   if(!preview){preview=document.createElement('img');preview.className='ph-preview';lbl.appendChild(preview);}
   const span=lbl.querySelector('.ph-icon');if(span)span.style.display='none';
   const reader=new FileReader();
   reader.onload=e=>{preview.src=e.target.result;};
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(compressed);
 }
 
 async function openPhotoViewer(id){
