@@ -31,6 +31,50 @@
 
 ---
 
+### BF-023 — INSP_TO_INV `fan` keyword had leading space
+**Date:** 2026-06-15 · **Severity:** Low · **File:** `modules/room-inspection.html`
+
+**Symptom:** Fan inventory items named "Fan" or "Table Fan" were never matched during inspection→inventory condition sync because the keyword `' fan'` (leading space) failed `.includes()` matching unless the name contained " fan" as a substring.
+
+**Root cause:** `INSP_TO_INV.fan` was `['ceiling fan',' fan']`. The space-prefixed keyword is both unreliable (misses "Fan") and redundant (`'ceiling fan'` already covers ceiling fans).
+
+**Fix:** Changed `' fan'` to `'fan'`.
+
+---
+
+### BF-022 — `pushMaintenanceStubs` created duplicates and lacked traceability
+**Date:** 2026-06-15 · **Severity:** High · **File:** `modules/room-inspection.html`
+
+**Symptom:** Re-saving a move-out inspection for a room with damaged items accumulated duplicate open maintenance stubs. No way to trace which inspection created which stub.
+
+**Root cause:** `pushMaintenanceStubs` pushed new stubs without checking for existing open stubs for the same `room + item`. Stubs had `linkedInspection: true` but no `inspectionId` field.
+
+**Fix:** Added deduplication guard in `addStub`: skip if `maint.some(m => m.room===room && m.item===label && m.status==='Open')`. Added `inspectionId` parameter (pre-generated `recId`) to each stub. Pre-generate `recId = Date.now()` before the `if(type==='move-out')` block so it's available to both `pushMaintenanceStubs` and `rec.id`.
+
+---
+
+### BF-021 — Inspection sync didn't reset `maintenancePushed` on re-flag
+**Date:** 2026-06-15 · **Severity:** High · **File:** `modules/room-inspection.html`
+
+**Symptom:** An inventory item that had been pushed to maintenance (`maintenancePushed: true`) and then found damaged again in a new inspection remained "Pushed" in the dashboard. The new defect was invisible to the maintenance count on the menu.
+
+**Root cause:** `_syncInventoryConditions` set `maintenanceFlag: true` but did not reset `maintenancePushed: false`. The dashboard filter `i.maintenanceFlag && !i.maintenancePushed` then excluded the item.
+
+**Fix:** Added `maintenancePushed: false` to the spread when condition is `Poor` or `Missing`.
+
+---
+
+### BF-020 — Inventory condition sync applied to all items regardless of side
+**Date:** 2026-06-15 · **Severity:** High · **File:** `modules/room-inspection.html`
+
+**Symptom:** When saving an inspection for a room with Side A/B inventory items, the sideB checklist conditions overwrote the sideA conditions on matching inventory items. A damaged sideA mattress would show as Good if sideB's mattress was Good.
+
+**Root cause:** `_syncInventoryConditions` merged sideA, sideB, and shared into a flat `allItems` array, then applied each condition to all matching inventory items in the room without filtering by `item.side`. The last group's update (sideB) silently won over sideA's.
+
+**Fix:** Replaced flat merge with a `groups` array `[{entries, allowedSides}]`. sideA entries only update items where `item.side === 'A'` or `''`; sideB entries where `item.side === 'B'` or `''`; shared entries where `item.side === ''`.
+
+---
+
 ### BF-019 — Dorm selector not re-synced after backup restore
 **Date:** 2026-06-02 · **Severity:** High · **File:** `index.html`
 
