@@ -381,6 +381,7 @@ let _mpLockedUntil = 0;
 // ── Identity ──────────────────────────────────────────────────────────────
 async function mpInit() {
   await DormDB.ready;
+  DormDB.on(DormDB.KEYS.WORKERS, () => { applyIdentity(null, DormDB.getWorkers()); });
   await _mpHandleRedirect();
 
   // M365 gate: if M365 is configured and enabled, require sign-in before loading portal
