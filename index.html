@@ -444,7 +444,8 @@ async function restoreAll(input) {
   catch { return alert('Invalid backup file — could not parse JSON.'); }
   if (!confirm('This will overwrite ALL current data with the backup.\n\nAre you sure?')) return;
   await DormDB.importAll(dump);
-  sessionStorage.removeItem('dormPortalSession'); // invalidate session — restored pwd hash may differ
+  sessionStorage.removeItem('dormPortalSession');    // invalidate session — restored pwd hash may differ
+  sessionStorage.removeItem('dormPortalSessionSig');
   refreshStats();
   updateHeader();
   // Re-sync dorm selector dropdown to the restored value
@@ -498,6 +499,27 @@ async function exportAll() {
 
 // ── Admin password gate ───────────────────────────────────────────────────
 
+// Compute HMAC-SHA256(token + '|' + role, pwdHash) — used to bind the
+// session token and role together so neither can be tampered independently.
+async function _computeSessionSig(token, role, pwdHashHex) {
+  const keyBytes = new Uint8Array(pwdHashHex.match(/.{2}/g).map(b => parseInt(b, 16)));
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(token + '|' + role));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Generate a random session token, sign it with the current pwd hash, and
+// store all three values atomically in sessionStorage.
+async function _setSession(role) {
+  const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
+  if (!hashStr) return;
+  const token = crypto.randomUUID();
+  const sig   = await _computeSessionSig(token, role, hashStr);
+  sessionStorage.setItem('dormPortalSession',    token);
+  sessionStorage.setItem('dormPortalSessionSig', sig);
+  sessionStorage.setItem('dormPortalRole',        role);
+}
+
 async function checkAuth() {
   // M365 session always wins
   if (sessionStorage.getItem('dormPortalM365') === 'valid') return true;
@@ -516,8 +538,14 @@ async function checkAuth() {
     return false;
   }
 
-  // Password set, valid session → pass
-  if (sessionStorage.getItem('dormPortalSession') === hashStr) return true;
+  // Password set, valid session → verify HMAC to prevent session forgery from IDB
+  const token = sessionStorage.getItem('dormPortalSession');
+  const sig   = sessionStorage.getItem('dormPortalSessionSig');
+  const role  = sessionStorage.getItem('dormPortalRole') || 'admin';
+  if (token && sig) {
+    const expected = await _computeSessionSig(token, role, hashStr);
+    if (expected === sig) return true;
+  }
 
   // Password set → show full gate (M365 button + PIN input)
   _showAuthOverlay({ m365Only: false });
@@ -573,8 +601,7 @@ async function submitAuth() {
   if (role) {
     sessionStorage.removeItem('_dormAuthFails');
     sessionStorage.removeItem('_dormAuthLock');
-    sessionStorage.setItem('dormPortalRole', role);
-    sessionStorage.setItem('dormPortalSession', DormDB.getPwdHashStr());
+    await _setSession(role);
     document.getElementById('authOverlay').style.display = 'none';
     document.body.style.overflow = '';
     _initAfterAuth();
@@ -718,7 +745,7 @@ async function savePwd() {
   if (newPwd) {
     const { hash, salt } = await DormDB.hashPwd(newPwd);
     DormDB.savePwdHash({ hash, salt });
-    sessionStorage.setItem('dormPortalSession', hash);
+    await _setSession('admin');
     _toast('✅ Admin password saved');
   }
   closePwdModal();
@@ -733,6 +760,7 @@ async function removePwd() {
   if (!ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
   DormDB.savePwdHash(null);
   sessionStorage.removeItem('dormPortalSession');
+  sessionStorage.removeItem('dormPortalSessionSig');
   _toast('🔓 Admin password removed — portal is now open access');
   closePwdModal();
 }
