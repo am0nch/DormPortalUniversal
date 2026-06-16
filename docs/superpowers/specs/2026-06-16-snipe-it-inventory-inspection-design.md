@@ -274,6 +274,52 @@ await DormDB.saveAsset(asset)
 
 ---
 
+## Room Number Normalization
+
+### Problem
+
+AC status is currently encoded in the room number string (`302AC`, `302 AC`, `302`). This causes three bugs:
+
+1. `isAcRoom()` in inventory, inspection, floor-plan, and utilities each independently check `room.includes('AC')` — string detection, not a data lookup.
+2. `dormInventoryAssets.location` could silently store `'302AC'` or `'302'` for the same physical room, making IDB index queries unreliable.
+3. `room-reservations.html`'s room generator already has an `s.ac` boolean on every slot (the AC column checkbox at line 1025–1026) — but it's never used by inventory or inspection.
+
+### Fix: canonical room IDs + `isAcRoom()` lookup
+
+**Canonical form:** room numbers stored without suffix — always `'302'`, never `'302AC'` or `'302 AC'`.
+
+**Helper added to `dorm-db.js`** (used by all callers):
+
+```js
+// Strip AC suffix for a canonical room id
+DormDB.normalizeRoomId = (room) => room ? room.replace(/\s*AC$/i, '').trim() : '';
+```
+
+**`isAcRoom()` replaced** — reads the `ac` boolean from `dormData` instead of string-matching:
+
+```js
+// In dorm-db.js — replaces per-module isAcRoom/isAC helpers
+DormDB.isAcRoom = (room) => {
+  const norm = DormDB.normalizeRoomId(room);
+  return DormDB.getRooms().some(s => DormDB.normalizeRoomId(s.room) === norm && s.ac === true);
+};
+```
+
+All per-module `isAcRoom` / `isAC` functions in `inventory.html`, `room-inspection.html`, `floor-plan.html`, and `utilities.html` are removed and replaced with `DormDB.isAcRoom(room)`.
+
+### Impact on this implementation
+
+- `dormInventoryAssets.location` always stores the normalized room id (`'302'`).
+- `getAssetsByRoom(room)` normalizes its argument before querying the IDB index.
+- Template pre-population (`acRoomOnly` filter) calls `DormDB.isAcRoom(room)` — no string suffix checks.
+- `room-inspection.html`'s `_isAC` local variable (line 574) replaced by `await DormDB.isAcRoom(room)`.
+
+### Scope boundary
+
+This spec only changes the four files listed above. Fixing the room-list generator in `room-reservations.html` (which produces mixed-format strings at line 836–838) is a separate task — it does not block this implementation because `normalizeRoomId()` handles the stripping at read time.
+
+---
+
 ## Cross-module dependency map additions
 
 | DormDB key / store | Written by | Read by |
@@ -306,7 +352,9 @@ Dean clicks Save Inspection
 
 | File | Type of change |
 |---|---|
-| `dorm-db.js` | IDB v4 upgrade, 2 new stores, 8 new async methods, getMenuStats update, exportAll/importAll update |
-| `modules/inventory.html` | Models tab (new), Items tab upgrades, Dashboard additions, Settings cleanup, all queries → async IDB |
-| `modules/room-inspection.html` | Remove SIDE_ITEMS/SHARED_ITEMS, live asset query, move-in/move-out write-back |
+| `dorm-db.js` | IDB v4 upgrade, 2 new stores, 8 new async methods, `normalizeRoomId`, `isAcRoom` lookup, `_cachedStats`, getMenuStats update, exportAll/importAll update |
+| `modules/inventory.html` | Models tab (new), Items tab upgrades, Dashboard additions, Settings cleanup, all queries → async IDB, `isAcRoom` → `DormDB.isAcRoom` |
+| `modules/room-inspection.html` | Remove SIDE_ITEMS/SHARED_ITEMS, live asset query, move-in/move-out write-back, `_isAC` → `DormDB.isAcRoom` |
+| `modules/floor-plan.html` | `isAC` string check → `DormDB.isAcRoom` |
+| `modules/utilities.html` | `isAC` string check → `DormDB.isAcRoom` |
 | `sw.js` | Cache version bump after deploy |
