@@ -353,6 +353,9 @@ table.h-tbl tr:hover td{background:#f7fafc}
     <span class="close-btn" onclick="closeItemModal()">&times;</span>
     <h2 id="itemModalTitle">Add Item</h2>
     <input type="hidden" id="im_id">
+    <div class="fg"><label>Model (optional)</label>
+      <select id="im_model"><option value="">— No model —</option></select>
+    </div>
     <div class="fg-row">
       <div class="fg" style="flex:2">
         <label>Item Name *</label>
@@ -751,6 +754,13 @@ function generateId() {
 }
 // Single source of truth for condition colours — used by badges, audit log bar, print form, scan result
 const COND_COLOR = { Good:'#155724', Fair:'#856404', Poor:'#721c24', Damaged:'#7d3c00', Missing:'#6a1b9a' };
+const STATUS_BADGE = {
+  'available':       '<span class="badge" style="background:#d4edda;color:#155724">Available</span>',
+  'checked-out':     '<span class="badge" style="background:#cce5ff;color:#004085">Checked Out</span>',
+  'in-maintenance':  '<span class="badge" style="background:#fff3cd;color:#856404">In Maintenance</span>',
+  'retired':         '<span class="badge" style="background:#e2e3e5;color:#383d41">Retired</span>',
+};
+function statusBadge(s) { return STATUS_BADGE[s] || STATUS_BADGE['available']; }
 const COND_BG    = { Good:'#d4edda', Fair:'#fff3cd', Poor:'#f8d7da', Damaged:'#fde8d8', Missing:'#f3e5f5' };
 
 function condBadge(c) {
@@ -764,7 +774,7 @@ function sideChip(s) {
     : '<span style="color:#ccc;font-size:.7rem">Shared</span>';
 }
 function _isActive(id) { return document.getElementById(id)?.classList.contains('active'); }
-function isAcRoom(r) { return r && r.toUpperCase().includes('AC'); }
+function isAcRoom(r) { return DormDB.isAcRoom(r); }
 
 function getCategories() {
   const saved = DormDB.getInvCfg().categories;
@@ -797,7 +807,8 @@ function getLocLabel(locId) {
 }
 
 function getTemplate() {
-  const saved = DormDB.getInvTemplate ? DormDB.getInvTemplate() : [];
+  const cfg = DormDB.getInvCfg();
+  const saved = cfg && cfg.template;
   return (saved && saved.length) ? saved : DEFAULT_TEMPLATE;
 }
 
@@ -805,27 +816,33 @@ function emptyItem(location, locationType) {
   return {
     id: generateId(),
     name: '', category: 'Furniture',
-    location: location || '', locationType: locationType || 'room',
-    side: '',   // 'A' | 'B' | '' (shared/not applicable)
+    location: DormDB.normalizeRoomId(location || ''),
+    locationType: locationType || 'room',
+    side: '',
     description: '', serialNo: '', brand: '',
     isConsumable: false, qty: 1, reorderAt: 0,
     condition: 'Good',
     maintenanceFlag: false, maintenancePushed: false, maintenanceNotes: '',
     notes: '', addedAt: new Date().toISOString(),
     lastChecked: '', purchaseDate: '', purchasePrice: 0,
+    modelId:      '',
+    assetTag:     '',
+    statusLabel:  'available',
+    checkedOutTo: '',
+    checkoutLog:  [],
   };
 }
 
 // ── Tab switching ────────────────────────────────────────────────────────────
-function switchTab(name) {
+async function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  if (name === 'dashboard')   renderDashboard();
-  if (name === 'items')       { populateItemFilters(); renderItems(); }
-  if (name === 'location')    { populateLocPicker(); renderLocation(); }
-  if (name === 'labels')      { populateLabelsFilter(); renderLabels(); }
-  if (name === 'maintenance') renderMaintenance();
-  if (name === 'models')      renderModels();
+  if (name === 'dashboard')   await renderDashboard();
+  if (name === 'items')       { populateItemFilters(); await renderItems(); }
+  if (name === 'location')    { populateLocPicker(); await renderLocation(); }
+  if (name === 'labels')      { populateLabelsFilter(); await renderLabels(); }
+  if (name === 'maintenance') await renderMaintenance();
+  if (name === 'models')      await renderModels();
   if (name === 'settings')    renderSettings();
   if (name === 'bedding')    { populateBddSemFilter(); renderBeddingTab(); }
   if (name === 'auditlog')  renderAuditLog();
@@ -943,8 +960,8 @@ function getMissingItems(room, roomItems, template) {
   }, []);
 }
 
-function renderDashboard() {
-  const inv = DormDB.getInventory();
+async function renderDashboard() {
+  const inv = await DormDB.getAllAssets();
   const total   = inv.length;
   const good    = inv.filter(i => i.condition === 'Good').length;
   const fair    = inv.filter(i => i.condition === 'Fair').length;
@@ -1002,14 +1019,14 @@ function populateItemFilters() {
   locSel.value = pLoc; catSel.value = pCat;
 }
 
-function renderItems() {
+async function renderItems() {
   const search = (document.getElementById('itemSearch')?.value || '').toLowerCase().trim();
   const locF   = document.getElementById('itemLocFilter')?.value || '';
   const catF   = document.getElementById('itemCatFilter')?.value || '';
   const condF  = document.getElementById('itemCondFilter')?.value || '';
   const flagF  = document.getElementById('itemFlagFilter')?.value || '';
   const sideF  = document.getElementById('itemSideFilter')?.value || '';
-  let inv = DormDB.getInventory();
+  let inv = await DormDB.getAllAssets();
   if (search) inv = inv.filter(i => i.name.toLowerCase().includes(search) || i.id.toLowerCase().includes(search) || (i.serialNo||'').toLowerCase().includes(search) || (i.brand||'').toLowerCase().includes(search));
   if (locF)  inv = inv.filter(i => i.location === locF);
   if (catF)  inv = inv.filter(i => i.category === catF);
@@ -1025,7 +1042,7 @@ function renderItems() {
   }
   document.getElementById('itemsBody').innerHTML = `
     <table class="h-tbl">
-      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Location</th><th>Side</th><th>Condition</th><th>🔧</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Location</th><th>Side</th><th>Condition</th><th>Status</th><th>🔧</th><th>Actions</th></tr></thead>
       <tbody>${inv.map(i => `<tr>
         <td><span style="font-family:monospace;font-size:.68rem;color:#aaa">${escapeHtml(i.id)}</span></td>
         <td><strong>${escapeHtml(i.name)}</strong>${i.brand?`<br><span style="font-size:.7rem;color:#aaa">${escapeHtml(i.brand)}</span>`:''}</td>
@@ -1033,6 +1050,7 @@ function renderItems() {
         <td style="font-size:.78rem">${escapeHtml(getLocLabel(i.location))}</td>
         <td style="text-align:center">${sideChip(i.side)}</td>
         <td>${condBadge(i.condition)}</td>
+        <td>${statusBadge(i.statusLabel)}</td>
         <td style="text-align:center">${i.maintenanceFlag ? (i.maintenancePushed ? '<span style="font-size:.7rem;color:#888">📤</span>' : '<span style="font-size:.7rem;color:#e74c3c;font-weight:700">⚠</span>') : ''}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button> <button class="btn btn-sm btn-red" onclick="confirmRemove('${escapeHtml(i.id)}')">✕</button></td>
       </tr>`).join('')}</tbody>
@@ -1049,11 +1067,11 @@ function populateLocPicker() {
   if (cur) document.getElementById('locPicker').value = cur;
 }
 
-function renderLocation() {
+async function renderLocation() {
   const loc = document.getElementById('locPicker').value;
   const body = document.getElementById('locationBody');
   if (!loc) { body.innerHTML = ''; return; }
-  const inv = DormDB.getInventory().filter(i => i.location === loc);
+  const inv = (await DormDB.getAllAssets()).filter(i => i.location === loc);
   const locObj = getAllLocations().find(l => l.id === loc) || { label: loc, type: 'room' };
   const isRoom = locObj.type === 'room';
   let html = '';
@@ -1129,10 +1147,10 @@ function populateLabelsFilter() {
   if (cur) document.getElementById('labelLocFilter').value = cur;
 }
 
-function renderLabels() {
+async function renderLabels() {
   const search = (document.getElementById('labelSearch')?.value || '').toLowerCase().trim();
   const locF   = document.getElementById('labelLocFilter')?.value || '';
-  let inv = DormDB.getInventory();
+  let inv = await DormDB.getAllAssets();
   if (search) inv = inv.filter(i => i.name.toLowerCase().includes(search) || i.id.toLowerCase().includes(search));
   if (locF)   inv = inv.filter(i => i.location === locF);
   _selLabels = new Set([..._selLabels].filter(id => inv.some(i => i.id === id)));
@@ -1153,18 +1171,18 @@ function toggleLabelSel(id) {
   _selLabels.has(id) ? _selLabels.delete(id) : _selLabels.add(id);
   renderLabels();
 }
-function selectAllLabels() {
+async function selectAllLabels() {
   const locF = document.getElementById('labelLocFilter')?.value || '';
-  let inv = DormDB.getInventory();
+  let inv = await DormDB.getAllAssets();
   if (locF) inv = inv.filter(i => i.location === locF);
   inv.forEach(i => _selLabels.add(i.id));
   renderLabels();
 }
 function clearAllLabels() { _selLabels.clear(); renderLabels(); }
 
-function printSelectedLabels() {
+async function printSelectedLabels() {
   if (!_selLabels.size) { showToast('Select at least one item to print labels.'); return; }
-  const items = DormDB.getInventory().filter(i => _selLabels.has(i.id));
+  const items = (await DormDB.getAllAssets()).filter(i => _selLabels.has(i.id));
   const labels = items.map(i => {
     const svg = C39.svg(i.id, 160, 48);
     return `<div class="print-label">
@@ -1195,8 +1213,8 @@ function printSelectedLabels() {
 }
 
 // ── Maintenance tab ───────────────────────────────────────────────────────────
-function renderMaintenance() {
-  const inv = DormDB.getInventory().filter(i => i.maintenanceFlag);
+async function renderMaintenance() {
+  const inv = (await DormDB.getAllAssets()).filter(i => i.maintenanceFlag);
   if (!inv.length) {
     document.getElementById('maintBody').innerHTML = '<p class="empty-msg">No items are flagged for maintenance.</p>';
     return;
@@ -1218,8 +1236,8 @@ function renderMaintenance() {
     </table>`;
 }
 
-function pushToMaintenance(id) {
-  const inv = DormDB.getInventory();
+async function pushToMaintenance(id) {
+  const inv = await DormDB.getAllAssets();
   const item = inv.find(i => i.id === id);
   if (!item) return;
   const maint = DormDB.getMaintenance();
@@ -1235,20 +1253,20 @@ function pushToMaintenance(id) {
   });
   DormDB.saveMaintenance(maint);
   item.maintenancePushed = true;
-  DormDB.saveInventory(inv);
+  await DormDB.saveAsset(item);
   showToast('📤 Pushed to Maintenance module.');
   renderMaintenance();
   renderDashboard();
 }
 
-function resolveFlag(id) {
-  const inv = DormDB.getInventory();
+async function resolveFlag(id) {
+  const inv = await DormDB.getAllAssets();
   const item = inv.find(i => i.id === id);
   if (!item) return;
   item.maintenanceFlag = false;
   item.maintenancePushed = false;
   item.maintenanceNotes = '';
-  DormDB.saveInventory(inv);
+  await DormDB.saveAsset(item);
   showToast('✅ Maintenance flag cleared.');
   renderMaintenance();
   renderDashboard();
@@ -1310,7 +1328,8 @@ function resetTemplateToDefaults() {
   renderTemplateRows();
 }
 function _saveTpl(tpl) {
-  DormDB.saveInvTemplate(tpl);
+  const cfg = DormDB.getInvCfg();
+  DormDB.saveInvCfg({ ...cfg, template: tpl });
 }
 
 function renderCategories() {
@@ -1355,11 +1374,12 @@ function removeCustomLocation(i) {
 }
 
 // ── Seed All Rooms ────────────────────────────────────────────────────────────
-function seedAllRooms() {
+async function seedAllRooms() {
   const rooms = [...new Set(DormDB.getRooms().map(s => s.room).filter(Boolean))];
   if (!rooms.length) { showToast('No rooms found in Room Reservations.'); return; }
   const tpl = getTemplate();
-  const inv = DormDB.getInventory();
+  const inv = await DormDB.getAllAssets();
+  const newItems = [];
   let added = 0;
   rooms.forEach(room => {
     const ac = isAcRoom(room);
@@ -1373,32 +1393,34 @@ function seedAllRooms() {
           if (existing.some(i => i.side === side)) return;
           const item = emptyItem(room, 'room');
           item.name = t.name; item.category = t.category; item.side = side;
-          inv.push(item); added++;
+          newItems.push(item); added++;
         });
       } else {
         if (have < t.qty) {
           const item = emptyItem(room, 'room');
           item.name = t.name; item.category = t.category;
-          inv.push(item); added++;
+          newItems.push(item); added++;
         }
       }
     });
   });
-  DormDB.saveInventory(inv);
+  for (const a of newItems) await DormDB.saveAsset(a);
   showToast(`✅ Seeded ${added} item${added!==1?'s':''} across ${rooms.length} rooms.`);
   renderDashboard();
 }
 
-function confirmClearRoomItems() {
-  const count = DormDB.getInventory().filter(i => i.locationType === 'room').length;
+async function confirmClearRoomItems() {
+  const all = await DormDB.getAllAssets();
+  const count = all.filter(i => i.locationType === 'room').length;
   if (!count) { showToast('No room items to clear.'); return; }
   document.getElementById('confirmTitle').textContent = 'Clear Room Items';
   document.getElementById('confirmMsg').textContent =
     `This will permanently remove all ${count} item${count !== 1 ? 's' : ''} assigned to rooms. ` +
     `Common area items (lobby, corridor, etc.) are kept. You can re-seed with "Seed All Rooms" afterwards.`;
   document.getElementById('confirmOkBtn').textContent = `Delete ${count} Items`;
-  document.getElementById('confirmOkBtn').onclick = () => {
-    DormDB.saveInventory(DormDB.getInventory().filter(i => i.locationType !== 'room'));
+  document.getElementById('confirmOkBtn').onclick = async () => {
+    const toDelete = all.filter(i => i.locationType === 'room');
+    for (const a of toDelete) await DormDB.deleteAsset(a.id);
     closeModal('confirmModal');
     document.getElementById('confirmOkBtn').textContent = 'Confirm'; // reset label
     showToast(`🗑️ ${count} room item${count !== 1 ? 's' : ''} cleared.`);
@@ -1409,27 +1431,28 @@ function confirmClearRoomItems() {
 // ── Item Modal ────────────────────────────────────────────────────────────────
 let _editingId = null;
 
-function openAddModal(prefillLoc) {
+async function openAddModal(prefillLoc) {
   _editingId = null;
   document.getElementById('itemModalTitle').textContent = 'Add Item';
   const locType = prefillLoc ? (getAllLocations().find(l => l.id === prefillLoc)?.type || 'room') : 'room';
-  _fillModal(emptyItem(prefillLoc || '', locType));
+  await _fillModal(emptyItem(prefillLoc || '', locType));
   document.getElementById('itemModal').classList.add('open');
 }
-function openAddModalPrefilled(loc, name) {
-  openAddModal(loc);
+async function openAddModalPrefilled(loc, name) {
+  await openAddModal(loc);
   document.getElementById('im_name').value = name;
   updateBarcodePreview();
 }
-function openEditModal(id) {
-  const item = DormDB.getInventory().find(i => i.id === id);
+async function openEditModal(id) {
+  const inv = await DormDB.getAllAssets();
+  const item = inv.find(i => i.id === id);
   if (!item) return;
   _editingId = id;
   document.getElementById('itemModalTitle').textContent = 'Edit Item';
-  _fillModal(item);
+  await _fillModal(item);
   document.getElementById('itemModal').classList.add('open');
 }
-function _fillModal(item) {
+async function _fillModal(item) {
   const cats = getCategories();
   const locs = getAllLocations();
   document.getElementById('im_id').value = item.id;
@@ -1459,6 +1482,22 @@ function _fillModal(item) {
   // Show side picker only for room-type locations
   const isRoom = (getAllLocations().find(l => l.id === item.location)?.type || 'room') === 'room';
   document.getElementById('im_side_row').style.display = (isRoom && !!item.location) ? '' : 'none';
+  // Populate model picker
+  const models = await DormDB.getInvModels();
+  const sel = document.getElementById('im_model');
+  sel.innerHTML = '<option value="">— No model —</option>' +
+    models.map(m => `<option value="${escapeHtml(m.id)}"${item.modelId===m.id?' selected':''}>${escapeHtml(m.name)}</option>`).join('');
+  sel.onchange = () => {
+    const m = models.find(x => x.id === sel.value);
+    if (!m) return;
+    document.getElementById('im_name').value = m.name;
+    document.getElementById('im_cat').value  = m.category;
+    const priceField = document.getElementById('im_pprice');
+    if (priceField) priceField.value = m.replacementCost || 0;
+    const sideField = document.getElementById('im_side');
+    if (m.scope === 'per-side' && sideField && !sideField.value)
+      sideField.value = 'A';
+  };
   updateBarcodePreview(item.id);
 }
 function onLocChange() {
@@ -1481,8 +1520,9 @@ function updateBarcodePreview(id) {
 }
 function closeItemModal() { document.getElementById('itemModal').classList.remove('open'); _editingId = null; }
 
-function showItemBarcode(id) {
-  const item = DormDB.getInventory().find(i => i.id === id);
+async function showItemBarcode(id) {
+  const inv = await DormDB.getAllAssets();
+  const item = inv.find(i => i.id === id);
   if (!item) return;
   const side = item.side ? ` — Side ${item.side}` : '';
   document.getElementById('barcodeViewTitle').textContent = item.name + side;
@@ -1492,9 +1532,10 @@ function showItemBarcode(id) {
   document.getElementById('barcodeViewModal').dataset.itemId = id;
   document.getElementById('barcodeViewModal').classList.add('open');
 }
-function printItemBarcode() {
+async function printItemBarcode() {
   const id   = document.getElementById('barcodeViewModal').dataset.itemId;
-  const item = DormDB.getInventory().find(i => i.id === id);
+  const inv  = await DormDB.getAllAssets();
+  const item = inv.find(i => i.id === id);
   if (!item) return;
   const side   = item.side ? ` — Side ${item.side}` : '';
   const loc    = getLocLabel(item.location) + side;
@@ -1522,12 +1563,11 @@ function printItemBarcode() {
   w.document.close();
 }
 
-function saveItem() {
+async function saveItem() {
   const name = document.getElementById('im_name').value.trim();
   const loc  = document.getElementById('im_loc').value;
   if (!name) { showToast('Item name is required.'); return; }
   if (!loc)  { showToast('Please select a location.'); return; }
-  const inv = DormDB.getInventory();
   const locObj = getAllLocations().find(l => l.id === loc);
   const cons = document.getElementById('im_consumable').checked;
   const mf   = document.getElementById('im_mflag').checked;
@@ -1543,43 +1583,47 @@ function saveItem() {
     reorderAt: cons ? (parseInt(document.getElementById('im_reorder').value) || 0) : 0,
     condition: document.getElementById('im_cond').value,
     maintenanceFlag: mf,
-    maintenancePushed: mf ? (inv.find(i => i.id === _editingId)?.maintenancePushed || false) : false,
     maintenanceNotes: document.getElementById('im_mnotes').value.trim(),
     notes: document.getElementById('im_notes').value.trim(),
     purchaseDate: document.getElementById('im_pdate').value,
     purchasePrice: parseFloat(document.getElementById('im_pprice').value) || 0,
     lastChecked: document.getElementById('im_checked').value,
+    modelId: document.getElementById('im_model').value || '',
   };
   if (_editingId) {
-    const idx = inv.findIndex(i => i.id === _editingId);
-    if (idx >= 0) inv[idx] = { ...inv[idx], ...fields };
+    const inv = await DormDB.getAllAssets();
+    const existing = inv.find(i => i.id === _editingId);
+    const updated = { ...existing, ...fields,
+      maintenancePushed: mf ? (existing?.maintenancePushed || false) : false };
+    await DormDB.saveAsset(updated);
     showToast('✅ Item updated.');
   } else {
-    inv.push({ ...emptyItem(loc, locObj?.type || 'room'), ...fields });
+    const newItem = { ...emptyItem(loc, locObj?.type || 'room'), ...fields };
+    await DormDB.saveAsset(newItem);
     showToast('✅ Item added.');
   }
-  DormDB.saveInventory(inv);
   closeItemModal();
 }
 
 // ── Remove ────────────────────────────────────────────────────────────────────
-function confirmRemove(id) {
-  const item = DormDB.getInventory().find(i => i.id === id);
+async function confirmRemove(id) {
+  const inv = await DormDB.getAllAssets();
+  const item = inv.find(i => i.id === id);
   if (!item) return;
   document.getElementById('confirmTitle').textContent = 'Remove Item';
   document.getElementById('confirmMsg').textContent = `Remove "${item.name}" from inventory? This cannot be undone.`;
   document.getElementById('confirmOkBtn').onclick = () => { removeItem(id); closeModal('confirmModal'); };
   document.getElementById('confirmModal').classList.add('open');
 }
-function removeItem(id) {
-  DormDB.saveInventory(DormDB.getInventory().filter(i => i.id !== id));
+async function removeItem(id) {
+  await DormDB.deleteAsset(id);
   showToast('Item removed.');
 }
 function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
 
 // ── Print All Items ────────────────────────────────────────────────────────────
-function printInventorySheet() {
-  const inv = DormDB.getInventory();
+async function printInventorySheet() {
+  const inv = await DormDB.getAllAssets();
   const dorm = DormDB.getDormName();
   const locs = getAllLocations();
   const byLoc = {};
@@ -1623,8 +1667,8 @@ function printInventorySheet() {
   w.document.close();
 }
 
-function printInventoryForm() {
-  const inv  = DormDB.getInventory();
+async function printInventoryForm() {
+  const inv  = await DormDB.getAllAssets();
   const dorm = DormDB.getDormName();
   const locs = getAllLocations();
   if (!inv.length) { showToast('No inventory items to print.'); return; }
@@ -2296,8 +2340,8 @@ function printBeddingReport() {
 }
 
 // ── Inventory Snapshots / Audit Log ──────────────────────────────────────────
-function openSnapshotModal() {
-  const inv = DormDB.getInventory();
+async function openSnapshotModal() {
+  const inv = await DormDB.getAllAssets();
   if (!inv.length) { showToast('No inventory items to snapshot yet.'); return; }
   document.getElementById('snap_label').value = '';
   document.getElementById('snap_date').value  = new Date().toISOString().slice(0, 10);
@@ -2310,13 +2354,13 @@ function openSnapshotModal() {
   document.getElementById('snapshotModal').classList.add('open');
 }
 
-function saveSnapshot() {
+async function saveSnapshot() {
   const label = document.getElementById('snap_label').value.trim();
   const date  = document.getElementById('snap_date').value;
   if (!label) { showToast('Please enter a snapshot label.'); return; }
   if (!date)  { showToast('Please select a date.'); return; }
 
-  const inv  = DormDB.getInventory();
+  const inv  = await DormDB.getAllAssets();
   const conds = { Good: 0, Fair: 0, Poor: 0, Damaged: 0, Missing: 0 };
   const snapshots = inv.map(i => {
     const c = i.condition || 'Good';
@@ -2327,8 +2371,7 @@ function saveSnapshot() {
 
   // Stamp lastChecked on all items
   const today = date;
-  inv.forEach(i => { i.lastChecked = today; });
-  DormDB.saveInventory(inv);
+  for (const i of inv) { i.lastChecked = today; await DormDB.saveAsset(i); }
 
   const audits = DormDB.getInvAudits();
   audits.unshift({
@@ -2532,11 +2575,11 @@ function _runScanLoop() {
   _scanLoop = requestAnimationFrame(tick);
 }
 
-function handleScanInput(raw) {
+async function handleScanInput(raw) {
   if (!raw) return;
   // Normalise: uppercase, allow INV-XXXXX or plain XXXXX
   const id = raw.toUpperCase().startsWith('INV-') ? raw.toUpperCase() : 'INV-' + raw.toUpperCase();
-  const inv = DormDB.getInventory();
+  const inv = await DormDB.getAllAssets();
   // Try exact ID match first, then fallback to serial number
   const item = inv.find(i => i.id === id) || inv.find(i => (i.serialNo||'').toUpperCase() === raw.toUpperCase());
   displayScanResult(item, item ? null : raw);
@@ -2594,15 +2637,15 @@ function displayScanResult(item, rawNotFound) {
   _scanResultTimer = null;
 }
 
-function updateScannedCondition(condition) {
+async function updateScannedCondition(condition) {
   if (!_scannedItemId) return;
-  const inv  = DormDB.getInventory();
+  const inv  = await DormDB.getAllAssets();
   const idx  = inv.findIndex(i => i.id === _scannedItemId);
   if (idx < 0) return;
   const prev = inv[idx].condition;
   inv[idx].condition  = condition;
   inv[idx].lastChecked = new Date().toISOString().slice(0, 10);
-  DormDB.saveInventory(inv);
+  await DormDB.saveAsset(inv[idx]);
   // Refresh the result panel with updated item
   displayScanResult(inv[idx], null);
   showToast(`✅ ${inv[idx].name} — ${prev !== condition ? `${prev} → ${condition}` : condition + ' (unchanged)'}`);
