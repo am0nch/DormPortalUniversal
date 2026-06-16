@@ -2650,6 +2650,7 @@ async function init() {
   DormDB.on(DormDB.KEYS.BEDDING_CFG,   () => { if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
   DormDB.on(DormDB.KEYS.SEMESTER_CFG,  () => { populateBddSemSelects(); if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
   DormDB.on(DormDB.KEYS.INV_AUDITS,   () => { if (_isActive('tab-auditlog')) renderAuditLog(); });
+  DormDB.on('dormInventoryModels',    () => { if (_isActive('tab-models'))   renderModels(); });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
