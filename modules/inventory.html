@@ -156,6 +156,7 @@ table.h-tbl tr:hover td{background:#f7fafc}
   <button class="tab-btn" data-tab="location" onclick="switchTab('location')">🏠 By Location</button>
   <button class="tab-btn" data-tab="labels" onclick="switchTab('labels')">🏷️ Labels</button>
   <button class="tab-btn" data-tab="maintenance" onclick="switchTab('maintenance')">🔧 Maintenance</button>
+  <button class="tab-btn" data-tab="models" onclick="switchTab('models')">🗂️ Models</button>
   <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ Settings</button>
   <button class="tab-btn" data-tab="bedding" onclick="switchTab('bedding')">🛏️ Bedding</button>
   <button class="tab-btn" data-tab="auditlog" onclick="switchTab('auditlog')">📅 Audit Log</button>
@@ -225,6 +226,63 @@ table.h-tbl tr:hover td{background:#f7fafc}
 <div id="tab-maintenance" class="tab-panel">
   <p style="font-size:.8rem;color:#666;margin-bottom:12px">Items flagged for repair. "Push to Maintenance" creates a Plant Service request stub in the Maintenance module.</p>
   <div class="tbl-wrap"><div id="maintBody"></div></div>
+</div>
+
+<!-- MODELS -->
+<div id="tab-models" class="tab-panel">
+  <div class="toolbar" style="margin-bottom:12px">
+    <button class="btn btn-green" onclick="openModelModal()">➕ Add Model</button>
+    <button class="btn" onclick="seedModelsFromTemplate()" style="margin-left:4px">🌱 Seed from Template</button>
+    <span id="modelsCount" style="font-size:.78rem;color:#888;margin-left:8px"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="h-tbl" id="modelsTable">
+      <thead>
+        <tr>
+          <th>Name</th><th>Category</th><th>Scope</th><th>Replacement Cost</th>
+          <th>Qty/Room</th><th>AC Only</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="modelsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Model modal -->
+<div class="modal" id="modelModal">
+  <div class="modal-content" style="max-width:480px">
+    <span class="close-btn" onclick="closeModelModal()">&times;</span>
+    <h2 id="modelModalTitle">Add Asset Model</h2>
+    <div class="fg"><label>Name</label><input type="text" id="mm_name" placeholder="e.g. Mattress"></div>
+    <div class="fg-row">
+      <div class="fg"><label>Category</label>
+        <select id="mm_cat">
+          <option>Furniture</option><option>Fixtures</option>
+          <option>Security</option><option>Supplies</option><option>Appliances</option>
+        </select>
+      </div>
+      <div class="fg"><label>Scope</label>
+        <select id="mm_scope">
+          <option value="per-side">Per-Side</option>
+          <option value="shared">Shared</option>
+          <option value="bathroom">Bathroom</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg-row">
+      <div class="fg"><label>Replacement Cost (฿)</label><input type="number" id="mm_cost" min="0" value="0"></div>
+      <div class="fg"><label>Expected Qty/Room</label><input type="number" id="mm_qty" min="1" value="1"></div>
+    </div>
+    <div class="fg" style="align-items:center;gap:8px">
+      <label style="width:auto">AC Rooms Only</label>
+      <input type="checkbox" id="mm_acOnly" style="width:18px;height:18px">
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="mm_notes" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModelModal()">Cancel</button>
+      <button class="btn btn-green" onclick="saveModelModal()">Save Model</button>
+    </div>
+  </div>
 </div>
 
 <!-- SETTINGS -->
@@ -767,9 +825,112 @@ function switchTab(name) {
   if (name === 'location')    { populateLocPicker(); renderLocation(); }
   if (name === 'labels')      { populateLabelsFilter(); renderLabels(); }
   if (name === 'maintenance') renderMaintenance();
+  if (name === 'models')      renderModels();
   if (name === 'settings')    renderSettings();
   if (name === 'bedding')    { populateBddSemFilter(); renderBeddingTab(); }
   if (name === 'auditlog')  renderAuditLog();
+}
+
+// ── Asset Models ─────────────────────────────────────────────────────────────
+let _editingModelId = null;
+let _models = [];
+
+async function loadModels() {
+  _models = await DormDB.getInvModels();
+}
+
+async function renderModels() {
+  await loadModels();
+  const tbody = document.getElementById('modelsBody');
+  document.getElementById('modelsCount').textContent = `${_models.length} model${_models.length !== 1 ? 's' : ''}`;
+  if (!_models.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-msg" style="text-align:center">No models yet. Add one or seed from the room template.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _models.map(m => `
+    <tr>
+      <td><strong>${escapeHtml(m.name)}</strong></td>
+      <td>${catBadge(m.category)}</td>
+      <td><span style="font-size:.75rem;color:#555">${escapeHtml(m.scope)}</span></td>
+      <td>฿${(m.replacementCost||0).toLocaleString()}</td>
+      <td>${m.expectedQtyPerRoom||1}</td>
+      <td>${m.acRoomOnly ? '❄️' : '—'}</td>
+      <td>
+        <button class="btn btn-sm btn-blue" onclick="openModelModal('${escapeHtml(m.id)}')">✏️</button>
+        <button class="btn btn-sm btn-red" onclick="deleteModel('${escapeHtml(m.id)}')">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openModelModal(id) {
+  _editingModelId = id || null;
+  const m = id ? _models.find(x => x.id === id) : null;
+  document.getElementById('modelModalTitle').textContent = id ? 'Edit Asset Model' : 'Add Asset Model';
+  document.getElementById('mm_name').value     = m?.name || '';
+  document.getElementById('mm_cat').value      = m?.category || 'Furniture';
+  document.getElementById('mm_scope').value    = m?.scope || 'per-side';
+  document.getElementById('mm_cost').value     = m?.replacementCost || 0;
+  document.getElementById('mm_qty').value      = m?.expectedQtyPerRoom || 1;
+  document.getElementById('mm_acOnly').checked = !!m?.acRoomOnly;
+  document.getElementById('mm_notes').value    = m?.notes || '';
+  document.getElementById('modelModal').classList.add('open');
+}
+function closeModelModal() {
+  document.getElementById('modelModal').classList.remove('open');
+  _editingModelId = null;
+}
+
+async function saveModelModal() {
+  const name = document.getElementById('mm_name').value.trim();
+  if (!name) { alert('Model name is required.'); return; }
+  const model = {
+    id:                 _editingModelId || generateId(),
+    name,
+    category:           document.getElementById('mm_cat').value,
+    scope:              document.getElementById('mm_scope').value,
+    replacementCost:    parseFloat(document.getElementById('mm_cost').value) || 0,
+    expectedQtyPerRoom: parseInt(document.getElementById('mm_qty').value) || 1,
+    acRoomOnly:         document.getElementById('mm_acOnly').checked,
+    notes:              document.getElementById('mm_notes').value.trim(),
+    createdAt:          _editingModelId ? (_models.find(m => m.id === _editingModelId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+  };
+  await DormDB.saveInvModel(model);
+  closeModelModal();
+  renderModels();
+}
+
+async function deleteModel(id) {
+  const assets = await DormDB.getAllAssets();
+  const inUse  = assets.filter(a => a.modelId === id).length;
+  if (inUse && !confirm(`${inUse} asset(s) use this model. Delete anyway?`)) return;
+  await DormDB.deleteInvModel(id);
+  renderModels();
+}
+
+async function seedModelsFromTemplate() {
+  const existing = await DormDB.getInvModels();
+  if (existing.length) { alert('Models already exist — clear them first to re-seed.'); return; }
+  const tpl = getTemplate(); // existing ROOM_TEMPLATE getter
+  const sideNames = new Set(['Bed Frame','Mattress','Mattress Pad','Bed Decker','Study Desk','Study Table',
+    'Chair','Stool','Dressing Stool','Bookshelf','Book Shelf','Wardrobe','Drawer Unit','Built-in Closet',
+    'Closet Key','Drawer Key']);
+  for (const t of tpl) {
+    const scope = sideNames.has(t.name) ? 'per-side' : 'shared';
+    await DormDB.saveInvModel({
+      id: generateId(),
+      name: t.name,
+      category: t.category,
+      scope,
+      replacementCost: 0,
+      expectedQtyPerRoom: t.qty || 1,
+      acRoomOnly: !!t.acOnly,
+      notes: '',
+      createdAt: new Date().toISOString(),
+    });
+  }
+  renderModels();
+  showToast('Models seeded from room template.');
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
