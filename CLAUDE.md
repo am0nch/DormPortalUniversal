@@ -144,9 +144,20 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 - [ ] `userguide.html` needs updating: semester rollover UI, Alumni view, Away Students tab (scanner/audit/slot/master/archive docs done; these 3 remain)
 - [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v9)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v12)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
+
+## Completed (2026-06-16, session 1)
+
+- [x] **ra-portal.html, monitor-portal.html** — Added `DormDB.on(WORKERS, …)` subscription in each init so identity refreshes when workers DB changes in another tab. 604→605 / 570→571 lines
+- [x] **room-reservations.html** — Added `DormDB.on(PROFILES, …)` and `DormDB.on(INSPECTIONS, …)` subscriptions so table refreshes cross-tab. 2,151→2,153 lines
+- [x] **plant-requests.html** — Added `DormDB.on(MAINTENANCE_CFG, …)` subscription so rate/category changes reflect immediately. 721→722 lines
+- [x] **room-inspection.html** — Canvas photo compression: new `_compressImage()` helper (max 1024px / JPEG q=0.75, ~100–150 KB vs 2–8 MB raw); `onItemPhotoChange` made async to await compression. 1,358→1,378 lines
+- [x] **dorm-db.js** — IDB bumped v2→v3; new `dormkv_archive` store (never loaded at startup); `ARCHIVE_SEM_FIELD` constant; private `_arcGet/Set/Del/ReadAll` helpers; four public async methods: `archiveSemester`, `getArchivedSemesters`, `getArchiveRecords`, `restoreArchive`. 679→799 lines
+- [x] **index.html** — Archive Data + View Archive buttons in menu footer; `#archiveModal` (semester picker, record-count preview, Archive & Download JSON); `#archiveViewerModal` (grouped by semester, per-key counts, ↩ Restore); Tier 2 JSON auto-download on every archive operation. 1,691→1,866 lines
+- [x] **userguide.html** — "Archive Old Semesters" subsection in Getting Started (archive flow, view, restore, comparison table); v4.2 version history entry. 2,546→2,626 lines
+- [x] **sw.js** — Bumped cache `dormportal-v11` → `dormportal-v12` after v4.2 deploy
 
 ## Completed (2026-06-14, session 3)
 
