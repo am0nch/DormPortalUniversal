@@ -1040,8 +1040,9 @@ function archiveCurrentSemester() {
   if (!label) { showToast('⚠️ Enter a semester label first'); return; }
   askConfirm(
     `Archive all sessions labelled "${label}"? They will be removed from the live view but preserved in the backup.`,
-    () => {
-      const count = DormDB.archiveAttendance(label);
+    async () => {
+      const result = await DormDB.archiveSemester(label, [DormDB.KEYS.ATTENDANCE]);
+      const count  = result[DormDB.KEYS.ATTENDANCE] || 0;
       sessions = DormDB.getAttendance();
       renderHistory();
       showToast('🗄️ Archived ' + count + ' session' + (count!==1?'s':''));
