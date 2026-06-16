@@ -83,11 +83,13 @@ const DormDB = (() => {
   // ── IndexedDB ─────────────────────────────────────────────────────────────
   // Re-use the existing 'DormManagerDB' database (already holds 'photos').
   // Version bumped from 1 → 2 to add the 'dormkv' key-value store.
-  const IDB_NAME    = 'DormManagerDB';
-  const IDB_VERSION = 3;
-  const IDB_KV      = 'dormkv';   // store for all DormDB key-value data
-  const IDB_PHOTOS  = 'photos';
-  const IDB_KV_ARC  = 'dormkv_archive';
+  const IDB_NAME      = 'DormManagerDB';
+  const IDB_VERSION   = 4;
+  const IDB_KV        = 'dormkv';   // store for all DormDB key-value data
+  const IDB_PHOTOS    = 'photos';
+  const IDB_KV_ARC    = 'dormkv_archive';
+  const IDB_INV_MODELS = 'dormInventoryModels';
+  const IDB_INV_ASSETS = 'dormInventoryAssets';
 
   let _dbPromise = null;
   function _openIDB() {
@@ -96,9 +98,18 @@ const DormDB = (() => {
       const req = indexedDB.open(IDB_NAME, IDB_VERSION);
       req.onupgradeneeded = e => {
         const db = e.target.result;
+        const oldVersion = e.oldVersion;
         if (!db.objectStoreNames.contains(IDB_PHOTOS))  db.createObjectStore(IDB_PHOTOS, { keyPath: 'id' });
         if (!db.objectStoreNames.contains(IDB_KV))      db.createObjectStore(IDB_KV);
         if (!db.objectStoreNames.contains(IDB_KV_ARC))  db.createObjectStore(IDB_KV_ARC);
+        if (oldVersion < 4) {
+          db.createObjectStore(IDB_INV_MODELS, { keyPath: 'id' })
+            .createIndex('category', 'category');
+          const assetStore = db.createObjectStore(IDB_INV_ASSETS, { keyPath: 'id' });
+          assetStore.createIndex('location',    'location');
+          assetStore.createIndex('modelId',     'modelId');
+          assetStore.createIndex('statusLabel', 'statusLabel');
+        }
       };
       req.onsuccess = e => resolve(e.target.result);
       req.onerror   = ()  => { _dbPromise = null; reject(req.error); };
@@ -169,6 +180,40 @@ const DormDB = (() => {
         else res(result);
       };
       req.onerror = () => rej(req.error);
+    }));
+  }
+
+  // ── Inventory IDB helpers (dormInventoryModels + dormInventoryAssets) ────────
+  function _invGetAll(storeName) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(storeName, 'readonly').objectStore(storeName).getAll();
+      req.onsuccess = () => res(req.result ?? []);
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
+  function _invGetByIndex(storeName, indexName, value) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(storeName, 'readonly')
+                    .objectStore(storeName).index(indexName).getAll(value);
+      req.onsuccess = () => res(req.result ?? []);
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
+  function _invPut(storeName, record) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(storeName, 'readwrite').objectStore(storeName).put(record);
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
+  function _invDelete(storeName, id) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(storeName, 'readwrite').objectStore(storeName).delete(id);
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
     }));
   }
 
