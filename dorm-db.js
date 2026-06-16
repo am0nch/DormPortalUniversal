@@ -215,6 +215,14 @@ const DormDB = (() => {
     }));
   }
 
+  function _invClear(storeName) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const req = db.transaction(storeName, 'readwrite').objectStore(storeName).clear();
+      req.onsuccess = () => res();
+      req.onerror   = () => rej(req.error);
+    }));
+  }
+
   function _invGetAndUpdate(storeName, id, updaterFn) {
     return _openIDB().then(db => new Promise((res, rej) => {
       const tx    = db.transaction(storeName, 'readwrite');
@@ -777,13 +785,17 @@ const DormDB = (() => {
         } catch(e) { console.warn('Photo restore failed:', e); }
       }
       // Restore inventory IDB stores
+      if (Array.isArray(dump.dormInventoryModels) || Array.isArray(dump.dormInventoryAssets)) {
+        await _invClear(IDB_INV_MODELS);
+        await _invClear(IDB_INV_ASSETS);
+      }
       if (Array.isArray(dump.dormInventoryModels)) {
         for (const m of dump.dormInventoryModels) await _invPut(IDB_INV_MODELS, m);
       }
       if (Array.isArray(dump.dormInventoryAssets)) {
         for (const a of dump.dormInventoryAssets) await _invPut(IDB_INV_ASSETS, a);
       }
-      if (dump.dormInventoryModels || dump.dormInventoryAssets) {
+      if (Array.isArray(dump.dormInventoryModels) || Array.isArray(dump.dormInventoryAssets)) {
         _broadcastIdb(IDB_INV_ASSETS);
         _broadcastIdb(IDB_INV_MODELS);
       }
@@ -951,6 +963,12 @@ const DormDB = (() => {
 
     // Expose key constants for modules that need them
     KEYS: K,
+
+    // ── Backward-compat stubs (removed in Tasks 6–9 consumer migration) ──────
+    getInventory:   () => (console.warn('[DormDB] getInventory: use getAllAssets()'), []),
+    saveInventory:  () =>  console.warn('[DormDB] saveInventory: use saveAsset()'),
+    getInvTemplate: () => (console.warn('[DormDB] getInvTemplate: use getInvModels()'), []),
+    saveInvTemplate:() =>  console.warn('[DormDB] saveInvTemplate: use saveInvModel()'),
   };
 
 })();
