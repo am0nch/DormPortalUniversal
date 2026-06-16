@@ -78,6 +78,7 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
   <button class="tab-btn" data-tab="clearance" onclick="switchTab('clearance')">📋 Clearance</button>
   <button class="tab-btn" data-tab="fees" onclick="switchTab('fees')">💰 Fee Collection</button>
   <button class="tab-btn" data-tab="attendance" onclick="switchTab('attendance')">📅 Attendance</button>
+  <button class="tab-btn" data-tab="att-archive" onclick="switchTab('att-archive')">🗄️ Att. Archive</button>
   <button class="tab-btn" data-tab="incidents" onclick="switchTab('incidents')">🚨 Incidents</button>
   <button class="tab-btn" data-tab="bedding" onclick="switchTab('bedding')">🛏️ Bedding</button>
 </div>
@@ -312,7 +313,14 @@ input[type=number],textarea{padding:4px 7px;border:1px solid #ccc;border-radius:
   <div id="attReportBody"></div>
 </div>
 
-<!-- ── INCIDENTS REPORT TAB ── -->
+<!-- ── ATT. ARCHIVE TAB ── -->
+<div id="tab-att-archive" class="tab-panel">
+  <div class="tab-toolbar">
+    <span style="font-size:.82rem;font-weight:700;color:#1e3a5f">Archived Attendance Sessions</span>
+  </div>
+  <div id="attArchBody"></div>
+</div>
+
 <div id="tab-incidents" class="tab-panel">
   <div class="tab-toolbar">
     <span style="font-size:.82rem;font-weight:700;color:#1e3a5f">Incident Reports Summary</span>
@@ -356,6 +364,7 @@ function switchTab(name) {
   if (name === 'clearance') { renderClearance(); populateClearanceRooms(); }
   if (name === 'fees') renderFees();
   if (name === 'attendance') renderAttendanceReport();
+  if (name === 'att-archive') renderAttArchive();
   if (name === 'incidents')  renderIncidentsReport();
   if (name === 'bedding')    renderBeddingReport();
 }
