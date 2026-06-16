@@ -719,7 +719,8 @@ function _initAfterAuth() {
   DormDB.on('dormKeysAssigned', refreshStats);
   DormDB.on('dormMaintenance',  refreshStats);
   DormDB.on('dormInspections',  refreshStats);
-  DormDB.on('dormInventory',    refreshStats);
+  DormDB.on('dormInventoryAssets', async () => { await DormDB._refreshIdbStats(); refreshStats(); });
+  DormDB.on('dormInventoryModels', refreshStats);
   DormDB.on('dormAttendance',   refreshStats);
   DormDB.on('dormIncidents',    refreshStats);
   DormDB.on('dormOffCampusReq', refreshStats);
