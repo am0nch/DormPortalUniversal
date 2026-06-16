@@ -53,16 +53,16 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | File | Lines |
 |------|-------|
 | `index.html` | 1,866 |
-| `dorm-db.js` | 799 |
+| `dorm-db.js` | 826 |
 | `modules/room-reservations.html` | 2,153 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |
-| `modules/reports.html` | 1,604 |
+| `modules/reports.html` | 1,764 |
 | `modules/room-inspection.html` | 1,378 |
 | `modules/key-inventory.html` | 1,587 |
 | `modules/inventory.html` | 2,518 |
-| `modules/attendance.html` | 1,235 |
+| `modules/attendance.html` | 1,236 |
 | `modules/incidents.html` | 993 |
 | `modules/student-admin.html` | 1,014 |
 | `modules/dorm-workers.html` | 759 |
@@ -143,8 +143,8 @@ s.roomHold.active && (s.summer || s.firstSem)
 ## Pending items
 
 - [ ] `userguide.html` — all major sections now documented ✅ (ATT_ARCHIVE Archived Semesters section in reports.html still future work)
-- [ ] ATT_ARCHIVE is write-only — no module reads `dormAttendanceArchive` back; future: Archived Semesters section in reports.html
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v12)
+- [ ] Archived Semesters tab (reports.html) — Att. Archive tab implemented, reads from IDB archive
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v13)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 
