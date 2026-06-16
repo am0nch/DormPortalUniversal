@@ -1586,6 +1586,154 @@ function printBeddingReport() {
   setTimeout(() => { w.focus(); w.print(); }, 120);
 }
 
+// ── ARCHIVED ATTENDANCE SEMESTERS ─────────────────────────────────────────
+async function renderAttArchive() {
+  const el = document.getElementById('attArchBody');
+  el.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px">Loading…</p>';
+
+  if ((DormDB.getAttArchive ? DormDB.getAttArchive() : []).length > 0) {
+    await DormDB.migrateAttArchive();
+  }
+
+  const allEntries = await DormDB.getArchivedSemesters();
+  const entries = allEntries.filter(e => e.dormKey === DormDB.KEYS.ATTENDANCE);
+
+  if (!entries.length) {
+    el.innerHTML = '<p style="color:#aaa;text-align:center;padding:40px">No archived attendance sessions yet.<br>Archive a semester from the Attendance module or use the Archive Data button on the main menu.</p>';
+    return;
+  }
+
+  const seen = new Set();
+  const sems = [];
+  for (const e of entries) {
+    if (!seen.has(e.semLabel)) { seen.add(e.semLabel); sems.push(e); }
+  }
+
+  el.innerHTML = sems.map(e => {
+    const safeId = 'att-arc-detail-' + e.semLabel.replace(/\W+/g, '-');
+    return `
+      <div style="background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:.95rem;font-weight:700;color:#1e3a5f">${escapeHtml(e.semLabel)}</div>
+            <div style="margin-top:6px">
+              <span style="background:#e8f0fe;color:#1e3a5f;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:12px">${e.count} session${e.count!==1?'s':''}</span>
+            </div>
+          </div>
+          <button class="btn toggle-btn" data-sem="${escapeHtml(e.semLabel)}" onclick="toggleAttArchSem(this.dataset.sem)">▶ View Sessions</button>
+        </div>
+        <div id="${safeId}" style="display:none;margin-top:14px"></div>
+      </div>`;
+  }).join('');
+}
+
+async function toggleAttArchSem(semLabel) {
+  const safeId = 'att-arc-detail-' + semLabel.replace(/\W+/g, '-');
+  const detail = document.getElementById(safeId);
+  const btn    = detail.parentElement.querySelector('.toggle-btn');
+
+  if (detail.dataset.loaded !== '1') {
+    btn.textContent = '⏳ Loading…';
+    btn.disabled = true;
+    const records = await DormDB.getArchiveRecords(DormDB.KEYS.ATTENDANCE, semLabel);
+    detail.innerHTML = buildAttArchDetail(semLabel, records);
+    detail.dataset.loaded = '1';
+    btn.disabled = false;
+  }
+
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '▶ View Sessions' : '▼ Hide Sessions';
+}
+
+function buildAttArchDetail(semLabel, records) {
+  if (!records.length) return '<p style="color:#aaa;text-align:center;padding:20px">No sessions found.</p>';
+
+  const sorted = records.slice().sort((a, b) => b.date.localeCompare(a.date));
+
+  const absCounts = {};
+  records.forEach(s => {
+    (s.records || []).filter(r => r.status === 'Absent').forEach(r => {
+      const k = r.studentName || r.studentId || 'Unknown';
+      absCounts[k] = (absCounts[k] || 0) + 1;
+    });
+  });
+  const absList = Object.entries(absCounts).sort((a, b) => b[1] - a[1]);
+
+  const sessionTable = `
+    <h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin:0 0 8px;border-bottom:2px solid #d9e6f5;padding-bottom:6px">Session Log</h3>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:#1e3a5f;color:#fff">
+        <th style="padding:6px 10px;text-align:left">Date</th>
+        <th style="padding:6px 10px;text-align:left">Floor</th>
+        <th style="padding:6px 10px;text-align:center">Present</th>
+        <th style="padding:6px 10px;text-align:center">Absent</th>
+        <th style="padding:6px 10px;text-align:center">On Leave</th>
+        <th style="padding:6px 10px;text-align:center">Total</th>
+        <th style="padding:6px 10px;text-align:left">Conducted By</th>
+      </tr></thead><tbody>
+      ${sorted.map((s, i) => {
+        const sm = s.summary || {};
+        return `<tr style="background:${i%2?'#f8f9fa':'#fff'}">
+          <td style="padding:5px 10px">${escapeHtml(s.date)}</td>
+          <td style="padding:5px 10px">${escapeHtml(s.floor||'All')}</td>
+          <td style="padding:5px 10px;text-align:center;color:#2e7d32;font-weight:700">${sm.present||0}</td>
+          <td style="padding:5px 10px;text-align:center;color:${sm.absent?'#c62828':'#2e7d32'};font-weight:700">${sm.absent||0}</td>
+          <td style="padding:5px 10px;text-align:center">${sm.onLeave||0}</td>
+          <td style="padding:5px 10px;text-align:center">${sm.total||0}</td>
+          <td style="padding:5px 10px">${escapeHtml(s.conductedBy||'—')}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+
+  const absTable = absList.length ? `
+    <h3 style="font-size:.85rem;font-weight:700;color:#1e3a5f;margin:16px 0 8px;border-bottom:2px solid #d9e6f5;padding-bottom:6px">Absence Count per Student</h3>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <thead><tr style="background:#1e3a5f;color:#fff">
+        <th style="padding:6px 10px;text-align:left">Student</th>
+        <th style="padding:6px 10px;text-align:center">Absences</th>
+        <th style="padding:6px 10px">Alert</th>
+      </tr></thead><tbody>
+      ${absList.map(([name, cnt], i) => `<tr style="background:${cnt>=3?'#fff8e1':i%2?'#f8f9fa':'#fff'}">
+        <td style="padding:5px 10px">${escapeHtml(name)}</td>
+        <td style="padding:5px 10px;text-align:center;font-weight:700;color:${cnt>=3?'#c62828':'#333'}">${cnt}</td>
+        <td style="padding:5px 10px">${cnt>=3?'⚠️ Follow up':''}</td>
+      </tr>`).join('')}
+      </tbody></table></div>` : '';
+
+  const printBtn = `<div class="no-print" style="margin-top:14px;text-align:right">
+    <button class="btn btn-orange" data-sem="${escapeHtml(semLabel)}" onclick="printAttArchiveSem(this.dataset.sem)">🖨️ Print This Semester</button>
+  </div>`;
+
+  return sessionTable + absTable + printBtn;
+}
+
+function printAttArchiveSem(semLabel) {
+  const safeId = 'att-arc-detail-' + semLabel.replace(/\W+/g, '-');
+  const detail = document.getElementById(safeId);
+  if (!detail) return;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>Attendance Archive — ${escapeHtml(semLabel)} — ${escapeHtml(DormDB.getDormName())}</title>
+    <style>
+      body{font-family:'Segoe UI',Arial,sans-serif;font-size:9pt;padding:0;margin:0}
+      h1{font-size:12pt;margin-bottom:2mm}
+      h3{font-size:10pt;color:#1e3a5f;margin:8pt 0 3pt;border-bottom:1pt solid #1e3a5f;padding-bottom:2pt}
+      table{width:100%;border-collapse:collapse;margin-bottom:8pt}
+      th,td{border:1pt solid #ccc;padding:3pt 6pt;font-size:8pt}
+      th{background:#1e3a5f;color:#fff;text-align:left}
+      .no-print{display:none}
+      @page{size:A4;margin:12mm}
+    </style>
+  </head><body>
+    <h1>📅 Attendance Archive — ${escapeHtml(semLabel)} — ${escapeHtml(DormDB.getDormName())}</h1>
+    <p style="font-size:8pt;color:#888;margin-bottom:5mm">Printed: ${new Date().toLocaleString()}</p>
+    ${detail.innerHTML}
+  </body></html>`);
+  win.document.close();
+  win.print();
+}
+
 // ── Live reload on data changes ────────────────────────────────────────────
 const _isActive = id => document.getElementById(id).classList.contains('active');
 DormDB.on('dormData',    () => { if(_isActive('tab-archive')) renderArchive(); if(_isActive('tab-pivot')) renderPivot(); if(_isActive('tab-holds')) renderHolds(); if(_isActive('tab-storage')) renderStorage(); if(_isActive('tab-room')) renderRoomReport(); if(_isActive('tab-clearance')){ renderClearance(); populateClearanceRooms(); } if(_isActive('tab-fees')) renderFees(); });
