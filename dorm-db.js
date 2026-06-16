@@ -36,8 +36,6 @@ const DormDB = (() => {
     KEYS_ASSIGNED: 'dormKeysAssigned',
     INSPECTIONS: 'dormInspections',
     INSP_CFG:    'dormInspConfig',
-    INVENTORY:    'dormInventory',
-    INV_TEMPLATE: 'dormInvTemplate',
     INV_CFG:     'dormInvCfg',
     INV_AUDITS:  'dormInventoryAudits',
     SCHEDULE:       'dormSchedule',
@@ -471,10 +469,6 @@ const DormDB = (() => {
     saveInspections: (d) => _w(K.INSPECTIONS, d),
     getInspCfg()         { return _r(K.INSP_CFG, { defaultCharges: {}, semesterLabel: '' }); },
     saveInspCfg:     (d) => _w(K.INSP_CFG, d),
-    getInventory:    ()  => _r(K.INVENTORY, []),
-    saveInventory:   (d) => _w(K.INVENTORY, d),
-    getInvTemplate:  ()  => _r(K.INV_TEMPLATE, []),
-    saveInvTemplate: (d) => _w(K.INV_TEMPLATE, d),
     getInvCfg()          { return _r(K.INV_CFG, { categories: [], customLocs: [] }); },
     saveInvCfg:      (d) => _w(K.INV_CFG, d),
     getInvAudits:    ()  => _r(K.INV_AUDITS, []),
@@ -725,6 +719,11 @@ const DormDB = (() => {
       for (const key of Object.values(K)) {
         if (key in _cache) dump[key] = _cache[key];
       }
+      // IDB inventory stores (not in _cache)
+      try {
+        dump.dormInventoryModels = await _invGetAll(IDB_INV_MODELS);
+        dump.dormInventoryAssets = await _invGetAll(IDB_INV_ASSETS);
+      } catch(e) { console.warn('Inventory IDB export failed:', e); }
       // Photos from IDB
       try {
         const db = await _openIDB();
@@ -776,6 +775,17 @@ const DormDB = (() => {
           }
           _w(K.PHOTOS_MIGRATED, 'true');
         } catch(e) { console.warn('Photo restore failed:', e); }
+      }
+      // Restore inventory IDB stores
+      if (Array.isArray(dump.dormInventoryModels)) {
+        for (const m of dump.dormInventoryModels) await _invPut(IDB_INV_MODELS, m);
+      }
+      if (Array.isArray(dump.dormInventoryAssets)) {
+        for (const a of dump.dormInventoryAssets) await _invPut(IDB_INV_ASSETS, a);
+      }
+      if (dump.dormInventoryModels || dump.dormInventoryAssets) {
+        _broadcastIdb(IDB_INV_ASSETS);
+        _broadcastIdb(IDB_INV_MODELS);
       }
     },
 
