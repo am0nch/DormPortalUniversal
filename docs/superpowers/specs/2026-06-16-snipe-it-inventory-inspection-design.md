@@ -160,13 +160,37 @@ async function _refreshIdbStats() {
 
 `getMenuStats()` reads `DormDB._cachedStats.invMaint` (defaults to 0 until first async refresh). This preserves the sync contract for all callers.
 
-### `exportAll` / `importAll`
+### Cross-tab sync for IDB stores
 
-Both updated to include `dormInventoryModels` and `dormInventoryAssets` IDB stores so asset data survives a full export/import cycle.
+`DormDB.on()` currently fires only on `_w()` localStorage writes. IDB `saveAsset()` / `saveInvModel()` calls bypass it. Two changes required:
+
+1. After every `saveAsset()` or `saveInvModel()` call, fire a `BroadcastChannel` message (channel name `dormportal-idb`) with `{ store: 'dormInventoryAssets' | 'dormInventoryModels' }`.
+2. On `BroadcastChannel` message received, call `_refreshIdbStats()` and re-trigger any registered `DormDB.on('dormInventoryAssets', ...)` handlers — same pattern as existing localStorage cross-tab sync.
+
+`index.html` replaces `DormDB.on('dormInventory', refreshStats)` with `DormDB.on('dormInventoryAssets', refreshStats)`.
+
+### `exportAll` / `importAll` — async upgrade
+
+`exportAll()` becomes `async`. IDB stores are read before building the JSON blob:
+
+```js
+async function exportAll() {
+  const base = { /* existing localStorage keys */ };
+  base.dormInventoryModels = await DormDB.getInvModels();
+  base.dormInventoryAssets = await DormDB.getAllAssets();
+  // existing blob download logic unchanged
+}
+```
+
+`importAll()` likewise becomes async. On detecting `dormInventoryAssets` / `dormInventoryModels` keys in the JSON, it upserts each record via `saveAsset()` / `saveInvModel()` rather than `localStorage.setItem`.
+
+### `dormInventoryAudits` — stays in localStorage
+
+`K.INV_AUDITS = 'dormInventoryAudits'` is **not** retired. The Audit Log tab continues to read/write via `DormDB.getInvAudits()` / `DormDB.saveInvAudits()`. It remains in `archiveSemester()`'s default keyList. No change needed.
 
 ### Legacy localStorage cleanup
 
-`dormInventory` localStorage key is retired. `K.INVENTORY` constant removed after migration gate (inventory is empty, so no migration script needed — key simply stops being written).
+`dormInventory` localStorage key is retired. `K.INVENTORY` constant removed (inventory is empty — no migration script needed). `K.INV_AUDITS` is explicitly kept.
 
 ---
 
@@ -197,9 +221,26 @@ Two new stat cards: **In Maintenance** and **Checked Out**. Existing cards (Tota
 
 Room Template section removed — superseded by Models tab. Other settings unchanged.
 
+### Maintenance tab — push flow update
+
+`pushToMaintenance(assetId)` currently calls `DormDB.getInventory()`. Updated to:
+
+```js
+async function pushToMaintenance(assetId) {
+  const asset = (await DormDB.getAllAssets()).find(a => a.id === assetId);
+  // write dormMaintenance record (unchanged logic)
+  asset.maintenancePushed = true;
+  await DormDB.saveAsset(asset);
+}
+```
+
+Same data written to `dormMaintenance` — only the asset lookup changes.
+
 ### Unchanged tabs
 
-By Location, Labels, Maintenance, Bedding, Audit Log — UI unchanged; queries migrate from `DormDB.getInventory()` → `await DormDB.getAllAssets()`.
+- **By Location, Labels, Maintenance** — UI unchanged; `DormDB.getInventory()` calls → `await DormDB.getAllAssets()`
+- **Bedding** — completely unaffected. Bedding has its own localStorage keys (`dormBedding`, `dormBeddingStock`, `dormBeddingCount`, `dormBeddingCfg`) and never reads `dormInventory`. No changes needed.
+- **Audit Log** — unchanged; reads `DormDB.getInvAudits()` (localStorage, kept as-is).
 
 ---
 
@@ -262,6 +303,10 @@ if (severity exists for conditionBefore → conditionAfter):
 asset.checkedOutTo = ''
 await DormDB.saveAsset(asset)
 ```
+
+### Asset write-back error handling
+
+The inspection record is saved first (existing `DormDB.saveInspections()` call). Asset write-backs run in a `try/catch` loop afterward — a single failed IDB write does not roll back the inspection. If any write fails, a non-blocking toast is shown: *"Inspection saved. Some asset records could not be updated — check Inventory."* This is best-effort; full atomicity across localStorage + IDB is not achievable without a transaction coordinator.
 
 ### What doesn't change
 
@@ -399,9 +444,10 @@ Dean clicks Save Inspection
 
 | File | Type of change |
 |---|---|
-| `dorm-db.js` | IDB v4 upgrade, 2 new stores, 8 new async methods, `normalizeRoomId`, `isAcRoom` lookup, `_cachedStats`, getMenuStats update, exportAll/importAll update |
-| `modules/inventory.html` | Models tab (new), Items tab upgrades + condition photo thumbnails in detail drawer, Dashboard additions, Settings cleanup, all queries → async IDB, `isAcRoom` → `DormDB.isAcRoom` |
-| `modules/room-inspection.html` | Remove SIDE_ITEMS/SHARED_ITEMS, live asset query, barcode scan to highlight asset row, move-in/move-out write-back + `photoId` on condition-change events, `_isAC` → `DormDB.isAcRoom` |
+| `dorm-db.js` | IDB v4 upgrade, 2 new stores, 8 new async methods, BroadcastChannel IDB events, `normalizeRoomId`, `isAcRoom` lookup, `_cachedStats`, async `exportAll`/`importAll`, `K.INVENTORY` retired (`K.INV_AUDITS` kept) |
+| `modules/inventory.html` | Models tab (new), Items tab upgrades + condition photo thumbnails in detail drawer, Dashboard additions, Settings cleanup, async `pushToMaintenance`, all queries → async IDB, `isAcRoom` → `DormDB.isAcRoom` |
+| `modules/room-inspection.html` | Remove SIDE_ITEMS/SHARED_ITEMS, live asset query, barcode scan to highlight asset row, move-in/move-out write-back + `photoId` on condition-change events, best-effort error handling, `_isAC` → `DormDB.isAcRoom` |
+| `index.html` | `DormDB.on('dormInventory', ...)` → `DormDB.on('dormInventoryAssets', ...)`; async `exportAll`/`importAll` callers updated |
 | `modules/floor-plan.html` | `isAC` string check → `DormDB.isAcRoom` |
 | `modules/utilities.html` | `isAC` string check → `DormDB.isAcRoom` |
 | `sw.js` | Cache version bump after deploy |
