@@ -598,7 +598,7 @@ function redo(){if(historyIndex<historyStack.length-1){historyIndex++;fullData=J
 
 // ═══ USER / AUTO-SAVE ═══
 let currentUser = DormDB.getCurrentUser();
-if (currentUser === 'Unknown') {
+if (!DormDB.hasCurrentUser()) {
   const _m = DormDB.getM365Cfg();
   const _m365Name = _m.enabled && (_m.displayName || _m.userEmail);
   if (_m365Name) {
