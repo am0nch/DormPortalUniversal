@@ -266,3 +266,49 @@ Floors 1–2: Rooms 101AC–106AC, 201AC–227AC
 Floor 3: Rooms 301AC–327AC  
 Floor 4: Rooms 401AC–427AC  
 Default 2 beds/room. Max configurable 1–4 via dropdown.
+
+---
+
+## Tool Routing
+
+Route every task through the correct tool(s) before responding. Apply these rules automatically — no explicit user instruction needed.
+
+### Serena only
+- Find symbol, trace call, locate file, list directory structure
+- Read or navigate code before editing
+
+### DeepSeek only
+- Extract structured data from text (`deepseek_extract`)
+- Classify text into categories (`deepseek_classify`)
+- Answer a general AI/language question with no code anchor (`deepseek_query`)
+
+### Chain: Serena → DeepSeek
+- Summarize a module, file, or doc → Serena reads it, `deepseek_summarize` condenses it
+- Explain what a component or function does → Serena reads it, `deepseek_query` explains it
+- Architecture or code flow overview → Serena `get_symbols_overview`, `deepseek_query` narrates it
+
+### Debug: Serena → Claude → DeepSeek (if needed)
+- Debug a complex bug → Serena navigates to find the location, Claude reasons through the cause, call `deepseek_query` only if Claude's reasoning is still inconclusive
+
+### Claude only
+- Write new code or refactor existing code → Serena for context, Claude for edits, no DeepSeek
+
+### Hard Rules
+
+**DeepSeek constraints:**
+- Never use DeepSeek for filesystem navigation — it has no file access
+- Never use DeepSeek for code edits
+
+**Chaining constraints:**
+- Never chain when one tool is sufficient
+- When chaining, pass only the relevant section/symbol from Serena to DeepSeek — never the entire file raw
+
+**Tool preference:**
+- Prefer `mcp__serena__*` tools (auto-approved in settings) over `mcp__plugin_serena_serena__*`
+
+### Fallback Behavior
+- If DeepSeek is unavailable (API down or `DEEPSEEK_API_KEY` unset): report the failure explicitly, then continue without it
+- If Serena has not activated a project (LSP not running): fall back to direct file reads via the Read tool and note this limitation in the response
+
+### New Projects
+When starting a new project, copy this `## Tool Routing` section into its `CLAUDE.md` to make routing explicit and allow project-specific overrides. Project-specific CLAUDE.md files override this global config.
