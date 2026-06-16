@@ -217,6 +217,23 @@ const DormDB = (() => {
     }));
   }
 
+  function _invGetAndUpdate(storeName, id, updaterFn) {
+    return _openIDB().then(db => new Promise((res, rej) => {
+      const tx    = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const record = getReq.result;
+        if (!record) { res(); return; }
+        updaterFn(record);
+        const putReq = store.put(record);
+        putReq.onsuccess = () => res();
+        putReq.onerror   = () => rej(putReq.error);
+      };
+      getReq.onerror = () => rej(getReq.error);
+    }));
+  }
+
   // ── Generic read / write (synchronous via cache) ──────────────────────────
   function _r(key, def) {
     return key in _cache ? _cache[key] : def;
@@ -907,11 +924,9 @@ const DormDB = (() => {
     saveAsset: async (asset) => { await _invPut(IDB_INV_ASSETS, asset); _broadcastIdb(IDB_INV_ASSETS); },
     deleteAsset: async (id)  => { await _invDelete(IDB_INV_ASSETS, id); _broadcastIdb(IDB_INV_ASSETS); },
     async appendCheckoutEvent(assetId, event) {
-      const all  = await _invGetAll(IDB_INV_ASSETS);
-      const asset = all.find(a => a.id === assetId);
-      if (!asset) return;
-      asset.checkoutLog = [...(asset.checkoutLog || []), event];
-      await _invPut(IDB_INV_ASSETS, asset);
+      await _invGetAndUpdate(IDB_INV_ASSETS, assetId, record => {
+        record.checkoutLog = [...(record.checkoutLog || []), event];
+      });
       _broadcastIdb(IDB_INV_ASSETS);
     },
 
