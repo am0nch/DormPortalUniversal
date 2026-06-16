@@ -386,6 +386,84 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       </div>
     </div>
 
+    <div class="subsection" id="sub-semesters">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Semester Management & Rollover</div>
+      <div class="collapse-body">
+        <p>The system uses a shared <strong>Semester Registry</strong> — a list of semesters with labels, date ranges, and a "current" flag. Every module that records semester-stamped data (room reservations, inspections, incidents, inventory audits, attendance) reads from this registry. Changing the current semester here changes it everywhere.</p>
+        <p>Access it via the <strong>✏️ Manage</strong> button next to the 📅 Semester label in the menu header.</p>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Adding a semester</h4>
+        <ol class="steps">
+          <li>Open the Semester Registry (✏️ Manage in the header).</li>
+          <li>Under <strong>+ Add Semester</strong>, type a label — e.g. <code>1st Semester 2026–2027</code>. Labels must be unique and consistent: every module stores the label as a string, so a typo creates a separate semester.</li>
+          <li>Select <strong>Type</strong>: Academic or Summer.</li>
+          <li>Enter <strong>Start Date</strong> and <strong>End Date</strong>. These dates are used by the Archive system to identify which Inventory Audit records belong to a semester (audits use date-range matching, not a label field).</li>
+          <li>Click <strong>+ Add</strong>. The semester appears in the registry table immediately.</li>
+        </ol>
+        <div class="tip"><span class="tip-icon">💡</span><span>Add next semester's entry <em>before</em> running rollover — the rollover dropdown only shows semesters already in the registry.</span></div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Setting the current semester</h4>
+        <ol class="steps">
+          <li>In the <strong>Set Current Semester</strong> section at the top, choose the semester from the dropdown.</li>
+          <li>Click <strong>✅ Set as Current</strong>. The header badge updates immediately, and all modules start stamping new records with the new label.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Setting the current semester does <em>not</em> change existing records — only future saves are stamped with the new label. Use rollover (below) to update all active students at once.</span></div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">End-of-semester checklist</h4>
+        <p>Complete these steps in order before running rollover:</p>
+        <table class="guide-table">
+          <thead><tr><th>#</th><th>Step</th><th>Where</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Complete clearance for all graduating/leaving students — set Move-Out Reason and run <strong>Archive &amp; Vacate</strong></td><td>Room Reservations</td></tr>
+            <tr><td>2</td><td>Export a full backup</td><td>Menu footer → 💾 Export All Data</td></tr>
+            <tr><td>3</td><td>Archive the ending semester's records (inspections, audits, history, incidents)</td><td>Menu footer → 🗄️ Archive Data</td></tr>
+            <tr><td>4</td><td>Add the new semester to the registry if not already listed</td><td>✏️ Manage → + Add Semester</td></tr>
+            <tr><td>5</td><td>Run semester rollover (see below)</td><td>✏️ Manage → 🔄 Start New Semester Rollover</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Running semester rollover</h4>
+        <ol class="steps">
+          <li>Open <strong>✏️ Manage</strong> and scroll to the orange <strong>🔄 Start New Semester Rollover</strong> section.</li>
+          <li>Select the target semester from the dropdown (e.g. <em>1st Semester 2026–2027</em>).</li>
+          <li>A preview message appears. If any students still have a pending Move-Out Reason, the button stays disabled and the message lists how many — complete their Archive &amp; Vacate in Room Reservations first.</li>
+          <li>Once the preview shows <span style="color:#2e7d32">✓ N students will be rolled over</span> and the button is active, click <strong>🔄 Start Rollover</strong>.</li>
+          <li>Confirm the dialog. Rollover runs instantly and shows a completion alert with counts.</li>
+        </ol>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">What rollover changes (and what it preserves)</h4>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>✅ Reset by rollover</h4>
+            <ul style="margin:4px 0;padding-left:16px;font-size:.82rem">
+              <li>Semester label → new label</li>
+              <li>Summer break flag → off</li>
+              <li>1st Semester break flag → off</li>
+              <li>Expected return date → cleared</li>
+              <li>Room hold → cleared</li>
+              <li>Keys-returned status → reset</li>
+              <li>Request status → Confirmed</li>
+              <li>Manual status override → off</li>
+              <li>Current semester setting → new label</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>🔒 Preserved by rollover</h4>
+            <ul style="margin:4px 0;padding-left:16px;font-size:.82rem">
+              <li>Student name and room assignment</li>
+              <li>Student ID and type</li>
+              <li>Solo-room flag</li>
+              <li>Storage rental details</li>
+              <li>Box numbers and colors</li>
+              <li>Transfer-in history</li>
+              <li>Graduating/leaving students (skipped)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="danger"><span class="danger-icon">⚠️</span><span><strong>Rollover cannot be undone.</strong> Always export a full backup before running it. If you run rollover by mistake, restore from the pre-rollover backup via 📂 Restore Backup.</span></div>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-modules-overview">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Available Modules</div>
       <div class="collapse-body">
@@ -2302,6 +2380,7 @@ const TOC = [
       { id:'sub-first-launch',     text:'First Launch' },
       { id:'sub-backup',           text:'Backup & Restore' },
       { id:'sub-archive',          text:'Archive Old Semesters' },
+      { id:'sub-semesters',        text:'Semester Management & Rollover' },
       { id:'sub-modules-overview', text:'Available Modules' },
     ]},
   ]},
