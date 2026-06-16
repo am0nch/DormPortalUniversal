@@ -274,7 +274,7 @@ function renderFloorPlan() {
     floors[f].forEach(room => {
       const occ = getOccupancy(room);
       const color = BADGE_COLOR[occ.state];
-      const isAC = room.includes('AC');
+      const isAC = DormDB.isAcRoom(room);
       const hwLabel = getHwLabel(room);
       const names = occ.students.length
         ? occ.students.map(s => `<div>${escapeHtml(s.name.split(' ')[0])}${s.id ? ` <span style="font-size:.55rem;color:#999">${escapeHtml(s.id)}</span>` : ''}</div>`).join('')
