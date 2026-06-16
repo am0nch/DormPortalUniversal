@@ -623,12 +623,51 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-rr-away">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Away Students Panel</div>
       <div class="collapse-body">
-        <p>The <strong>Away Students</strong> panel (<strong>📤 Away</strong> button in the Filter Bar) stores student records that have been temporarily moved out without being permanently archived. Their bed is released but all data is preserved.</p>
+        <p>The Away Students panel handles students who leave <strong>temporarily</strong> — e.g. going home for a break, a family emergency, or a short medical absence — while keeping their full data intact. Their bed slot is cleared so it can be used for visitors or guests, but they are not archived and can be placed back with one click.</p>
+
+        <div class="two-col">
+          <div class="info-card">
+            <h4>📤 Away vs. Archive &amp; Vacate</h4>
+            <p><strong>Away</strong> — temporary absence. Bed released, data preserved in Away panel, student returns to a room later.</p>
+            <p><strong>Archive &amp; Vacate</strong> — permanent departure. Bed released, student moved to Room History, marked as alumni in Student Profiles.</p>
+          </div>
+          <div class="info-card">
+            <h4>📊 Where Away students appear</h4>
+            <ul style="margin:4px 0;padding-left:16px;font-size:.82rem">
+              <li>📤 Away count in the KPI strip</li>
+              <li>Away Students tab in Reports</li>
+              <li>Fee Collection report (if they have storage rental)</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Marking a student as away</h4>
+        <ol class="steps">
+          <li>Find the student's row in the table. Click the <strong>···</strong> overflow button at the far right of their row.</li>
+          <li>Choose <strong>📤 Mark Temporarily Away</strong>.</li>
+          <li>Enter an expected return date (YYYY-MM-DD format). Leave blank if unknown.</li>
+          <li>Confirm the dialog. The student's bed slot is cleared, their data moves to the Away panel, and the 📤 Away badge in the Filter Bar increments.</li>
+        </ol>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Viewing the Away panel</h4>
+        <p>Click <strong>📤 Away (N)</strong> in the Filter Bar. The panel slides open below the table. Each entry shows:</p>
         <ul>
-          <li>Click <strong>Mark Away</strong> from the student's row options to move them to the Away panel.</li>
-          <li>When they return, click <strong>↩️ Restore</strong> and choose the room to place them back into a bed slot.</li>
-          <li>Away students with storage or hold payments appear in the Fee Collection report.</li>
+          <li><strong>Name</strong> and <strong>Original Room</strong> — where they were assigned before going away</li>
+          <li><strong>Returns</strong> — the expected return date entered when they were marked away</li>
+          <li><strong>Type</strong> — student type (regular, visitor, etc.)</li>
         </ul>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Restoring a student</h4>
+        <ol class="steps">
+          <li>In the Away panel, click <strong>↩ Restore</strong> next to the student.</li>
+          <li>A room picker modal opens showing all currently available bed slots. The student's original room is highlighted in <span style="color:#3498db">blue</span> if it has vacancy; their requested room is highlighted in <span style="color:#27ae60">green</span> if available.</li>
+          <li>Click any room button to assign them. The student is placed back in that room with their full data restored and the return date pre-filled.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>If the original room is no longer available (occupied by someone else), simply choose any other available room from the picker.</span></div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Discarding an away record</h4>
+        <p>Click <strong>✕ Discard</strong> in the Away panel to permanently delete the record. Use this only if the student has left for good without going through the normal Archive &amp; Vacate clearance process. Discarding cannot be undone — the student's data is lost from the away panel entirely.</p>
+        <div class="danger"><span class="danger-icon">⚠️</span><span>If a student is leaving permanently, use <strong>Archive &amp; Vacate</strong> from the table instead of Discard — it adds them to Room History and marks them as an alumni in Student Profiles, preserving the full departure record.</span></div>
       </div>
     </div>
 
@@ -751,6 +790,46 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Exporting Profile Data</div>
       <div class="collapse-body">
         <p>Click <strong>📤 Export Excel</strong> to download all profiles as an <code>.xlsx</code> file with 47 columns — all fields including room assignment (pulled from Room Reservations via Student ID match). Suitable for sending to the Registrar or Finance office.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-sp-alumni">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Alumni View</div>
+      <div class="collapse-body">
+        <p>Alumni are students whose profiles have been <strong>archived</strong> — meaning they completed the clearance process in Room Reservations and had their bed slot permanently vacated via <strong>Archive &amp; Vacate</strong>. Their profile is kept in full for historical reference but moves out of the active list.</p>
+
+        <h4 style="margin:14px 0 6px;font-size:.88rem;color:#1e3a5f">How profiles become alumni</h4>
+        <p>When a student is vacated in Room Reservations (Move Out Reason set + Archive &amp; Vacate clicked), their Student Profiles entry is automatically flagged as <code>archived: true</code> and stamped with the current semester as <code>archivedSemester</code>. No manual step is needed in Student Profiles.</p>
+
+        <h4 style="margin:14px 0 6px;font-size:.88rem;color:#1e3a5f">Switching to Alumni view</h4>
+        <ol class="steps">
+          <li>Open <strong>Student Profiles</strong>.</li>
+          <li>Click the <strong>🎓 Alumni (N)</strong> button in the toolbar. The list switches to archived profiles only; the button label changes to <strong>👤 Active (N)</strong>.</li>
+          <li>Click again to return to the active list.</li>
+        </ol>
+
+        <h4 style="margin:14px 0 6px;font-size:.88rem;color:#1e3a5f">What the Alumni table shows</h4>
+        <table class="guide-table">
+          <thead><tr><th>Column</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Name</strong></td><td>Full name (surname-sorted)</td></tr>
+            <tr><td><strong>Student ID</strong></td><td>Registrar ID</td></tr>
+            <tr><td><strong>Archived Semester</strong></td><td>Purple badge — semester active when the student was vacated</td></tr>
+            <tr><td><strong>Department</strong></td><td>Academic department</td></tr>
+            <tr><td><strong>Academic Year</strong></td><td>Year level at time of archiving</td></tr>
+            <tr><td><strong>Completeness</strong></td><td>Profile fill % — green ≥90%, yellow ≥50%, red &lt;50%</td></tr>
+            <tr><td><strong>Source</strong></td><td>How the profile was created: Registrar, MS Forms, or Manual</td></tr>
+          </tbody>
+        </table>
+        <div class="note"><span class="note-icon">ℹ️</span><span>The stats bar at the top of Student Profiles shows the alumni count in <span style="color:#7b1fa2">purple</span> when at least one archived profile exists.</span></div>
+
+        <h4 style="margin:14px 0 6px;font-size:.88rem;color:#1e3a5f">Actions on alumni profiles</h4>
+        <ul>
+          <li><strong>✏️ Edit</strong> — Update the profile (contact info, photo, notes) even after archiving.</li>
+          <li><strong>🖨️ Print</strong> — Print an A4 profile card for the student's records.</li>
+          <li><strong>↩ Restore</strong> — Opens Room Reservations so you can assign the student to a bed. Useful if a student returns to the dorm in a later semester. After placing them in a room and saving, their profile flag is not automatically cleared — use the Edit modal to remove the archived flag if needed, or simply treat them as an active student from the Room Reservations side.</li>
+        </ul>
+        <div class="tip"><span class="tip-icon">💡</span><span>The Alumni view is read-only for the purpose of room data — it only reflects who was archived, not their current placement. Room Reservations is the source of truth for current occupancy.</span></div>
       </div>
     </div>
   </section>
@@ -2405,6 +2484,7 @@ const TOC = [
       { id:'sub-sp-import',   text:'Importing Profiles' },
       { id:'sub-sp-print',    text:'Printing Cards' },
       { id:'sub-sp-export',   text:'Exporting Data' },
+      { id:'sub-sp-alumni',   text:'Alumni View' },
     ]},
     { id:'sec-floor-plan', text:'🏢 Floor Plan', subs:[
       { id:'sub-fp-grid',     text:'Reading the Grid' },
