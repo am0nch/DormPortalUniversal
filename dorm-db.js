@@ -257,14 +257,44 @@ const DormDB = (() => {
 
   try { _channel = new BroadcastChannel('dorm-sync'); } catch(e) { /* private/unsupported */ }
 
+  // ── Cached IDB stats (for synchronous getMenuStats) ───────────────────────
+  const _cachedStats = { invMaint: 0, invCheckedOut: 0, invLowStock: 0, invMaintFlagged: 0 };
+
+  async function _refreshIdbStats() {
+    try {
+      const [maint, checkedOut, allAssets] = await Promise.all([
+        _invGetByIndex(IDB_INV_ASSETS, 'statusLabel', 'in-maintenance'),
+        _invGetByIndex(IDB_INV_ASSETS, 'statusLabel', 'checked-out'),
+        _invGetAll(IDB_INV_ASSETS),
+      ]);
+      _cachedStats.invMaint      = maint.length;
+      _cachedStats.invCheckedOut = checkedOut.length;
+      _cachedStats.invLowStock   = allAssets.filter(a => a.isConsumable && typeof a.qty === 'number' && a.qty <= (a.reorderAt || 0)).length;
+      _cachedStats.invMaintFlagged = allAssets.filter(a => a.maintenanceFlag && !a.maintenancePushed).length;
+    } catch(e) { /* best-effort */ }
+  }
+
   function _broadcast(key) {
     const val = key in _cache ? _cache[key] : _DELETED;
     if (_channel) _channel.postMessage({ key, val, ts: Date.now() });
     (_subs[key] || []).forEach(fn => { try { fn(); } catch(e) {} });
   }
 
+  function _broadcastIdb(storeName) {
+    if (_channel) _channel.postMessage({ store: storeName, ts: Date.now() });
+    (_subs[storeName] || []).forEach(fn => { try { fn(); } catch(e) {} });
+    if (storeName === IDB_INV_ASSETS) _refreshIdbStats();
+  }
+
   if (_channel) {
-    _channel.onmessage = ({ data: { key, val } }) => {
+    _channel.onmessage = ({ data }) => {
+      if (data.store) {
+        // IDB store changed in another tab
+        (_subs[data.store] || []).forEach(fn => { try { fn(); } catch(e) {} });
+        if (data.store === IDB_INV_ASSETS) _refreshIdbStats();
+        return;
+      }
+      const { key, val } = data;
       if (val === _DELETED) delete _cache[key];
       else _cache[key] = val;
       (_subs[key] || []).forEach(fn => { try { fn(); } catch(e) {} });
@@ -310,6 +340,7 @@ const DormDB = (() => {
         try { _cache[key] = JSON.parse(raw); } catch { _cache[key] = raw; }
       }
     }
+    await _refreshIdbStats();
     _resolveReady();
   }
 
@@ -529,7 +560,6 @@ const DormDB = (() => {
       const assigned = _r(K.KEYS_ASSIGNED, []);
       const maint    = _r(K.MAINTENANCE, []);
       const inspect  = _r(K.INSPECTIONS, []);
-      const invent   = _r(K.INVENTORY, []);
       const profiles   = _r(K.PROFILES, []);
       const attendance = _r(K.ATTENDANCE, []);
       const incidents  = _r(K.INCIDENTS, []);
@@ -551,8 +581,8 @@ const DormDB = (() => {
         openMaintenance:    maint.filter(m => m.status === 'Open').length,
         highUrgency:        maint.filter(m => m.urgency === 'High' || m.urgency === 'Emergency').length,
         failedInspections:  inspect.filter(r => r.type==='move-out' && r.charges && [...(r.charges.sideA||[]),...(r.charges.sideB||[]),...(r.charges.shared||[]),...(r.charges.bathroom||[])].reduce((a,c)=>a+c.amount,0)>0).length,
-        lowStock:           invent.filter(i => typeof i.qty === 'number' && i.isConsumable && i.qty <= (i.reorderAt || 0)).length,
-        maintenanceFlagged: invent.filter(i => i.maintenanceFlag && !i.maintenancePushed).length,
+        lowStock:           _cachedStats.invLowStock,
+        maintenanceFlagged: _cachedStats.invMaintFlagged,
         profileCount:       profiles.filter(p => !p.archived).length,
         profilesComplete:   profiles.filter(p => !p.archived && pctOf(p) >= 90).length,
         depositsCollected:  assigned.filter(k => k.depositPaid).length,
@@ -864,6 +894,35 @@ const DormDB = (() => {
       _w(K.ATT_ARCHIVE, []);
       return flat.length;
     },
+
+    // ── Asset Models (dormInventoryModels IDB store) ──────────────────────────
+    getInvModels:  () => _invGetAll(IDB_INV_MODELS),
+    saveInvModel:  async (model) => { await _invPut(IDB_INV_MODELS, model); _broadcastIdb(IDB_INV_MODELS); },
+    deleteInvModel: async (id)   => { await _invDelete(IDB_INV_MODELS, id); _broadcastIdb(IDB_INV_MODELS); },
+
+    // ── Asset Instances (dormInventoryAssets IDB store) ───────────────────────
+    getAllAssets:        () => _invGetAll(IDB_INV_ASSETS),
+    getAssetsByRoom:     (room) => _invGetByIndex(IDB_INV_ASSETS, 'location', DormDB.normalizeRoomId(room)),
+    getAssetsByStatus:   (status) => _invGetByIndex(IDB_INV_ASSETS, 'statusLabel', status),
+    saveAsset: async (asset) => { await _invPut(IDB_INV_ASSETS, asset); _broadcastIdb(IDB_INV_ASSETS); },
+    deleteAsset: async (id)  => { await _invDelete(IDB_INV_ASSETS, id); _broadcastIdb(IDB_INV_ASSETS); },
+    async appendCheckoutEvent(assetId, event) {
+      const all  = await _invGetAll(IDB_INV_ASSETS);
+      const asset = all.find(a => a.id === assetId);
+      if (!asset) return;
+      asset.checkoutLog = [...(asset.checkoutLog || []), event];
+      await _invPut(IDB_INV_ASSETS, asset);
+      _broadcastIdb(IDB_INV_ASSETS);
+    },
+
+    // ── Shared helpers ────────────────────────────────────────────────────────
+    normalizeRoomId: (room) => room ? String(room).replace(/\s*AC$/i, '').trim() : '',
+    isAcRoom(room) {
+      const norm = DormDB.normalizeRoomId(room);
+      return _r(K.ROOMS, []).some(s => DormDB.normalizeRoomId(s.room) === norm && s.ac === true);
+    },
+    _refreshIdbStats,
+    get _cachedStats() { return _cachedStats; },
 
     // Expose key constants for modules that need them
     KEYS: K,
