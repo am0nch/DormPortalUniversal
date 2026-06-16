@@ -1612,7 +1612,7 @@ async function confirmRemove(id) {
   if (!item) return;
   document.getElementById('confirmTitle').textContent = 'Remove Item';
   document.getElementById('confirmMsg').textContent = `Remove "${item.name}" from inventory? This cannot be undone.`;
-  document.getElementById('confirmOkBtn').onclick = () => { removeItem(id); closeModal('confirmModal'); };
+  document.getElementById('confirmOkBtn').onclick = async () => { await removeItem(id); closeModal('confirmModal'); };
   document.getElementById('confirmModal').classList.add('open');
 }
 async function removeItem(id) {
@@ -2565,7 +2565,7 @@ function _runScanLoop() {
       const codes = await _scanDetector.detect(video);
       if (codes.length) {
         const val = codes[0].rawValue.trim();
-        handleScanInput(val);
+        await handleScanInput(val);
         // Pause scanning for 2.5 s to avoid re-reading the same barcode immediately
         await new Promise(r => setTimeout(r, 2500));
       }
