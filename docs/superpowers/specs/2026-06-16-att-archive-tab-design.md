@@ -1,17 +1,26 @@
 # Archived Semesters Tab — reports.html
 
-**Date:** 2026-06-16 (revised — IDB path)
-**Scope:** Add a 13th tab to `modules/reports.html` that reads archived attendance sessions from the IDB `dormkv_archive` store (same store used by inspections, incidents, history, and inventory audits). Also updates `dorm-db.js` and `modules/attendance.html` to route new archives to IDB instead of localStorage.
+**Date:** 2026-06-16 (revised v2 — IDB for all accumulating keys)
+**Scope:** Add a 13th tab to `modules/reports.html` that reads archived attendance sessions from the IDB `dormkv_archive` store. Also routes ALL accumulating semester data to IDB — adding `K.ATTENDANCE`, `K.MAINTENANCE`, `K.OFFCAMPUS_REQ`, and `K.ASSISTANCE` to `ARCHIVE_SEM_FIELD` and the `archiveSemester()` default keyList.
 
 ---
 
 ## Background
 
-`DormDB.archiveAttendance(semLabel)` (called from `attendance.html`) moves completed attendance sessions from `dormAttendance` → `dormAttendanceArchive` in localStorage. This is the odd one out: every other archivable key (inspections, inventory audits, history, incidents) uses the IDB `dormkv_archive` store added in v4.2.
+The IDB `dormkv_archive` store (added in v4.2) currently covers four keys: `dormInspections`, `dormIncidents`, `dormHistory`, `dormInventoryAudits`. Three accumulating keys were left out and have no archive mechanism at all:
 
-**Why this matters:** Each session can contain 100–200 student records. At ~15 KB/session × 30 sessions/semester, a single `dormAttendanceArchive` entry can reach 500 KB–2 MB — a real localStorage quota risk over multiple semesters.
+| Key | Module | Field shape |
+|-----|--------|-------------|
+| `dormAttendance` | attendance.html | `semesterLabel` + nested `records[]` per session |
+| `dormMaintenance` | plant-requests.html | `createdAt` ISO date |
+| `dormOffCampusReq` | student-admin.html | `createdAt` ISO date |
+| `dormAssistance` | student-admin.html | `createdAt` ISO date |
 
-The fix: route attendance archives to IDB, add a one-time migration for existing localStorage data, and build the report tab to read from IDB.
+**Why this matters:** Attendance is the most urgent — each session contains 100–200 student records (~15 KB/session × 30 sessions/semester = up to 2 MB in a single localStorage key). The other three are smaller individually but will accumulate indefinitely. Routing all four to IDB now prevents future quota issues and makes the archive system complete.
+
+`dormAttendance` additionally has a separate legacy localStorage key (`dormAttendanceArchive`) written by `DormDB.archiveAttendance()` — a one-time migration is needed to move existing data to IDB.
+
+The fix: add all four keys to `ARCHIVE_SEM_FIELD`, expand the `archiveSemester()` default keyList, migrate legacy attendance data, update `attendance.html` to use the async IDB path, and build the report tab.
 
 ---
 
@@ -32,27 +41,37 @@ On first open of the Att. Archive tab in reports.html, a one-time migration move
 
 ## Changes — `dorm-db.js`
 
-### 1. Add attendance to `ARCHIVE_SEM_FIELD`
+### 1. Expand `ARCHIVE_SEM_FIELD`
+
+Add the four new keys. `ATTENDANCE` uses `type: 'field'` (exact `semesterLabel` match). The other three use `type: 'dateRange'` with `field: 'createdAt'` — they require `semDef.startDate`/`semDef.endDate` to be set in the semester registry, same as `INV_AUDITS`.
 
 ```js
 const ARCHIVE_SEM_FIELD = {
-  [K.INSPECTIONS]: { type: 'field',     field: 'semester'      },
-  [K.INCIDENTS]:   { type: 'field',     field: 'semesterLabel' },
-  [K.HISTORY]:     { type: 'field',     field: 'semester'      },
-  [K.INV_AUDITS]:  { type: 'dateRange', field: 'date'          },
-  [K.ATTENDANCE]:  { type: 'field',     field: 'semesterLabel' },  // NEW
+  [K.INSPECTIONS]:   { type: 'field',     field: 'semester'      },
+  [K.INCIDENTS]:     { type: 'field',     field: 'semesterLabel' },
+  [K.HISTORY]:       { type: 'field',     field: 'semester'      },
+  [K.INV_AUDITS]:    { type: 'dateRange', field: 'date'          },
+  [K.ATTENDANCE]:    { type: 'field',     field: 'semesterLabel' },  // NEW
+  [K.MAINTENANCE]:   { type: 'dateRange', field: 'createdAt'     },  // NEW
+  [K.OFFCAMPUS_REQ]: { type: 'dateRange', field: 'createdAt'     },  // NEW
+  [K.ASSISTANCE]:    { type: 'dateRange', field: 'createdAt'     },  // NEW
 };
 ```
 
-### 2. Add `K.ATTENDANCE` to `archiveSemester()` default keyList
+**Note on `dateRange` keys:** `createdAt` is an ISO datetime string (`"2026-02-14T10:30:00.000Z"`). The existing `dateRange` filter in `archiveSemester()` compares `r[field] >= semDef.startDate && r[field] <= semDef.endDate`. Since `semDef.startDate`/`endDate` are date strings (`"2026-01-01"`), the ISO prefix comparison works correctly (ISO datetime strings sort lexicographically). No change needed to the filter logic.
+
+### 2. Expand `archiveSemester()` default keyList
 
 ```js
 async archiveSemester(semLabel, keyList) {
-  const keys = keyList || [K.INSPECTIONS, K.INV_AUDITS, K.HISTORY, K.INCIDENTS, K.ATTENDANCE];
+  const keys = keyList || [
+    K.INSPECTIONS, K.INV_AUDITS, K.HISTORY, K.INCIDENTS,
+    K.ATTENDANCE, K.MAINTENANCE, K.OFFCAMPUS_REQ, K.ASSISTANCE,  // NEW
+  ];
   // ... rest unchanged
 ```
 
-This means calling `DormDB.archiveSemester(semLabel)` from index.html's archive modal now also archives attendance into IDB automatically — no separate step needed.
+Calling `DormDB.archiveSemester(semLabel)` from index.html's archive modal now archives all eight key types into IDB automatically. The archive modal's count preview will show counts for the four new keys when they have matching records — no change needed to the modal UI itself.
 
 ### 3. Add `async migrateAttArchive()` method
 
@@ -85,7 +104,11 @@ async migrateAttArchive() {
 
 ### 4. Keep `archiveAttendance()` — no change needed
 
-The method stays unchanged. It will still function as a fallback, but `attendance.html` will no longer call it after the update below. No data inconsistency risk: if the old method is somehow called, it just writes to localStorage, which the migration in step 3 will pick up on the next report tab open.
+The method stays unchanged as a fallback. `attendance.html` will no longer call it after the update below. If it is ever called (e.g. from older cached code), it writes to `dormAttendanceArchive` in localStorage, which the migration gate in `renderAttArchive()` will pick up on the next report tab open.
+
+### 5. No migration needed for `MAINTENANCE`, `OFFCAMPUS_REQ`, `ASSISTANCE`
+
+These keys have never had a separate archive key — their data simply lives in the live localStorage key indefinitely. No migration step needed: on the user's next `archiveSemester()` call (via index.html archive modal), records matching the semester date range will be moved to IDB. Records from semesters with no date range defined in the registry stay in live localStorage until the user defines dates and re-archives.
 
 ---
 
@@ -224,12 +247,12 @@ Sync — by the time print is reachable the accordion is already rendered.
 
 | File | Change |
 |------|--------|
-| `dorm-db.js` | Add `K.ATTENDANCE` to `ARCHIVE_SEM_FIELD`; add to `archiveSemester()` default keyList; add `async migrateAttArchive()` |
+| `dorm-db.js` | Add `K.ATTENDANCE`, `K.MAINTENANCE`, `K.OFFCAMPUS_REQ`, `K.ASSISTANCE` to `ARCHIVE_SEM_FIELD`; expand `archiveSemester()` default keyList; add `async migrateAttArchive()` |
 | `modules/attendance.html` | `archiveCurrentSemester()` → async, use `archiveSemester([K.ATTENDANCE])` |
 | `modules/reports.html` | Tab button + panel; `renderAttArchive()`, `toggleAttArchSem()`, `buildAttArchDetail()`, `printAttArchiveSem()`; one line in `switchTab()` |
 | `sw.js` | Bump `dormportal-v12` → `dormportal-v13` |
 
-No changes to `index.html`, `dorm-ui.css`, or `manifest.json`.
+No changes to `index.html`, `dorm-ui.css`, or `manifest.json`. The archive viewer modal in index.html (`#archiveViewerModal`) will automatically show the new key types once data exists — it reads `getArchivedSemesters()` which returns all IDB archive entries regardless of key type.
 
 ---
 
