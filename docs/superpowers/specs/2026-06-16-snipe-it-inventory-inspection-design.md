@@ -99,6 +99,7 @@ One record per physical object. The actual mattress in Room 302-A.
       conditionBefore: String,
       conditionAfter: String,
       inspectionId: String,  // links to dormInspections record
+      photoId: String,     // IDB photo key (condition-change events only; '' otherwise)
       notes: String,
     }
   ],
@@ -274,6 +275,52 @@ await DormDB.saveAsset(asset)
 
 ---
 
+## Asset Tag Barcodes & Condition Photos
+
+### Barcode scan in room inspection
+
+When a Dean opens an inspection for a room, each checklist row shows the asset's `assetTag` (if set). A **🔍 Scan** button on the inspection form opens the existing barcode scanner modal (camera + USB keyboard wedge — same scanner already in `inventory.html`). On a successful scan:
+
+1. The scanned tag is matched against `location === room` assets loaded into the checklist.
+2. The matching row is highlighted and scrolled into view.
+3. If no match is found in the room's assets → toast: *"Tag not found in this room's assets."*
+
+This confirms the Dean is recording condition against the correct physical object before touching the condition selector. No new IDB calls — the asset list is already loaded at inspection open time.
+
+The scanner modal is extracted from `inventory.html` into a shared inline function `openBarcodeScanner(onResult)` used by both modules. No external file dependency — the function is duplicated inline per the no-build-process rule.
+
+### Condition photos linked to `checkoutLog`
+
+Currently, inspection photos are stored as `insp_<inspectionId>_<slotKey>` in IDB and attached to the inspection record only. Under the new design, photos taken during a **move-out** inspection for a damaged item are also linked to the `condition-change` event on the asset, creating a per-asset visual condition trail.
+
+**`checkoutLog` event gains an optional `photoId` field:**
+
+```js
+{
+  event: 'condition-change',
+  room, side, date, by,
+  conditionBefore, conditionAfter,
+  inspectionId,
+  photoId: 'insp_<inspectionId>_<slotKey>',  // NEW — same IDB key as inspection record photo
+  notes,
+}
+```
+
+The photo is stored once in IDB under the inspection's key. The asset's `checkoutLog` entry holds a pointer (`photoId`) to it — no data duplication.
+
+**Inventory Items tab — detail drawer** already planned to show `checkoutLog`. It now renders condition-change events with a thumbnail:
+
+```
+Semester 1 2026 · Good → Poor · Room 302-A
+[📷 thumbnail]  "Broken leg, student confirmed."
+```
+
+Clicking the thumbnail opens the full photo (same `DormDB.getPhoto(photoId)` call used in student profiles).
+
+**Move-in photos** are not linked to `checkoutLog` — they document the room state at arrival, not a condition change. They remain attached to the inspection record only.
+
+---
+
 ## Room Number Normalization
 
 ### Problem
@@ -353,8 +400,8 @@ Dean clicks Save Inspection
 | File | Type of change |
 |---|---|
 | `dorm-db.js` | IDB v4 upgrade, 2 new stores, 8 new async methods, `normalizeRoomId`, `isAcRoom` lookup, `_cachedStats`, getMenuStats update, exportAll/importAll update |
-| `modules/inventory.html` | Models tab (new), Items tab upgrades, Dashboard additions, Settings cleanup, all queries → async IDB, `isAcRoom` → `DormDB.isAcRoom` |
-| `modules/room-inspection.html` | Remove SIDE_ITEMS/SHARED_ITEMS, live asset query, move-in/move-out write-back, `_isAC` → `DormDB.isAcRoom` |
+| `modules/inventory.html` | Models tab (new), Items tab upgrades + condition photo thumbnails in detail drawer, Dashboard additions, Settings cleanup, all queries → async IDB, `isAcRoom` → `DormDB.isAcRoom` |
+| `modules/room-inspection.html` | Remove SIDE_ITEMS/SHARED_ITEMS, live asset query, barcode scan to highlight asset row, move-in/move-out write-back + `photoId` on condition-change events, `_isAC` → `DormDB.isAcRoom` |
 | `modules/floor-plan.html` | `isAC` string check → `DormDB.isAcRoom` |
 | `modules/utilities.html` | `isAC` string check → `DormDB.isAcRoom` |
 | `sw.js` | Cache version bump after deploy |
