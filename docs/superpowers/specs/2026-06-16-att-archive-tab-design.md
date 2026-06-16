@@ -1,50 +1,148 @@
 # Archived Semesters Tab — reports.html
 
-**Date:** 2026-06-16
-**Scope:** Add a 13th tab to `modules/reports.html` that reads `dormAttendanceArchive` and presents archived attendance sessions grouped by semester with stats-first layout and per-semester print.
+**Date:** 2026-06-16 (revised — IDB path)
+**Scope:** Add a 13th tab to `modules/reports.html` that reads archived attendance sessions from the IDB `dormkv_archive` store (same store used by inspections, incidents, history, and inventory audits). Also updates `dorm-db.js` and `modules/attendance.html` to route new archives to IDB instead of localStorage.
 
 ---
 
 ## Background
 
-`DormDB.archiveAttendance(semLabel)` moves completed attendance sessions from `dormAttendance` → `dormAttendanceArchive` (localStorage, flat array). This has been write-only since it was built — no module reads the data back. The "Att. Archive" tab closes that gap.
+`DormDB.archiveAttendance(semLabel)` (called from `attendance.html`) moves completed attendance sessions from `dormAttendance` → `dormAttendanceArchive` in localStorage. This is the odd one out: every other archivable key (inspections, inventory audits, history, incidents) uses the IDB `dormkv_archive` store added in v4.2.
+
+**Why this matters:** Each session can contain 100–200 student records. At ~15 KB/session × 30 sessions/semester, a single `dormAttendanceArchive` entry can reach 500 KB–2 MB — a real localStorage quota risk over multiple semesters.
+
+The fix: route attendance archives to IDB, add a one-time migration for existing localStorage data, and build the report tab to read from IDB.
 
 ---
 
-## Data Source
+## Data Flow (new)
 
-`DormDB.getAttArchive()` — returns a flat array of session objects (same shape as live `dormAttendance` sessions):
+```
+attendance.html                    dorm-db.js                      IDB dormkv_archive
+archiveCurrentSemester()
+  → await archiveSemester(        ← reads dormAttendance (live)
+      semLabel,                     filters by semesterLabel
+      [K.ATTENDANCE]                writes to IDB key:
+    )                               "dormAttendance__${semLabel}"
+```
+
+On first open of the Att. Archive tab in reports.html, a one-time migration moves any existing `dormAttendanceArchive` (localStorage) data into IDB, then clears the localStorage key.
+
+---
+
+## Changes — `dorm-db.js`
+
+### 1. Add attendance to `ARCHIVE_SEM_FIELD`
 
 ```js
-{
-  semesterLabel,   // e.g. "1st Semester 2026"
-  date,            // "YYYY-MM-DD"
-  floor,           // "All" | "1,2" | "3" | "4"
-  status,          // "Completed" | ...
-  conductedBy,     // string
-  summary: { present, absent, onLeave, total },
-  records: [{ studentName, studentId, room, status }]
+const ARCHIVE_SEM_FIELD = {
+  [K.INSPECTIONS]: { type: 'field',     field: 'semester'      },
+  [K.INCIDENTS]:   { type: 'field',     field: 'semesterLabel' },
+  [K.HISTORY]:     { type: 'field',     field: 'semester'      },
+  [K.INV_AUDITS]:  { type: 'dateRange', field: 'date'          },
+  [K.ATTENDANCE]:  { type: 'field',     field: 'semesterLabel' },  // NEW
+};
+```
+
+### 2. Add `K.ATTENDANCE` to `archiveSemester()` default keyList
+
+```js
+async archiveSemester(semLabel, keyList) {
+  const keys = keyList || [K.INSPECTIONS, K.INV_AUDITS, K.HISTORY, K.INCIDENTS, K.ATTENDANCE];
+  // ... rest unchanged
+```
+
+This means calling `DormDB.archiveSemester(semLabel)` from index.html's archive modal now also archives attendance into IDB automatically — no separate step needed.
+
+### 3. Add `async migrateAttArchive()` method
+
+One-time migration from localStorage → IDB. Called by the report tab on first render if legacy data exists.
+
+```js
+async migrateAttArchive() {
+  const flat = _r(K.ATT_ARCHIVE, []);
+  if (!flat.length) return 0;
+  const bySem = {};
+  flat.forEach(s => {
+    const k = s.semesterLabel || 'Unknown';
+    if (!bySem[k]) bySem[k] = [];
+    bySem[k].push(s);
+  });
+  for (const [semLabel, records] of Object.entries(bySem)) {
+    const existing = await _arcGet(K.ATTENDANCE, semLabel);
+    const merged   = existing ? [...existing.records, ...records] : records;
+    await _arcSet(K.ATTENDANCE, semLabel, {
+      dormKey: K.ATTENDANCE, semLabel,
+      records: merged,
+      archivedAt: new Date().toISOString(),
+      count: merged.length,
+    });
+  }
+  _w(K.ATT_ARCHIVE, []);   // clear localStorage entry
+  return flat.length;
+},
+```
+
+### 4. Keep `archiveAttendance()` — no change needed
+
+The method stays unchanged. It will still function as a fallback, but `attendance.html` will no longer call it after the update below. No data inconsistency risk: if the old method is somehow called, it just writes to localStorage, which the migration in step 3 will pick up on the next report tab open.
+
+---
+
+## Changes — `modules/attendance.html`
+
+`archiveCurrentSemester()` (line ~1037) currently calls `DormDB.archiveAttendance(label)` synchronously. Update to use the async IDB path:
+
+**Before:**
+```js
+function archiveCurrentSemester() {
+  const label = document.getElementById('archiveSemLabel').value.trim();
+  if (!label) { showToast('⚠️ Enter a semester label first'); return; }
+  askConfirm(
+    `Archive all sessions labelled "${label}"? ...`,
+    () => {
+      const count = DormDB.archiveAttendance(label);
+      sessions = DormDB.getAttendance();
+      renderHistory();
+      showToast('🗄️ Archived ' + count + ' session' + (count!==1?'s':''));
+    }
+  );
 }
 ```
 
-Only sessions with `status === 'Completed'` are shown. Sessions are grouped client-side by `semesterLabel`.
+**After:**
+```js
+function archiveCurrentSemester() {
+  const label = document.getElementById('archiveSemLabel').value.trim();
+  if (!label) { showToast('⚠️ Enter a semester label first'); return; }
+  askConfirm(
+    `Archive all sessions labelled "${label}"? ...`,
+    async () => {
+      const result = await DormDB.archiveSemester(label, [DormDB.KEYS.ATTENDANCE]);
+      const count  = result[DormDB.KEYS.ATTENDANCE] || 0;
+      sessions = DormDB.getAttendance();
+      renderHistory();
+      showToast('🗄️ Archived ' + count + ' session' + (count!==1?'s':''));
+    }
+  );
+}
+```
 
 ---
 
-## Tab Placement
+## Changes — `modules/reports.html`
 
-- Button added to `.tab-bar` immediately after the existing `📅 Attendance` button.
-- Label: `🗄️ Att. Archive`
-- `data-tab="att-archive"`, `onclick="switchTab('att-archive')"`
-- `switchTab()` gets one new branch: `if (name === 'att-archive') renderAttArchive();`
+### Tab button
 
----
-
-## HTML Structure
+Added after `📅 Attendance`, before `🚨 Incidents`:
 
 ```html
 <button class="tab-btn" data-tab="att-archive" onclick="switchTab('att-archive')">🗄️ Att. Archive</button>
 ```
+
+### Tab panel
+
+Inserted after `#tab-attendance`, before `#tab-incidents`:
 
 ```html
 <div id="tab-att-archive" class="tab-panel">
@@ -55,80 +153,70 @@ Only sessions with `status === 'Completed'` are shown. Sessions are grouped clie
 </div>
 ```
 
-Panel inserted after `#tab-attendance` and before `#tab-incidents`.
-
----
-
-## Render Logic — `renderAttArchive()`
-
-### 1. Empty state
-
-If archive is empty or has no completed sessions:
-
-```
-No archived attendance sessions yet.
-Use the Archive Data button on the main menu to archive a semester.
-```
-
-Centered, grey, 40px padding.
-
-### 2. Group by semester
+### `switchTab()` addition
 
 ```js
-const sessions = (DormDB.getAttArchive() || []).filter(s => s.status === 'Completed');
-// group by semesterLabel, sort newest-first
+if (name === 'att-archive') renderAttArchive();
 ```
 
-Sort order: `semLabel` descending (string compare — matches existing sort in `getArchivedSemesters()`).
+### `async renderAttArchive()`
 
-### 3. Per-semester stat card
+1. **Migration gate** — if `DormDB.getAttArchive().length > 0`, call `await DormDB.migrateAttArchive()` silently.
+2. **Load index** — `const index = await DormDB.getArchivedSemesters()` filtered to `entry.dormKey === DormDB.KEYS.ATTENDANCE`.
+3. **Empty state** — if no entries, render: *"No archived attendance sessions yet. Archive a semester from the Attendance module or use the Archive Data button on the main menu."*
+4. **Semester stat cards** — one card per unique `semLabel` (sorted newest-first). Each card shows:
+   - Semester label (bold, navy heading)
+   - Stat chip: Sessions (from `entry.count`)
+   - `▶ View Sessions` toggle button
+   - Placeholder div `<div id="att-arc-detail-${safeSemId}" data-sem="${semLabel}" style="display:none"></div>`
 
-One card per semester. Each card contains:
+   Note: session-level stats (total absences, top absentees) are computed lazily on first expand — not upfront — because loading all records for all semesters at once is expensive.
 
-| Element | Detail |
-|---------|--------|
-| Heading | Semester label (bold, navy) |
-| Stat chip — Sessions | Count of completed sessions for this semester |
-| Stat chip — Total Absences | Sum of `summary.absent` across sessions |
-| Stat chip — ≥3 Absences | Count of students whose total absence count ≥ 3 |
-| Top absentees | Up to 3 names with their absence count; computed from `records[]` |
-| Toggle button | `▶ View Sessions` / `▼ Hide Sessions` |
+5. **Stat counts on cards** — `entry.count` (total sessions) is available from the index without loading records. Total absences and top absentees are shown only inside the expanded accordion, not on the card.
 
-Card styling: white background, `border-radius:8px`, `box-shadow:0 1px 4px rgba(0,0,0,.08)`, `padding:16px`, `margin-bottom:12px`.
+### `async toggleAttArchSem(semLabel)`
 
-Stat chips reuse the same inline style pattern as `renderAttendanceReport()`.
+Called by the `▶ View Sessions` button. Uses a `data-loaded` attribute to avoid re-fetching:
 
-### 4. Accordion detail (hidden by default)
+```js
+async function toggleAttArchSem(semLabel) {
+  const id     = 'att-arc-detail-' + semLabel.replace(/\W+/g, '-');
+  const detail = document.getElementById(id);
+  const btn    = detail.previousElementSibling.querySelector('.toggle-btn');
 
-A `<div>` with `data-sem="${semLabel}"` and `style="display:none"` rendered directly below the card. Toggled via `toggleAttArchSem(semLabel)` which flips `display` between `none` and `block` and updates the button label.
+  if (detail.dataset.loaded !== '1') {
+    btn.textContent = '⏳ Loading…';
+    const records = await DormDB.getArchiveRecords(DormDB.KEYS.ATTENDANCE, semLabel);
+    detail.innerHTML = buildAttArchDetail(semLabel, records);
+    detail.dataset.loaded = '1';
+  }
 
-Contents:
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '▶ View Sessions' : '▼ Hide Sessions';
+}
+```
 
-**Session log table** — columns: Date · Floor · Present · Absent · On Leave · Total · Conducted By. Rows sorted newest-first by `date`. Absent cell highlighted red if `> 0`.
+### `buildAttArchDetail(semLabel, records)`
 
-**Absence count table** — columns: Student · Absences · Alert. Rows sorted by absence count descending. `⚠️ Follow up` alert if count ≥ 3. Row background `#fff8e1` if ≥ 3 absences (matches live Attendance tab style).
+Pure function (sync). Receives the session records array, returns HTML string:
 
-**Print button** — `🖨️ Print This Semester` at the bottom of the accordion. Calls `printAttArchiveSem(semLabel)`.
+- **Session log table** — Date · Floor · Present · Absent · On Leave · Total · Conducted By. Sorted newest-first. Absent cell red if `> 0`.
+- **Absence count table** — aggregated from `session.records` where `status === 'Absent'`. Columns: Student · Absences · Alert (⚠️ if ≥ 3). Row background `#fff8e1` if ≥ 3. Sorted by count descending.
+- **Print button** — `🖨️ Print This Semester` calls `printAttArchiveSem(semLabel)`.
 
----
+### `printAttArchiveSem(semLabel)`
 
-## Print Logic — `printAttArchiveSem(semLabel)`
+Sync — by the time print is reachable the accordion is already rendered.
 
-1. Finds the accordion detail div via `document.querySelector('[data-sem="' + semLabel + '"]')`.
+1. Finds detail div by `id` (`att-arc-detail-${semLabel.replace(/\W+/g, '-')}`).
 2. Opens `window.open('', '_blank')`.
-3. Writes A4 print document with:
+3. Writes A4 print document — same style as `printAttendanceReport()`:
    - `@page { size: A4; margin: 12mm }`
-   - Same `font-family`, table, and header styles as `printAttendanceReport()`
-   - `<h1>` with semester label
-   - Printed date/time line
-   - Inner HTML of the accordion detail div
-4. Calls `win.document.close(); win.print();`
-
----
-
-## DormDB Subscription
-
-None required. `dormAttendanceArchive` is written only by the archive flow in `index.html` and is not updated reactively while `reports.html` is open. The tab re-renders fresh on each `switchTab('att-archive')` call.
+   - Navy `<th>` headers, `font-family: Segoe UI`
+   - `<h1>` with semester label + dorm name
+   - Printed date line
+   - Inner HTML of the detail div (minus the print button itself — filtered via `no-print` class on the button)
 
 ---
 
@@ -136,15 +224,18 @@ None required. `dormAttendanceArchive` is written only by the archive flow in `i
 
 | File | Change |
 |------|--------|
-| `modules/reports.html` | Add tab button, tab panel HTML, `renderAttArchive()`, `toggleAttArchSem()`, `printAttArchiveSem()`, one line in `switchTab()` |
+| `dorm-db.js` | Add `K.ATTENDANCE` to `ARCHIVE_SEM_FIELD`; add to `archiveSemester()` default keyList; add `async migrateAttArchive()` |
+| `modules/attendance.html` | `archiveCurrentSemester()` → async, use `archiveSemester([K.ATTENDANCE])` |
+| `modules/reports.html` | Tab button + panel; `renderAttArchive()`, `toggleAttArchSem()`, `buildAttArchDetail()`, `printAttArchiveSem()`; one line in `switchTab()` |
+| `sw.js` | Bump `dormportal-v12` → `dormportal-v13` |
 
-No changes to `dorm-db.js`, `sw.js`, or any other file.
+No changes to `index.html`, `dorm-ui.css`, or `manifest.json`.
 
 ---
 
 ## Post-implementation checklist
 
-- [ ] BF-016 check: no direct `dorm*` localStorage access added
-- [ ] `wc -l modules/reports.html` — update CLAUDE.md File Stats table
+- [ ] BF-016 check: no direct `dorm*` localStorage access added (migration write via `_w` is inside dorm-db.js — OK)
+- [ ] `wc -l` all changed files — update CLAUDE.md File Stats table
 - [ ] SW cache bump: `dormportal-v12` → `dormportal-v13` in `sw.js`
-- [ ] Commit: `feat(reports): add Archived Semesters attendance tab`
+- [ ] Commit: `feat(reports): add Archived Attendance Semesters tab (IDB-backed)`
