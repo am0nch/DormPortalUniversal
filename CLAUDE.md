@@ -12,7 +12,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/student-profiles.html` | Student directory, A4 profile cards, CSV/Excel import |
 | `modules/floor-plan.html` | Visual room grid, bathroom pairing config |
 | `modules/utilities.html` | Meter readings, per-student billing, archive |
-| `modules/reports.html` | 12-tab report hub — all reports are print/PDF only, no SheetJS |
+| `modules/reports.html` | 13-tab report hub — all reports are print/PDF only, no SheetJS; tab 13 = Att. Archive (IDB-backed) |
 | `modules/room-inspection.html` | Move-in/out checklists, charge calc, clearance pre-fill |
 | `modules/key-inventory.html` | Key checkout/return/lost, overdue alerts, assigned keys |
 | `modules/inventory.html` | Asset tracking, Code 39 barcodes, room templates, bedding |
@@ -142,11 +142,19 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] `userguide.html` — all major sections now documented ✅ (ATT_ARCHIVE Archived Semesters section in reports.html still future work)
-- [ ] Archived Semesters tab (reports.html) — Att. Archive tab implemented, reads from IDB archive
+- [ ] `userguide.html` — all major sections documented ✅; Att. Archive tab section not yet added to userguide
 - [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v13)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
+- [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
+- [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-16, session 3)
+
+- [x] **dorm-db.js** — Expanded `ARCHIVE_SEM_FIELD` from 4 to 8 keys; added `K.ATTENDANCE`, `K.MAINTENANCE`, `K.OFFCAMPUS_REQ`, `K.ASSISTANCE`; expanded `archiveSemester()` default keyList; added `async migrateAttArchive()` for one-time legacy data migration. 799→826 lines
+- [x] **modules/attendance.html** — `archiveCurrentSemester()` updated from sync `archiveAttendance()` to async `archiveSemester([K.ATTENDANCE])`; archive button now routes sessions to IDB. 1,235→1,236 lines
+- [x] **modules/reports.html** — Added 13th tab `🗄️ Att. Archive`; new functions: `renderAttArchive()`, `toggleAttArchSem()`, `buildAttArchDetail()`, `printAttArchiveSem()`; tab reads archived sessions from IDB with lazy-load accordion, absence aggregation table, per-semester A4 print. 1,604→1,764 lines
+- [x] **sw.js** — Bumped cache `dormportal-v12` → `dormportal-v13`
 
 ## Completed (2026-06-16, session 1)
 
