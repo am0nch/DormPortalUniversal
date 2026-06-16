@@ -200,10 +200,14 @@ const DormDB = (() => {
 
   // Semester field mapping for archivable keys
   const ARCHIVE_SEM_FIELD = {
-    [K.INSPECTIONS]: { type: 'field',     field: 'semester'      },
-    [K.INCIDENTS]:   { type: 'field',     field: 'semesterLabel' },
-    [K.HISTORY]:     { type: 'field',     field: 'semester'      },
-    [K.INV_AUDITS]:  { type: 'dateRange', field: 'date'          },
+    [K.INSPECTIONS]:   { type: 'field',     field: 'semester'      },
+    [K.INCIDENTS]:     { type: 'field',     field: 'semesterLabel' },
+    [K.HISTORY]:       { type: 'field',     field: 'semester'      },
+    [K.INV_AUDITS]:    { type: 'dateRange', field: 'date'          },
+    [K.ATTENDANCE]:    { type: 'field',     field: 'semesterLabel' },
+    [K.MAINTENANCE]:   { type: 'dateRange', field: 'createdAt'     },
+    [K.OFFCAMPUS_REQ]: { type: 'dateRange', field: 'createdAt'     },
+    [K.ASSISTANCE]:    { type: 'dateRange', field: 'createdAt'     },
   };
 
   try { _channel = new BroadcastChannel('dorm-sync'); } catch(e) { /* private/unsupported */ }
@@ -722,7 +726,7 @@ const DormDB = (() => {
 
     // Archive methods — move old semester records to dormkv_archive (lazy-loaded, never in _cache)
     async archiveSemester(semLabel, keyList) {
-      const keys   = keyList || [K.INSPECTIONS, K.INV_AUDITS, K.HISTORY, K.INCIDENTS];
+      const keys   = keyList || [K.INSPECTIONS, K.INV_AUDITS, K.HISTORY, K.INCIDENTS, K.ATTENDANCE, K.MAINTENANCE, K.OFFCAMPUS_REQ, K.ASSISTANCE];
       const semCfg = _r(K.SEMESTER_CFG, { list: [] });
       const semDef = (semCfg.list || []).find(s => s.label === semLabel);
       const result = {};
@@ -790,6 +794,29 @@ const DormDB = (() => {
       }
       await _arcDel(dormKey, semLabel);
       return toAdd.length;
+    },
+
+    async migrateAttArchive() {
+      const flat = _r(K.ATT_ARCHIVE, []);
+      if (!flat.length) return 0;
+      const bySem = {};
+      flat.forEach(s => {
+        const k = s.semesterLabel || 'Unknown';
+        if (!bySem[k]) bySem[k] = [];
+        bySem[k].push(s);
+      });
+      for (const [semLabel, records] of Object.entries(bySem)) {
+        const existing = await _arcGet(K.ATTENDANCE, semLabel);
+        const merged   = existing ? [...existing.records, ...records] : records;
+        await _arcSet(K.ATTENDANCE, semLabel, {
+          dormKey: K.ATTENDANCE, semLabel,
+          records: merged,
+          archivedAt: new Date().toISOString(),
+          count: merged.length,
+        });
+      }
+      _w(K.ATT_ARCHIVE, []);
+      return flat.length;
     },
 
     // Expose key constants for modules that need them
