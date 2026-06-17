@@ -52,9 +52,9 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,794 |
+| `index.html` | 1,800 |
 | `dorm-db.js` | 974 |
-| `modules/room-reservations.html` | 2,153 |
+| `modules/room-reservations.html` | 2,143 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |
@@ -151,7 +151,8 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Completed (2026-06-18, Dean auth redesign)
 
-- [x] **index.html** — Dean-only security redesign: replaced HMAC session machinery with plain `sessionStorage.setItem('dormPortalUnlocked','1')` (HMAC was theater — key was in localStorage); removed M365 as auth bypass (M365 = cloud sync only); removed open-access mode — no password → first-run setup overlay prompts Dean to create password; removed staff role from main gate (single Dean credential; Staff Access PIN stays in Portal Access modal for future use); `openPwdModal()` no longer gates on M365 backup being configured; bumped SW cache v15→v16. 1,867→1,794 lines
+- [x] **index.html** — Dean-only security redesign: replaced HMAC session machinery with plain `sessionStorage.setItem('dormPortalUnlocked','1')` (HMAC was theater — key was in localStorage); removed M365 as auth bypass (M365 = cloud sync only); removed open-access mode — no password → first-run setup overlay prompts Dean to create password; removed staff role from main gate (single Dean credential; Staff Access PIN stays in Portal Access modal for future use); `openPwdModal()` no longer gates on M365 backup being configured; first-run overlay now collects Dean's name (saved via `DormDB.saveCurrentUser()`); bumped SW cache v15→v16. 1,867→1,800 lines
+- [x] **modules/room-reservations.html** — Removed `window.prompt('Your name:')` fallback and M365 display-name branch; `currentUser` is now a plain `DormDB.getCurrentUser()` read — always populated after first-run setup. 2,153→2,143 lines
 
 ## Completed (2026-06-17, post-Snipe-IT bug fixes)
 
