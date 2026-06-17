@@ -651,29 +651,42 @@ function onKiIssuedChange(i) {
 }
 
 function readSideItems(side){
-  const out={};
-  SIDE_ITEMS.forEach(item=>{
-    out[item.key]={
-      qty:parseInt(document.getElementById(`side${side}_${item.key}_qty`).value)||0,
-      condition:document.getElementById(`side${side}_${item.key}_cond`).value,
-      baseCharge:parseFloat(document.getElementById(`side${side}_${item.key}_base`).value)||0,
-      notes:document.getElementById(`side${side}_${item.key}_notes`).value,
+  const results={};
+  const gridId=side==='A'?'gridSideA':'gridSideB';
+  const tbody=document.getElementById(gridId)?.querySelector('tbody')||
+              document.getElementById(gridId);
+  if(!tbody)return results;
+  tbody.querySelectorAll('tr[data-asset-id]').forEach(row=>{
+    const assetId=row.dataset.assetId;
+    const asset=_roomAssets.find(a=>a.id===assetId);
+    if(!asset)return;
+    results[asset.name]={
+      qty:      parseInt(row.querySelector('.qty-inp')?.value||'1'),
+      condition:row.querySelector('.cond-sel')?.value||'Good',
+      charge:   parseFloat(row.querySelector('.charge-inp')?.value||'0'),
+      notes:    row.querySelector('.notes-inp')?.value||'',
     };
   });
-  return out;
+  return results;
 }
 
 function readSharedItems(){
-  const out={};
-  SHARED_ITEMS.forEach(item=>{
-    out[item.key]={
-      qty:parseInt(document.getElementById(`shared_${item.key}_qty`).value)||0,
-      condition:document.getElementById(`shared_${item.key}_cond`).value,
-      baseCharge:parseFloat(document.getElementById(`shared_${item.key}_base`).value)||0,
-      notes:document.getElementById(`shared_${item.key}_notes`).value,
+  const results={};
+  const tbody=document.getElementById('gridShared')?.querySelector('tbody')||
+              document.getElementById('gridShared');
+  if(!tbody)return results;
+  tbody.querySelectorAll('tr[data-asset-id]').forEach(row=>{
+    const assetId=row.dataset.assetId;
+    const asset=_roomAssets.find(a=>a.id===assetId);
+    if(!asset)return;
+    results[asset.name]={
+      qty:      parseInt(row.querySelector('.qty-inp')?.value||'1'),
+      condition:row.querySelector('.cond-sel')?.value||'Good',
+      charge:   parseFloat(row.querySelector('.charge-inp')?.value||'0'),
+      notes:    row.querySelector('.notes-inp')?.value||'',
     };
   });
-  return out;
+  return results;
 }
 
 function computeSeverity(condIn,condOut){
@@ -770,6 +783,70 @@ function refreshChargesPreview(){
   document.getElementById('chargesPreview').style.display='block';
 }
 
+async function _writeBackAssets(rec,type){
+  const errors=[];
+  for(const asset of _roomAssets){
+    if(asset.id.startsWith('tmp-'))continue; // skip default-template placeholders
+    try{
+      const fresh=(await DormDB.getAllAssets()).find(a=>a.id===asset.id);
+      if(!fresh)continue;
+
+      if(type==='move-in'){
+        const row=document.querySelector(`tr[data-asset-id="${CSS.escape(asset.id)}"]`);
+        const condAfter=row?.querySelector('.cond-sel')?.value||'Good';
+
+        fresh.statusLabel='checked-out';
+        fresh.checkedOutTo=DormDB.normalizeRoomId(rec.room);
+        fresh.checkoutLog=[...(fresh.checkoutLog||[]),{
+          event:'checkout',room:DormDB.normalizeRoomId(rec.room),
+          side:fresh.side,date:rec.date,by:rec.recordedBy,
+          conditionBefore:fresh.condition,conditionAfter:condAfter,
+          inspectionId:rec.id,photoId:'',notes:'',
+        }];
+        fresh.condition=condAfter;
+        await DormDB.saveAsset(fresh);
+
+      }else{ // move-out
+        const row=document.querySelector(`tr[data-asset-id="${CSS.escape(asset.id)}"]`);
+        const condAfter=row?.querySelector('.cond-sel')?.value||fresh.condition;
+        const lastCheckout=[...(fresh.checkoutLog||[])].reverse().find(e=>e.event==='checkout');
+        const condBefore=lastCheckout?.conditionAfter??fresh.condition;
+
+        const photoId=rec.photos?.[asset.id]||'';
+
+        fresh.checkoutLog=[...(fresh.checkoutLog||[]),{
+          event:'checkin',room:DormDB.normalizeRoomId(rec.room),
+          side:fresh.side,date:rec.date,by:rec.recordedBy,
+          conditionBefore:condBefore,conditionAfter:condAfter,
+          inspectionId:rec.id,photoId,notes:'',
+        }];
+
+        const sevKey=`${condBefore.toLowerCase()}→${condAfter.toLowerCase()}`;
+        if(SEVERITY[sevKey]){
+          fresh.condition=condAfter;
+          fresh.statusLabel=condAfter==='Missing'?'in-maintenance':'available';
+          fresh.checkoutLog=[...fresh.checkoutLog,{
+            event:'condition-change',room:DormDB.normalizeRoomId(rec.room),
+            side:fresh.side,date:rec.date,by:rec.recordedBy,
+            conditionBefore:condBefore,conditionAfter:condAfter,
+            inspectionId:rec.id,photoId,notes:'',
+          }];
+        }else{
+          fresh.statusLabel='available';
+        }
+        fresh.checkedOutTo='';
+        await DormDB.saveAsset(fresh);
+      }
+    }catch(e){
+      errors.push(asset.name);
+      console.warn('Asset write-back failed:',asset.id,e);
+    }
+  }
+  if(errors.length){
+    showToast(`Inspection saved. Could not update: ${errors.join(', ')}. Check Inventory.`);
+  }
+}
+
 async function saveInspection(){
   const room=document.getElementById('insp_room').value;
   const type=document.getElementById('insp_type').value;
@@ -815,6 +892,8 @@ async function saveInspection(){
   Object.keys(_pendingPhotos).forEach(k=>delete _pendingPhotos[k]);
   inspections.unshift(rec);
   DormDB.saveInspections(inspections);
+  // Write condition events back to asset records (best-effort)
+  await _writeBackAssets(rec,rec.type);
   if(type==='move-in'){_writeKeyIssuanceFromInspection(rec);}
   else{_writeChargesBackToStudents(rec);}
   closeModal('inspModal');
