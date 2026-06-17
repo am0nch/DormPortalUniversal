@@ -77,22 +77,24 @@ body{background:#f0f4f8;min-height:100vh}
 </head>
 <body>
 
-<!-- Admin password gate (shown when dormPwdHash is set and no valid session) -->
+<!-- Dean password gate (shown until valid session exists) -->
 <div id="authOverlay" style="display:none;position:fixed;inset:0;background:#1e3a5f;z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:16px;padding:36px 32px;width:340px;max-width:90vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.35)">
     <div style="font-size:2.2rem;margin-bottom:8px">🏛️</div>
-    <div style="font-weight:700;font-size:1.05rem;color:#1e3a5f;margin-bottom:4px">Dormitory Administration</div>
+    <div id="authTitle" style="font-weight:700;font-size:1.05rem;color:#1e3a5f;margin-bottom:4px">Dormitory Administration</div>
     <div id="authDormName" style="font-size:.82rem;color:#888;margin-bottom:20px"></div>
-    <button id="authM365Btn" onclick="authViaM365()"
-      style="width:100%;padding:10px;background:#0078d4;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;margin-bottom:8px;display:none">🔑 Sign in with Microsoft 365</button>
-    <div id="authM365Error" style="color:#c0392b;font-size:.75rem;margin-bottom:8px;display:none"></div>
-    <div id="authDivider" style="text-align:center;color:#bbb;font-size:.75rem;margin-bottom:10px;display:none">— or enter admin password —</div>
-    <input type="password" id="authPin" placeholder="Admin password" autocomplete="current-password"
+    <div id="authSetupMsg" style="display:none;font-size:.8rem;color:#555;background:#f0f7ff;border:1px solid #c3daf9;border-radius:7px;padding:10px 12px;margin-bottom:14px;text-align:left">
+      Welcome! Set a Dean password to secure the portal.<br>
+      <span style="font-size:.73rem;color:#888;margin-top:4px;display:block">You can change or remove it later via the 🔐 Password button.</span>
+    </div>
+    <input type="password" id="authPin" placeholder="Dean password" autocomplete="current-password"
       style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:10px;box-sizing:border-box">
-    <div id="authError" style="color:#c0392b;font-size:.82rem;margin-bottom:8px;display:none">Incorrect password — try again</div>
+    <input type="password" id="authPinConfirm" placeholder="Confirm password" autocomplete="new-password"
+      style="display:none;width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:10px;box-sizing:border-box">
+    <div id="authError" style="color:#c0392b;font-size:.82rem;margin-bottom:8px;display:none"></div>
     <button id="authBtn" onclick="submitAuth()"
       style="width:100%;padding:12px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer">🔓 Unlock</button>
-    <div style="font-size:.68rem;color:#ccc;margin-top:18px">DormPortalUniversal v4 · Authorized staff only</div>
+    <div style="font-size:.68rem;color:#ccc;margin-top:18px">DormPortalUniversal v4 · Dean access only</div>
   </div>
 </div>
 
@@ -433,10 +435,8 @@ const MODULES = [
 function renderCards(stats) {
   const grid = document.getElementById('moduleGrid');
   grid.innerHTML = '';
-  const isStaff = sessionStorage.getItem('dormPortalRole') === 'staff';
   let lastSection = null;
   MODULES.forEach(m => {
-    if (isStaff && !m.staffAccess) return;
     if (m.section !== lastSection) {
       lastSection = m.section;
       const h = document.createElement('h2');
@@ -490,8 +490,7 @@ async function restoreAll(input) {
   catch { return alert('Invalid backup file — could not parse JSON.'); }
   if (!confirm('This will overwrite ALL current data with the backup.\n\nAre you sure?')) return;
   await DormDB.importAll(dump);
-  sessionStorage.removeItem('dormPortalSession');    // invalidate session — restored pwd hash may differ
-  sessionStorage.removeItem('dormPortalSessionSig');
+  sessionStorage.removeItem('dormPortalUnlocked');  // invalidate session — restored pwd hash may differ
   refreshStats();
   updateHeader();
   // Re-sync dorm selector dropdown to the restored value
@@ -543,84 +542,70 @@ async function exportAll() {
   }
 }
 
-// ── Admin password gate ───────────────────────────────────────────────────
+// ── Dean password gate ───────────────────────────────────────────────────
 
-// Compute HMAC-SHA256(token + '|' + role, pwdHash) — used to bind the
-// session token and role together so neither can be tampered independently.
-async function _computeSessionSig(token, role, pwdHashHex) {
-  const keyBytes = new Uint8Array(pwdHashHex.match(/.{2}/g).map(b => parseInt(b, 16)));
-  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(token + '|' + role));
-  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Generate a random session token, sign it with the current pwd hash, and
-// store all three values atomically in sessionStorage.
-async function _setSession(role) {
-  const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
-  if (!hashStr) return;
-  const token = crypto.randomUUID();
-  const sig   = await _computeSessionSig(token, role, hashStr);
-  sessionStorage.setItem('dormPortalSession',    token);
-  sessionStorage.setItem('dormPortalSessionSig', sig);
-  sessionStorage.setItem('dormPortalRole',        role);
+function _setSession() {
+  sessionStorage.setItem('dormPortalUnlocked', '1');
 }
 
 async function checkAuth() {
-  // M365 session always wins
-  if (sessionStorage.getItem('dormPortalM365') === 'valid') return true;
+  const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
 
-  const m365            = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-  const m365Active      = !!(m365.clientId && m365.enabled);
-  const m365BackupReady = !!(m365.enabled && m365.clientId && m365.sharedFolderItemId);
-  const hashStr         = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
-
-  // No password set AND no M365 configured → open access (admin role)
-  if (!hashStr && !m365Active) { sessionStorage.setItem('dormPortalRole', 'admin'); return true; }
-
-  // No password set but M365 is active → show M365-only gate
-  if (!hashStr && m365Active) {
-    _showAuthOverlay({ m365Only: true });
+  // No password set → first-run setup mode
+  if (!hashStr) {
+    _showAuthOverlay({ setup: true });
     return false;
   }
 
-  // Password set, valid session → verify HMAC to prevent session forgery from IDB
-  const token = sessionStorage.getItem('dormPortalSession');
-  const sig   = sessionStorage.getItem('dormPortalSessionSig');
-  const role  = sessionStorage.getItem('dormPortalRole') || 'admin';
-  if (token && sig) {
-    const expected = await _computeSessionSig(token, role, hashStr);
-    if (expected === sig) return true;
-  }
+  // Valid session → allow access
+  if (sessionStorage.getItem('dormPortalUnlocked') === '1') return true;
 
-  // Password set → show full gate (M365 button + PIN input)
-  _showAuthOverlay({ m365Only: false });
+  // Show password gate
+  _showAuthOverlay({ setup: false });
   return false;
 }
 
-function _showAuthOverlay({ m365Only }) {
-  const m365 = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-  const m365Active = !!(m365.clientId && m365.enabled);
+function _showAuthOverlay({ setup }) {
   document.getElementById('authDormName').textContent = DormDB.getDormName() || 'Elijah Hall';
-  document.getElementById('authM365Btn').style.display  = m365Active ? 'block' : 'none';
-  document.getElementById('authM365Error').style.display = 'none';
-  document.getElementById('authDivider').style.display  = (m365Active && !m365Only) ? 'block' : 'none';
-  document.getElementById('authPin').style.display      = m365Only ? 'none' : '';
-  document.getElementById('authBtn').style.display      = m365Only ? 'none' : '';
-  document.getElementById('authError').style.display    = 'none';
+  document.getElementById('authTitle').textContent    = setup ? 'First-Time Setup' : 'Dormitory Administration';
+  document.getElementById('authSetupMsg').style.display    = setup ? 'block' : 'none';
+  document.getElementById('authPinConfirm').style.display  = setup ? '' : 'none';
+  document.getElementById('authBtn').textContent      = setup ? '🔐 Set Password' : '🔓 Unlock';
+  document.getElementById('authError').style.display  = 'none';
+  ['authPin', 'authPinConfirm'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('authOverlay').style.display  = 'flex';
   document.body.style.overflow = 'hidden';
-  if (!m365Only) {
-    document.getElementById('authPin').addEventListener('keydown', e => {
-      if (e.key === 'Enter') submitAuth();
-    }, { once: true });
-  }
+  document.getElementById('authPin').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitAuth();
+  }, { once: true });
 }
 
 async function submitAuth() {
-  const pin = (document.getElementById('authPin').value || '').trim();
-  if (!pin) return;
+  const pin   = (document.getElementById('authPin').value || '').trim();
   const errEl = document.getElementById('authError');
+  if (!pin) return;
+
+  const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
+
+  // First-run: create Dean password
+  if (!hashStr) {
+    const confirm = (document.getElementById('authPinConfirm').value || '').trim();
+    if (!confirm) { errEl.textContent = 'Please confirm your password.'; errEl.style.display = 'block'; return; }
+    if (pin !== confirm) {
+      errEl.textContent = 'Passwords do not match — try again.';
+      errEl.style.display = 'block';
+      ['authPin', 'authPinConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+      return;
+    }
+    const { hash, salt } = await DormDB.hashPwd(pin);
+    DormDB.savePwdHash({ hash, salt });
+    _setSession();
+    document.getElementById('authOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+    _initAfterAuth();
+    return;
+  }
+
   // Brute-force lockout: 5 consecutive failures → 30-second cooldown
   const lockUntil = parseInt(sessionStorage.getItem('_dormAuthLock') || '0');
   if (Date.now() < lockUntil) {
@@ -631,23 +616,15 @@ async function submitAuth() {
   }
   const btn = document.getElementById('authBtn');
   btn.disabled = true; btn.textContent = 'Checking…';
-  const okAdmin = await DormDB.verifyPwd(pin);
-  let role = null;
-  if (okAdmin) {
-    role = 'admin';
+  const ok = await DormDB.verifyPwd(pin);
+  if (ok) {
     // Auto-upgrade legacy fixed-salt hash to random-salt PBKDF2 on next successful login
     if (typeof DormDB.getPwdHash() === 'string') {
       DormDB.savePwdHash(await DormDB.hashPwd(pin));
     }
-  } else {
-    // Try staff PIN (grants limited module access)
-    const staffPin = DormDB.getStaffPin ? DormDB.getStaffPin() : null;
-    if (staffPin && await DormDB.verifyPin(pin, staffPin)) role = 'staff';
-  }
-  if (role) {
     sessionStorage.removeItem('_dormAuthFails');
     sessionStorage.removeItem('_dormAuthLock');
-    await _setSession(role);
+    _setSession();
     document.getElementById('authOverlay').style.display = 'none';
     document.body.style.overflow = '';
     _initAfterAuth();
@@ -670,31 +647,7 @@ async function submitAuth() {
   }
 }
 
-function authViaM365() {
-  const cfg = DormDB.getM365Cfg ? DormDB.getM365Cfg() : {};
-  const errEl = document.getElementById('authM365Error');
-  if (!cfg.clientId) {
-    errEl.textContent = 'M365 not configured — set the Client ID in Cloud Sync settings first.';
-    errEl.style.display = 'block';
-    return;
-  }
-  sessionStorage.setItem('dormAuthIntent', 'portal');
-  m365SignIn();
-}
-
 function _initAfterAuth() {
-  const role = sessionStorage.getItem('dormPortalRole') || 'admin';
-  if (role === 'staff') {
-    // Hide data export/import controls — staff have read/write access to their modules only
-    document.querySelectorAll('.btn-export').forEach(b => b.style.display = 'none');
-    document.querySelectorAll('#restoreInput,#mergeInput').forEach(el => el.style.display = 'none');
-    // Hide admin-only header buttons
-    document.querySelectorAll('button[onclick="openPwdModal()"],button[onclick="openPortalModal()"]')
-      .forEach(b => b.style.display = 'none');
-    // Show staff badge next to username
-    const userEl = document.getElementById('headerUser');
-    if (userEl) userEl.insertAdjacentText('afterend', ' · Staff Access');
-  }
   updateHeader();
   refreshStats();
   // Show Sync Backups button if shared folder is configured
@@ -745,28 +698,16 @@ function _initAfterAuth() {
 }
 
 // Password management modal
-function _m365BackupReady() {
-  const m = DormDB.getM365Cfg();
-  return m.enabled && m.clientId && m.sharedFolderItemId;
-}
-
 function openPwdModal() {
-  if (!_m365BackupReady()) {
-    document.getElementById('pwdM365Warning').style.display = 'block';
-    document.getElementById('pwdFormFields').style.display = 'none';
-    document.getElementById('pwdRemoveBtn').style.display = 'none';
-    document.getElementById('pwdSaveBtn').style.display = 'none';
-    document.getElementById('pwdModal').style.display = 'flex';
-    return;
-  }
   document.getElementById('pwdM365Warning').style.display = 'none';
   document.getElementById('pwdFormFields').style.display = 'block';
   const hasHash = !!DormDB.getPwdHash();
   document.getElementById('pwdCurrentRow').style.display = hasHash ? 'block' : 'none';
   document.getElementById('pwdRemoveBtn').style.display  = hasHash ? 'inline-block' : 'none';
+  document.getElementById('pwdSaveBtn').style.display    = 'inline-block';
   document.getElementById('pwdModalDesc').textContent = hasHash
-    ? 'Enter your current password, then choose a new one. Leave "New password" blank to keep the current password.'
-    : 'Set a password to protect the Dean Portal from unauthorized access. Leave blank to disable the gate.';
+    ? 'Enter your current password, then choose a new one. Leave "New password" blank to keep it.'
+    : 'Set a Dean password to protect portal access.';
   ['pwdCurrent','pwdNew','pwdConfirm'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('pwdError').style.display = 'none';
   document.getElementById('pwdModal').style.display = 'flex';
@@ -792,8 +733,8 @@ async function savePwd() {
   if (newPwd) {
     const { hash, salt } = await DormDB.hashPwd(newPwd);
     DormDB.savePwdHash({ hash, salt });
-    await _setSession('admin');
-    _toast('✅ Admin password saved');
+    _setSession();
+    _toast('✅ Dean password saved');
   }
   closePwdModal();
 }
@@ -806,9 +747,8 @@ async function removePwd() {
   const ok = await DormDB.verifyPwd(current);
   if (!ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
   DormDB.savePwdHash(null);
-  sessionStorage.removeItem('dormPortalSession');
-  sessionStorage.removeItem('dormPortalSessionSig');
-  _toast('🔓 Admin password removed — portal is now open access');
+  sessionStorage.removeItem('dormPortalUnlocked');
+  _toast('🔓 Dean password removed — portal will prompt for setup on next visit');
   closePwdModal();
 }
 
@@ -1543,15 +1483,6 @@ async function _m365HandleRedirect() {
         DormDB.saveCurrentUser(cfg.displayName || cfg.userEmail);
       }
       sessionStorage.removeItem('dormM365Verifier');
-      // If redirect was triggered for portal auth, unlock the gate
-      if (sessionStorage.getItem('dormAuthIntent') === 'portal') {
-        sessionStorage.setItem('dormPortalM365', 'valid');
-        sessionStorage.setItem('dormPortalRole', 'admin');
-        sessionStorage.removeItem('dormAuthIntent');
-        document.getElementById('authOverlay').style.display = 'none';
-        document.body.style.overflow = '';
-        _initAfterAuth();
-      }
       _toast('☁️ Signed in as ' + (cfg.userEmail || 'your Microsoft account'));
     } else {
       alert('Microsoft sign-in failed: ' + (data.error_description || JSON.stringify(data)));
@@ -1794,12 +1725,8 @@ async function _m365HandleRedirect() {
 <!-- Admin password modal -->
 <div id="pwdModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:14px;width:360px;max-width:95vw;padding:28px 26px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-    <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔐 Admin Password</div>
-    <div id="pwdM365Warning" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:.8rem;color:#856404">
-      ⚠️ <strong>M365 backup required first.</strong><br>
-      The admin password gate is only available after OneDrive backup is configured — so you always have a recovery path if you forget your password.<br>
-      <span style="margin-top:6px;display:block">Go to <strong>⚙️ Settings → M365 Integration</strong> and complete the OneDrive shared folder setup, then return here.</span>
-    </div>
+    <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔐 Dean Password</div>
+    <div id="pwdM365Warning" style="display:none"></div>
     <div id="pwdFormFields">
       <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:16px">Set a password to protect the Dean Portal from unauthorized access.</div>
       <div id="pwdCurrentRow" style="margin-bottom:10px">
