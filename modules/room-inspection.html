@@ -697,7 +697,7 @@ function readSharedItems(){
 
 function computeSeverity(condIn,condOut){
   if(!condIn||condOut==='n/a'||condIn==='n/a')return 0;
-  const key=`${condIn}→${condOut}`;
+  const key=`${condIn.toLowerCase()}→${condOut.toLowerCase()}`;
   return SEVERITY[key]||0;
 }
 
@@ -1032,26 +1032,46 @@ function _writeChargesBackToStudents(rec){
 
 function pushMaintenanceStubs(room,sideA,sideB,shared,bathCond,inspectionId){
   const maint=DormDB.getMaintenance();
+  const existing=new Set(maint.map(m=>m.sourceAssetId).filter(Boolean));
   const now=new Date().toISOString();
-  const addStub=(label,cond)=>{
-    if(cond!=='poor'&&cond!=='missing')return;
-    // Skip if an open stub for this room+item already exists (dedup)
-    if(maint.some(m=>m.room===room&&m.item===label&&m.status==='Open'))return;
-    maint.push({id:Date.now()+Math.random(),room,item:label,reportedAt:now,status:'Open',
-      urgency:cond==='missing'?'High':'Normal',
-      notes:`Move-out inspection: condition is ${cond}`,
-      linkedInspection:true,inspectionId});
-  };
-  SIDE_ITEMS.forEach(item=>{if(sideA[item.key])addStub('Side A — '+item.label,sideA[item.key].condition);});
-  SIDE_ITEMS.forEach(item=>{if(sideB[item.key])addStub('Side B — '+item.label,sideB[item.key].condition);});
-  SHARED_ITEMS.forEach(item=>{if(shared[item.key])addStub(item.label,shared[item.key].condition);});
-  if(bathCond==='poor'||bathCond==='missing'){
-    const bathLabel='Bathroom';
-    if(!maint.some(m=>m.room===room&&m.item===bathLabel&&m.status==='Open')){
-      maint.push({id:Date.now()+Math.random(),room,item:bathLabel,reportedAt:now,status:'Open',
-        urgency:bathCond==='missing'?'High':'Normal',
-        notes:`Move-out inspection: bathroom condition is ${bathCond}`,
-        linkedInspection:true,inspectionId});
+  _roomAssets.forEach(asset=>{
+    const row=document.querySelector(`tr[data-asset-id="${CSS.escape(asset.id)}"]`);
+    const cond=row?.querySelector('.cond-sel')?.value||'';
+    if(cond!=='Poor'&&cond!=='Missing')return;
+    if(existing.has(asset.id))return;
+    const label=asset.name+(asset.side?` (Side ${asset.side})`:'');
+    maint.push({
+      id:generateId(),room,
+      floor:'',location:label,
+      category:'',
+      description:`Move-out inspection: ${label} condition is ${cond}`,
+      urgency:cond==='Missing'?'High':'Normal',
+      status:'Open',
+      assignedTo:'',targetDate:'',completedDate:'',
+      inventoryItemId:asset.id,
+      inspectionId,
+      reportedBy:'',createdAt:now,
+      resolutionNotes:'',
+      source:'inspection',sourceAssetId:asset.id,
+    });
+  });
+  // Bathroom stub (condition select at top of form, not an _roomAssets row)
+  const bathCondLower=(bathCond||'').toLowerCase();
+  if(bathCondLower==='poor'||bathCondLower==='missing'){
+    if(!maint.some(m=>m.room===room&&m.location==='Bathroom'&&m.status==='Open')){
+      maint.push({
+        id:generateId(),room,
+        floor:'',location:'Bathroom',
+        category:'',
+        description:`Move-out inspection: Bathroom condition is ${bathCond}`,
+        urgency:bathCondLower==='missing'?'High':'Normal',
+        status:'Open',
+        assignedTo:'',targetDate:'',completedDate:'',
+        inventoryItemId:'',inspectionId,
+        reportedBy:'',createdAt:now,
+        resolutionNotes:'',
+        source:'inspection',sourceAssetId:'',
+      });
     }
   }
   DormDB.saveMaintenance(maint);
@@ -1438,7 +1458,7 @@ ${SHARED_ITEMS.map(i=>`<tr><td>${i.label}${i.qty>1?' (×'+i.qty+')':''}</td><td 
 
 // ══ Utilities ══════════════════════════════════════════════════════════════
 function styleCondSel(sel){
-  sel.className='cond-sel '+(sel.value==='n/a'?'na':sel.value);
+  sel.className='cond-sel '+(sel.value.toLowerCase()==='n/a'?'na':sel.value.toLowerCase());
 }
 
 function openModal(id){document.getElementById(id).style.display='block';document.body.style.overflow='hidden';}
