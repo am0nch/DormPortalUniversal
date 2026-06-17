@@ -209,6 +209,16 @@ body{background:#f0f4f8;min-height:100vh}
     </span>
   </div>
 
+  <div id="noAssetsWarning" style="display:none;background:#fff3cd;border:1px solid #ffc107;
+       border-radius:8px;padding:14px 16px;margin:12px 0;font-size:.83rem">
+    ⚠️ No assets recorded for this room.
+    <a href="inventory.html" style="color:#1e3a5f;font-weight:700">Go to Inventory</a>
+    to add items first, or
+    <button class="btn btn-sm btn-orange" onclick="useDefaultTemplate()">Use Default Template</button>
+  </div>
+
+  <div id="inspChecklistSection">
+
   <span class="sec-head green">Side A — Near Door (Furniture)</span>
   <table class="item-grid" id="gridSideA"></table>
 
@@ -237,6 +247,8 @@ body{background:#f0f4f8;min-height:100vh}
     <span class="sec-head" style="background:#e65100">Auto-Calculated Charges (editable)</span>
     <div id="chargesPreviewContent"></div>
   </div>
+
+  </div><!-- /#inspChecklistSection -->
 
   <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn btn-green" onclick="saveInspection()">💾 Save Inspection</button>
@@ -287,31 +299,13 @@ let rooms=[], awayStudents=[], inspections=[];
 let _editingId=null;
 const _pendingPhotos={};  // slotKey → File; cleared on save or reopen
 
-const SIDE_ITEMS=[
-  {key:'bedSheet',    label:'Bed Sheet',            qty:1, base:200},
-  {key:'mattress',    label:'Mattress (Sealy 3ft)', qty:1, base:4637},
-  {key:'mattressPad', label:'Bed Decker',           qty:1, base:4800},
-  {key:'bed',         label:'Wooden Bed',           qty:1, base:4964},
-  {key:'desk',        label:'Study Table',          qty:1, base:6205},
-  {key:'chair',       label:'Chair (Wooden)',       qty:1, base:1986},
-  {key:'stool',       label:'Dressing Stool',       qty:1, base:1490},
-  {key:'bookShelf',   label:'Book Shelf',           qty:1, base:6205},
-  {key:'closet',      label:'Built-in Closet',      qty:1, base:15000},
-  {key:'closetKey',   label:'Closet Key',           qty:1, base:100},
-  {key:'drawerKey',   label:'Drawer Key',           qty:1, base:100},
-];
+// SIDE_ITEMS / SHARED_ITEMS removed — replaced by live asset data from IDB.
+// Kept as empty stubs so legacy print/settings functions don't crash until Task 10 rewrites them.
+const SIDE_ITEMS=[];
+const SHARED_ITEMS=[];
 
-const SHARED_ITEMS=[
-  {key:'door',          label:'Door',              qty:1, base:0},
-  {key:'walls',         label:'Walls',             qty:1, base:0},
-  {key:'ceiling',       label:'Ceiling',           qty:1, base:0},
-  {key:'window',        label:'Window',            qty:1, base:0},
-  {key:'fan',           label:'Ceiling Fan 48"',   qty:2, base:1659},
-  {key:'balcony',       label:'Balcony',           qty:1, base:0},
-  {key:'mosquitoScreen',label:'Mosquito Screen',   qty:1, base:300},
-  {key:'roomKey',       label:'Room Key',          qty:2, base:100},
-  {key:'acUnit',        label:'AC Unit',           qty:1, base:0},
-];
+// ── Live asset store (populated per room selection) ─────────────────────────
+let _roomAssets = [];
 
 // Severity multipliers
 const SEVERITY={
@@ -320,17 +314,60 @@ const SEVERITY={
   'poor→missing':0.50,
 };
 
-function getDefaultCharges(){
+async function getDefaultCharges(){
   const saved=DormDB.getInspCfg().defaultCharges;
   if(saved&&Object.keys(saved).length)return saved;
+  const models=await DormDB.getInvModels();
   const d={};
-  SIDE_ITEMS.forEach(i=>d[i.key]=i.base);
-  SHARED_ITEMS.forEach(i=>d[i.key]=i.base);
+  models.forEach(m=>{if(m.name)d[m.name]=m.replacementCost||0;});
   return d;
 }
 
 function getSemesterPref(){
   return DormDB.getInspCfg().semesterLabel||DormDB.getCurrentSemester();
+}
+
+function generateId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+
+async function loadRoomAssets(room){
+  const norm=DormDB.normalizeRoomId(room);
+  _roomAssets=norm?await DormDB.getAssetsByRoom(norm):[];
+  return _roomAssets;
+}
+
+async function useDefaultTemplate(){
+  const room=document.getElementById('insp_room').value;
+  if(!room)return;
+  const models=await DormDB.getInvModels();
+  if(!models.length){alert('No asset models found. Add models in Inventory → Models tab first.');return;}
+  const norm=DormDB.normalizeRoomId(room);
+  const isAC=DormDB.isAcRoom(room);
+  _roomAssets=models
+    .filter(m=>!m.acRoomOnly||isAC)
+    .flatMap(m=>{
+      const qty=m.scope==='per-side'?m.expectedQtyPerRoom:1;
+      return Array.from({length:qty},(_,i)=>({
+        id:`tmp-${generateId()}`,
+        modelId:m.id,
+        name:m.name,
+        category:m.category,
+        location:norm,
+        side:m.scope==='per-side'?(i===0?'A':'B'):'',
+        statusLabel:'available',
+        checkedOutTo:'',
+        condition:'Good',
+        checkoutLog:[],
+        purchasePrice:m.replacementCost||0,
+      }));
+    });
+  const warnEl=document.getElementById('noAssetsWarning');
+  const sectionEl=document.getElementById('inspChecklistSection');
+  if(warnEl)warnEl.style.display='none';
+  if(sectionEl)sectionEl.style.display='block';
+  const defaults=await getDefaultCharges();
+  await buildGrid('A',      'gridSideA', defaults);
+  await buildGrid('B',      'gridSideB', defaults);
+  await buildGrid('shared', 'gridShared', defaults);
 }
 
 // ══ Lifecycle ══════════════════════════════════════════════════════════════
@@ -354,7 +391,7 @@ async function init(){
   loadData();
   populateRoomDropdowns();
   renderList();
-  renderSettings();
+  renderSettings(); // async — fire-and-forget at init is fine
   DormDB.on(DormDB.KEYS.ROOMS,()=>{loadData();populateRoomDropdowns();});
   DormDB.on(DormDB.KEYS.INSPECTIONS,()=>{loadData();renderList();renderCharges();});
   DormDB.on(DormDB.KEYS.PROFILES,()=>{populateRoomDropdowns();});
@@ -443,7 +480,7 @@ function deleteInspection(id){
 }
 
 // ══ Inspection Form ════════════════════════════════════════════════════════
-function openInspectionForm(prefillRoom,prefillType){
+async function openInspectionForm(prefillRoom,prefillType){
   loadData();
   populateRoomDropdowns();
   Object.keys(_pendingPhotos).forEach(k=>delete _pendingPhotos[k]);
@@ -452,19 +489,18 @@ function openInspectionForm(prefillRoom,prefillType){
   document.getElementById('insp_semester').value=getSemesterPref();
   if(prefillRoom)document.getElementById('insp_room').value=prefillRoom;
   if(prefillType)document.getElementById('insp_type').value=prefillType;
-  populateOccupants();
-  buildItemGrids();
+  await populateOccupants();
   onTypeChange();
   document.getElementById('chargesPreview').style.display='none';
   openModal('inspModal');
 }
 
-function populateOccupants(){
+async function populateOccupants(){
   const room=document.getElementById('insp_room').value;
   const slots=rooms.filter(s=>s.room===room&&s.name&&s.name.trim());
   const container=document.getElementById('occupantBlocks');
   container.innerHTML='';
-  if(!slots.length){container.innerHTML='<p style="font-size:.78rem;color:#888">No occupants found for this room in Room Reservations.</p>';return;}
+  if(!slots.length){container.innerHTML='<p style="font-size:.78rem;color:#888">No occupants found for this room in Room Reservations.</p>';}
   slots.forEach((s,i)=>{
     const div=document.createElement('div');div.className='occ-card';
     div.innerHTML=`<label>Occupant ${i+1}</label>
@@ -512,6 +548,20 @@ function populateOccupants(){
   };
   const type = document.getElementById('insp_type').value;
   document.getElementById('keyIssuanceSection').style.display = type === 'move-in' && slots.length ? 'block' : 'none';
+
+  // Load assets for this room and populate checklists
+  await loadRoomAssets(room);
+  const hasAssets=_roomAssets.length>0;
+  const warnEl=document.getElementById('noAssetsWarning');
+  const sectionEl=document.getElementById('inspChecklistSection');
+  if(warnEl)warnEl.style.display=hasAssets?'none':'block';
+  if(sectionEl)sectionEl.style.display=hasAssets?'block':'none';
+  if(hasAssets){
+    const defaults=await getDefaultCharges();
+    await buildGrid('A',      'gridSideA', defaults);
+    await buildGrid('B',      'gridSideB', defaults);
+    await buildGrid('shared', 'gridShared', defaults);
+  }
 }
 
 function getOccupants(){
@@ -526,54 +576,49 @@ function getOccupants(){
   return list;
 }
 
-function buildItemGrids(){
-  const def=getDefaultCharges();
-  ['A','B'].forEach(side=>{
-    const grid=document.getElementById(`gridSide${side}`);
-    grid.innerHTML=`<thead><tr><th>Item</th><th style="width:50px">Qty</th><th style="width:120px">Condition</th><th style="width:80px">Base Cost</th><th>Notes</th><th style="width:54px">📷</th></tr></thead>`;
-    const tbody=document.createElement('tbody');
-    SIDE_ITEMS.forEach(item=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${item.label}</td>
-        <td><input type="number" class="qty-inp" id="side${side}_${item.key}_qty" value="${item.qty}" min="0"></td>
-        <td><select class="cond-sel good" id="side${side}_${item.key}_cond" onchange="styleCondSel(this);refreshChargesPreview()">
-          <option value="good" selected>Good</option>
-          <option value="average">Average</option>
-          <option value="poor">Poor</option>
-          <option value="missing">Missing</option>
-        </select></td>
-        <td><input type="number" class="charge-inp" id="side${side}_${item.key}_base" value="${def[item.key]||0}" min="0" style="width:100%">฿</td>
-        <td><input type="text" class="notes-inp" id="side${side}_${item.key}_notes" placeholder="Notes…"></td>
-        <td><label class="photo-btn" title="Attach photo"><input type="file" accept="image/*" capture="environment" onchange="onItemPhotoChange(this,'side${side}_${item.key}')"><span class="ph-icon">📷</span></label></td>`;
-      tbody.appendChild(tr);
-    });
-    grid.appendChild(tbody);
-  });
+async function buildGrid(side, gridId, defaults){
+  const grid=document.getElementById(gridId);
+  if(!grid)return;
+  const tbody=grid.querySelector('tbody')||grid;
 
-  const sharedGrid=document.getElementById('gridShared');
-  sharedGrid.innerHTML=`<thead><tr><th>Item</th><th style="width:50px">Qty</th><th style="width:120px">Condition</th><th style="width:80px">Base Cost</th><th>Notes</th><th style="width:54px">📷</th></tr></thead>`;
-  const stbody=document.createElement('tbody');
-  SHARED_ITEMS.forEach(item=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${item.label}</td>
-      <td><input type="number" class="qty-inp" id="shared_${item.key}_qty" value="${item.qty}" min="0"></td>
-      <td><select class="cond-sel good" id="shared_${item.key}_cond" onchange="styleCondSel(this);refreshChargesPreview()">
-        <option value="good" selected>Good</option>
-        <option value="average">Average</option>
-        <option value="poor">Poor</option>
-        <option value="missing">Missing</option>
-        <option value="n/a">N/A</option>
-      </select></td>
-      <td><input type="number" class="charge-inp" id="shared_${item.key}_base" value="${def[item.key]||0}" min="0" style="width:100%">฿</td>
-      <td><input type="text" class="notes-inp" id="shared_${item.key}_notes" placeholder="Notes…"></td>
-      <td><label class="photo-btn" title="Attach photo"><input type="file" accept="image/*" capture="environment" onchange="onItemPhotoChange(this,'shared_${item.key}')"><span class="ph-icon">📷</span></label></td>`;
-    stbody.appendChild(tr);
-  });
-  sharedGrid.appendChild(stbody);
-  const _selRoom=document.getElementById('insp_room').value||'';
-  const _isAC=_selRoom.toUpperCase().endsWith('AC');
-  const _acSel=document.getElementById('shared_acUnit_cond');
-  if(_acSel&&!_isAC){_acSel.value='n/a';styleCondSel(_acSel);}
+  let items;
+  if(side==='shared'){
+    items=_roomAssets.filter(a=>a.side===''||a.side==null);
+  }else{
+    items=_roomAssets.filter(a=>a.side===side);
+  }
+
+  // Add thead if the grid element is a <table> without one yet
+  if(grid.tagName==='TABLE'&&!grid.querySelector('thead')){
+    grid.innerHTML=`<thead><tr><th>Item</th><th style="width:50px">Qty</th><th style="width:120px">Condition</th><th style="width:80px">Base Cost</th><th>Notes</th><th style="width:54px">📷</th></tr></thead><tbody></tbody>`;
+  }
+  const tb=grid.querySelector('tbody');
+  if(!tb)return;
+
+  tb.innerHTML=items.map(asset=>{
+    const base=defaults[asset.name]||asset.purchasePrice||0;
+    const isShared=side==='shared';
+    return `<tr data-asset-id="${escapeHtml(String(asset.id))}">
+      <td>${escapeHtml(asset.name)}</td>
+      <td><input type="number" class="qty-inp" value="1" min="0"></td>
+      <td>
+        <select class="cond-sel good" onchange="styleCondSel(this);refreshChargesPreview()">
+          <option value="Good">Good</option>
+          <option value="Average">Average</option>
+          <option value="Poor">Poor</option>
+          <option value="Missing">Missing</option>
+          ${isShared?'<option value="N/A">N/A</option>':''}
+        </select>
+      </td>
+      <td><input type="number" class="charge-inp" value="${base}" min="0" style="width:100%">฿</td>
+      <td><input type="text" class="notes-inp" placeholder="Notes…"></td>
+      <td><label class="photo-btn" title="Attach photo">
+        <input type="file" accept="image/*" capture="environment"
+          onchange="onItemPhotoChange(this,'${escapeHtml(String(asset.id))}')">
+        <span class="ph-icon">📷</span>
+      </label></td>
+    </tr>`;
+  }).join('');
 }
 
 function onTypeChange(){
@@ -770,7 +815,6 @@ async function saveInspection(){
   Object.keys(_pendingPhotos).forEach(k=>delete _pendingPhotos[k]);
   inspections.unshift(rec);
   DormDB.saveInspections(inspections);
-  _syncInventoryConditions(room,sideA,sideB,shared);
   if(type==='move-in'){_writeKeyIssuanceFromInspection(rec);}
   else{_writeChargesBackToStudents(rec);}
   closeModal('inspModal');
@@ -847,52 +891,6 @@ function _writeKeyIssuanceFromInspection(rec) {
     DormDB.saveProfiles(profiles);
     showToast(`🔑 Key records saved for ${keysUpdated} student${keysUpdated !== 1 ? 's' : ''}`);
   }
-}
-
-// ══ Inventory condition sync ════════════════════════════════════════════════
-const INSP_TO_INV={
-  bedSheet:['bed sheet'],mattress:['mattress','sealy'],mattressPad:['decker','mattress pad','bed pad'],
-  bed:['wooden bed','bed frame'],desk:['study table','desk'],chair:['chair'],stool:['stool'],
-  bookShelf:['book shelf','bookshelf','shelf'],closet:['closet','wardrobe'],
-  closetKey:['closet key'],drawerKey:['drawer key'],
-  fan:['ceiling fan','fan'],roomKey:['room key'],window:['window'],
-  mosquitoScreen:['mosquito screen','screen'],acUnit:['air conditioner','ac unit'],
-};
-const COND_MAP={good:'Good',average:'Fair',poor:'Poor',missing:'Missing'};
-
-function _syncInventoryConditions(room,sideA,sideB,shared){
-  const inv=DormDB.getInventory();
-  const roomIdxs=inv.reduce((acc,item,i)=>{if(item.location===room)acc.push(i);return acc;},[]);
-  if(!roomIdxs.length)return;
-  let changed=false;
-  // Process each group separately so side filtering can be applied.
-  // sideA/sideB entries only update same-side (or unassigned) inventory items.
-  // shared entries only update unassigned inventory items.
-  const groups=[
-    {entries:Object.entries(sideA||{}),allowedSides:['A','']},
-    {entries:Object.entries(sideB||{}),allowedSides:['B','']},
-    {entries:Object.entries(shared||{}),allowedSides:['']},
-  ];
-  groups.forEach(({entries,allowedSides})=>{
-    entries.forEach(([key,data])=>{
-      if(!data||!data.condition||data.condition==='n/a')return;
-      const newCond=COND_MAP[data.condition];if(!newCond)return;
-      const keywords=INSP_TO_INV[key]||[];if(!keywords.length)return;
-      roomIdxs.forEach(globalIdx=>{
-        const item=inv[globalIdx];
-        if(!allowedSides.includes(item.side||''))return;
-        const nameLow=(item.name||'').toLowerCase();
-        if(!keywords.some(kw=>nameLow.includes(kw)))return;
-        if(item.condition===newCond)return;
-        inv[globalIdx]={...item,condition:newCond,
-          lastChecked:new Date().toISOString().split('T')[0],
-          maintenanceFlag:(newCond==='Poor'||newCond==='Missing')?true:item.maintenanceFlag,
-          maintenancePushed:(newCond==='Poor'||newCond==='Missing')?false:item.maintenancePushed};
-        changed=true;
-      });
-    });
-  });
-  if(changed){DormDB.saveInventory(inv);showToast('📦 Inventory conditions updated from inspection');}
 }
 
 // ══ Proactive clearance write-back ══════════════════════════════════════════
@@ -1146,8 +1144,8 @@ function renderCharges(){
 }
 
 // ══ Settings ═══════════════════════════════════════════════════════════════
-function renderSettings(){
-  const def=getDefaultCharges();
+async function renderSettings(){
+  const def=await getDefaultCharges();
   const container=document.getElementById('settingsFurnitureFields');
   container.innerHTML='';
   SIDE_ITEMS.forEach(item=>{
@@ -1298,9 +1296,9 @@ ${isOut&&rec.charges?`
 }
 
 // ══ Print — Room Cost Sheet (A5) ═══════════════════════════════════════════
-function printRoomCostSheet(room){
+async function printRoomCostSheet(room){
   if(!room){alert('Please select a room.');return;}
-  const def=getDefaultCharges();
+  const def=await getDefaultCharges();
   const html=`<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
 <style>
