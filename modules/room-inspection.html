@@ -702,27 +702,27 @@ function generateCharges(moveInRec,sideA,sideB,shared){
   ['A','B'].forEach(side=>{
     const sideData=side==='A'?sideA:sideB;
     const inSide=moveInRec?(side==='A'?moveInRec.sideA:moveInRec.sideB):null;
-    SIDE_ITEMS.forEach(item=>{
-      const cur=sideData[item.key];if(!cur)return;
-      const condIn=inSide&&inSide[item.key]?inSide[item.key].condition:'good';
+    Object.entries(sideData||{}).forEach(([name,cur])=>{
+      if(!cur)return;
+      const condIn=(inSide&&inSide[name])?inSide[name].condition:'good';
       const mult=computeSeverity(condIn,cur.condition);
       if(mult>0){
-        const base=cur.baseCharge||item.base;
+        const base=cur.charge||cur.baseCharge||0;
         const amount=Math.round(base*mult*(cur.qty||1));
-        if(amount>0)charges[`side${side}`].push({item:item.key,label:item.label,baseCharge:base,severity:`${condIn}→${cur.condition}`,amount,note:cur.notes||''});
+        if(amount>0)charges[`side${side}`].push({item:name,label:name,baseCharge:base,severity:`${condIn}→${cur.condition}`,amount,note:cur.notes||''});
       }
     });
   });
 
-  SHARED_ITEMS.forEach(item=>{
-    const cur=shared[item.key];if(!cur||cur.condition==='n/a')return;
-    const inShared=moveInRec&&moveInRec.shared?moveInRec.shared[item.key]:null;
+  Object.entries(shared||{}).forEach(([name,cur])=>{
+    if(!cur||cur.condition==='n/a'||cur.condition==='N/A')return;
+    const inShared=moveInRec&&moveInRec.shared?moveInRec.shared[name]:null;
     const condIn=inShared?inShared.condition:'good';
     const mult=computeSeverity(condIn,cur.condition);
     if(mult>0){
-      const base=cur.baseCharge||item.base;
+      const base=cur.charge||cur.baseCharge||0;
       const amount=Math.round(base*mult*(cur.qty||1));
-      if(amount>0)charges.shared.push({item:item.key,label:item.label,baseCharge:base,severity:`${condIn}→${cur.condition}`,amount,splitBy:occupants,note:cur.notes||''});
+      if(amount>0)charges.shared.push({item:name,label:name,baseCharge:base,severity:`${condIn}→${cur.condition}`,amount,splitBy:occupants,note:cur.notes||''});
     }
   });
 
@@ -812,7 +812,7 @@ async function _writeBackAssets(rec,type){
         const lastCheckout=[...(fresh.checkoutLog||[])].reverse().find(e=>e.event==='checkout');
         const condBefore=lastCheckout?.conditionAfter??fresh.condition;
 
-        const photoId=rec.photos?.[asset.id]||'';
+        const photoId=rec.photos?.[String(asset.id)]||'';
 
         fresh.checkoutLog=[...(fresh.checkoutLog||[]),{
           event:'checkin',room:DormDB.normalizeRoomId(rec.room),
