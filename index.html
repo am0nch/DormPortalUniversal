@@ -83,8 +83,21 @@ body{background:#f0f4f8;min-height:100vh}
     <div style="font-size:2.2rem;margin-bottom:8px">🏛️</div>
     <div id="authTitle" style="font-weight:700;font-size:1.05rem;color:#1e3a5f;margin-bottom:4px">Dormitory Administration</div>
     <div id="authDormName" style="font-size:.82rem;color:#888;margin-bottom:20px"></div>
+    <!-- Step 1: dorm selection (first run only) -->
+    <div id="authDormSection" style="display:none;text-align:left">
+      <div style="font-size:.78rem;color:#888;margin-bottom:10px">Choose the dormitory this portal will manage.</div>
+      <select id="authDormSel" onchange="document.getElementById('authDormCustom').style.display=this.value==='Other'?'':'none';document.getElementById('authDormCustom').value=''"
+        style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:.95rem;margin-bottom:8px;box-sizing:border-box">
+        <option>Elijah Hall</option><option>Esther Hall</option><option>Eve Hall</option>
+        <option>Ruth Hall</option><option>Sarah Hall</option><option>Solomon Hall</option>
+        <option value="Other">Other (custom)</option>
+      </select>
+      <input type="text" id="authDormCustom" placeholder="Custom dorm name"
+        style="display:none;width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:.95rem;margin-bottom:8px;box-sizing:border-box">
+    </div>
+    <!-- Step 2: name + password (first run only) -->
     <div id="authSetupMsg" style="display:none;font-size:.8rem;color:#555;background:#f0f7ff;border:1px solid #c3daf9;border-radius:7px;padding:10px 12px;margin-bottom:14px;text-align:left">
-      Welcome! Set a Dean password to secure the portal.<br>
+      Set a Dean password to secure the portal.<br>
       <span style="font-size:.73rem;color:#888;margin-top:4px;display:block">You can change or remove it later via the 🔐 Password button.</span>
     </div>
     <input type="text" id="authName" placeholder="Your name" autocomplete="name"
@@ -552,40 +565,50 @@ function _setSession() {
 
 async function checkAuth() {
   const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
-
-  // No password set → first-run setup mode
-  if (!hashStr) {
-    _showAuthOverlay({ setup: true });
-    return false;
-  }
-
-  // Valid session → allow access
+  if (!hashStr) { _showAuthOverlay({ step: 'dorm' }); return false; }
   if (sessionStorage.getItem('dormPortalUnlocked') === '1') return true;
-
-  // Show password gate
-  _showAuthOverlay({ setup: false });
-  return false;
+  _showAuthOverlay({ step: 'unlock' }); return false;
 }
 
-function _showAuthOverlay({ setup }) {
-  document.getElementById('authDormName').textContent = DormDB.getDormName() || 'Elijah Hall';
-  document.getElementById('authTitle').textContent    = setup ? 'First-Time Setup' : 'Dormitory Administration';
-  document.getElementById('authSetupMsg').style.display    = setup ? 'block' : 'none';
-  document.getElementById('authName').style.display        = setup ? '' : 'none';
-  document.getElementById('authPinConfirm').style.display  = setup ? '' : 'none';
-  document.getElementById('authBtn').textContent      = setup ? '🔐 Set Password' : '🔓 Unlock';
-  document.getElementById('authError').style.display  = 'none';
-  ['authName', 'authPin', 'authPinConfirm'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('authOverlay').style.display  = 'flex';
+function _showAuthOverlay({ step }) {
+  const isDorm   = step === 'dorm';
+  const isSetup  = step === 'setup';
+  document.getElementById('authDormName').textContent      = isDorm ? 'Asia-Pacific International University' : (DormDB.getDormName() || 'Elijah Hall');
+  document.getElementById('authTitle').textContent         = isDorm ? 'Select Dormitory' : isSetup ? 'First-Time Setup' : 'Dormitory Administration';
+  document.getElementById('authDormSection').style.display = isDorm  ? 'block' : 'none';
+  document.getElementById('authSetupMsg').style.display    = isSetup ? 'block' : 'none';
+  document.getElementById('authName').style.display        = isSetup ? '' : 'none';
+  document.getElementById('authPin').style.display         = isDorm  ? 'none' : '';
+  document.getElementById('authPinConfirm').style.display  = isSetup ? '' : 'none';
+  document.getElementById('authBtn').textContent           = isDorm  ? 'Continue →' : isSetup ? '🔐 Set Password' : '🔓 Unlock';
+  document.getElementById('authError').style.display       = 'none';
+  ['authDormCustom', 'authName', 'authPin', 'authPinConfirm'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  if (isDorm) document.getElementById('authDormCustom').style.display = 'none';
+  document.getElementById('authOverlay').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  document.getElementById('authPin').addEventListener('keydown', e => {
+  if (!isDorm) document.getElementById('authPin').addEventListener('keydown', e => {
     if (e.key === 'Enter') submitAuth();
   }, { once: true });
 }
 
 async function submitAuth() {
-  const pin   = (document.getElementById('authPin').value || '').trim();
   const errEl = document.getElementById('authError');
+
+  // Step 1: dorm selection
+  if (document.getElementById('authDormSection').style.display !== 'none') {
+    const sel    = document.getElementById('authDormSel').value;
+    const custom = (document.getElementById('authDormCustom').value || '').trim();
+    if (sel === 'Other' && !custom) {
+      errEl.textContent = 'Please enter a custom dorm name.'; errEl.style.display = 'block'; return;
+    }
+    DormDB.saveDormName(sel, sel === 'Other' ? custom : '');
+    _showAuthOverlay({ step: 'setup' });
+    return;
+  }
+
+  const pin   = (document.getElementById('authPin').value || '').trim();
   if (!pin) return;
 
   const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
