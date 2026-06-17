@@ -791,10 +791,12 @@ function refreshChargesPreview(){
 
 async function _writeBackAssets(rec,type){
   const errors=[];
+  const allAssets=await DormDB.getAllAssets();
+  const assetMap=new Map(allAssets.map(a=>[a.id,a]));
   for(const asset of _roomAssets){
     if(asset.id.startsWith('tmp-'))continue; // skip default-template placeholders
     try{
-      const fresh=(await DormDB.getAllAssets()).find(a=>a.id===asset.id);
+      const fresh=assetMap.get(asset.id);
       if(!fresh)continue;
 
       if(type==='move-in'){
@@ -1032,7 +1034,7 @@ function _writeChargesBackToStudents(rec){
 
 function pushMaintenanceStubs(room,sideA,sideB,shared,bathCond,inspectionId){
   const maint=DormDB.getMaintenance();
-  const existing=new Set(maint.map(m=>m.sourceAssetId).filter(Boolean));
+  const existing=new Set(maint.filter(m=>m.status==='Open'&&m.sourceAssetId).map(m=>m.sourceAssetId));
   const now=new Date().toISOString();
   _roomAssets.forEach(asset=>{
     const row=document.querySelector(`tr[data-asset-id="${CSS.escape(asset.id)}"]`);
@@ -1253,22 +1255,24 @@ async function renderSettings(){
   const def=await getDefaultCharges();
   const container=document.getElementById('settingsFurnitureFields');
   container.innerHTML='';
-  SIDE_ITEMS.forEach(item=>{
+  const entries=Object.entries(def);
+  if(!entries.length){
+    container.innerHTML='<p style="color:#888;font-size:.85rem">No asset models configured. Add models in Inventory → Models tab first.</p>';
+    return;
+  }
+  entries.forEach(([name,cost])=>{
+    const key='model_'+name.replace(/\W+/g,'_');
     const div=document.createElement('div');div.className='fg';
-    div.innerHTML=`<label>${item.label}</label><input type="number" id="set_${item.key}" value="${def[item.key]||0}" min="0"> ฿`;
-    container.appendChild(div);
-  });
-  SHARED_ITEMS.filter(i=>i.base>0).forEach(item=>{
-    const div=document.createElement('div');div.className='fg';
-    div.innerHTML=`<label>${item.label} (shared)</label><input type="number" id="set_${item.key}" value="${def[item.key]||0}" min="0"> ฿`;
+    div.innerHTML=`<label>${escapeHtml(name)}</label><input type="number" id="set_${key}" data-name="${escapeHtml(name)}" value="${cost||0}" min="0"> ฿`;
     container.appendChild(div);
   });
 }
 
 function saveDefaultCharges(){
   const d={};
-  SIDE_ITEMS.forEach(i=>{const el=document.getElementById('set_'+i.key);if(el)d[i.key]=parseFloat(el.value)||0;});
-  SHARED_ITEMS.forEach(i=>{const el=document.getElementById('set_'+i.key);if(el)d[i.key]=parseFloat(el.value)||0;});
+  document.querySelectorAll('#settingsFurnitureFields input[data-name]').forEach(el=>{
+    d[el.dataset.name]=parseFloat(el.value)||0;
+  });
   const cfg=DormDB.getInspCfg();
   DormDB.saveInspCfg({...cfg,defaultCharges:d});
   showToast('✅ Default costs saved.');
@@ -1296,18 +1300,18 @@ function printInspectionSheet(id){
   const condLabel={good:'Good',average:'Average',poor:'Poor',missing:'Missing','n/a':'N/A'};
   const markCol=(cond,target)=>cond===target?'✓':'';
 
-  function itemRows(items,dataObj,chargeArr){
-    return items.map(item=>{
-      const d=dataObj&&dataObj[item.key]?dataObj[item.key]:{qty:item.qty,condition:'—'};
-      const c=chargeArr?chargeArr.find(x=>x.item===item.key):null;
+  function itemRows(dataObj,chargeArr){
+    return Object.entries(dataObj||{}).map(([name,d])=>{
+      if(!d)return'';
+      const c=chargeArr?chargeArr.find(x=>x.item===name):null;
       return `<tr>
-        <td>${item.label}</td><td style="text-align:center">${d.qty||item.qty}</td>
+        <td>${escapeHtml(name)}</td><td style="text-align:center">${d.qty||1}</td>
         <td style="text-align:center">${markCol(d.condition,'good')}</td>
         <td style="text-align:center">${markCol(d.condition,'average')}</td>
         <td style="text-align:center">${markCol(d.condition,'poor')}</td>
         <td style="text-align:center">${markCol(d.condition,'missing')}</td>
         ${chargeArr!==null?`<td style="text-align:right">${c?'฿'+c.amount.toLocaleString():''}</td>`:''}
-        <td style="font-size:.72rem;color:#555">${d.notes||''}</td>
+        <td style="font-size:.72rem;color:#555">${escapeHtml(d.notes||'')}</td>
       </tr>`;
     }).join('');
   }
@@ -1352,13 +1356,13 @@ th{background:#f0f4f8;font-size:.7rem}
 </div>
 
 <div class="sec green">Side A — Near Door (Furniture)</div>
-<table>${tableHead(isOut)}<tbody>${itemRows(SIDE_ITEMS,rec.sideA,isOut?(rec.charges.sideA||[]):null)}</tbody></table>
+<table>${tableHead(isOut)}<tbody>${itemRows(rec.sideA,isOut?(rec.charges&&rec.charges.sideA||[]):null)}</tbody></table>
 
 <div class="sec blue">Side B — Near Balcony (Furniture)</div>
-<table>${tableHead(isOut)}<tbody>${itemRows(SIDE_ITEMS,rec.sideB,isOut?(rec.charges.sideB||[]):null)}</tbody></table>
+<table>${tableHead(isOut)}<tbody>${itemRows(rec.sideB,isOut?(rec.charges&&rec.charges.sideB||[]):null)}</tbody></table>
 
 <div class="sec orange">Shared Room Fixtures</div>
-<table>${tableHead(isOut)}<tbody>${itemRows(SHARED_ITEMS,rec.shared,isOut?(rec.charges.shared||[]):null)}</tbody></table>
+<table>${tableHead(isOut)}<tbody>${itemRows(rec.shared,isOut?(rec.charges&&rec.charges.shared||[]):null)}</tbody></table>
 
 <div class="sec purple">Shared Bathroom</div>
 <table>
@@ -1404,6 +1408,15 @@ ${isOut&&rec.charges?`
 async function printRoomCostSheet(room){
   if(!room){alert('Please select a room.');return;}
   const def=await getDefaultCharges();
+  const models=await DormDB.getInvModels();
+  const isAC=DormDB.isAcRoom(room);
+  const applicable=models.filter(m=>!m.acRoomOnly||isAC);
+  const perSide=applicable.filter(m=>m.scope==='per-side');
+  const perRoom=applicable.filter(m=>m.scope!=='per-side');
+  const none3='<tr><td colspan="3" style="color:#888;text-align:center;font-style:italic">None configured</td></tr>';
+  const none2='<tr><td colspan="2" style="color:#888;text-align:center;font-style:italic">None configured</td></tr>';
+  const sideRows=perSide.map(m=>{const c=def[m.name]||0;return`<tr><td>${escapeHtml(m.name)}</td><td style="text-align:center">${m.expectedQtyPerRoom||1}</td><td style="text-align:right">${c>0?'฿'+c.toLocaleString():'—'}</td></tr>`;}).join('')||none3;
+  const sharedRows=perRoom.map(m=>{const c=def[m.name]||0;return`<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right">${c>0?'฿'+c.toLocaleString():'—'}</td></tr>`;}).join('')||none2;
   const html=`<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
 <style>
@@ -1424,21 +1437,15 @@ th{background:#f0f4f8;font-size:.68rem}
 
 <div class="sec green">Side A — Near Door (each student's responsibility)</div>
 <table><thead><tr style="background:#f0f4f8"><th>Item</th><th style="width:30px;text-align:center">Qty</th><th style="width:80px;text-align:right">Cost (฿)</th></tr></thead>
-<tbody>
-${SIDE_ITEMS.map(i=>`<tr><td>${i.label}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${(def[i.key]||0)>0?'฿'+(def[i.key]).toLocaleString():'—'}</td></tr>`).join('')}
-</tbody></table>
+<tbody>${sideRows}</tbody></table>
 
 <div class="sec blue">Side B — Near Balcony (each student's responsibility)</div>
 <table><thead><tr style="background:#f0f4f8"><th>Item</th><th style="width:30px;text-align:center">Qty</th><th style="width:80px;text-align:right">Cost (฿)</th></tr></thead>
-<tbody>
-${SIDE_ITEMS.map(i=>`<tr><td>${i.label}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">${(def[i.key]||0)>0?'฿'+(def[i.key]).toLocaleString():'—'}</td></tr>`).join('')}
-</tbody></table>
+<tbody>${sideRows}</tbody></table>
 
 <div class="sec orange">Shared Fixtures (split equally between occupants)</div>
 <table><thead><tr style="background:#f0f4f8"><th>Item</th><th style="width:80px;text-align:right">Cost (฿)</th></tr></thead>
-<tbody>
-${SHARED_ITEMS.map(i=>`<tr><td>${i.label}${i.qty>1?' (×'+i.qty+')':''}</td><td style="text-align:right">${(def[i.key]||0)>0?'฿'+(def[i.key]).toLocaleString()+' ea':'—'}</td></tr>`).join('')}
-</tbody></table>
+<tbody>${sharedRows}</tbody></table>
 
 <div class="sec purple">Shared Bathroom</div>
 <table><tbody>

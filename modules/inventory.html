@@ -1598,6 +1598,11 @@ async function removeItem(id) {
   showToast('Item removed.');
 }
 function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+function closeAssetDetail() {
+  _detailBlobUrls.forEach(u => URL.revokeObjectURL(u));
+  _detailBlobUrls = [];
+  document.getElementById('assetDetailModal')?.classList.remove('open');
+}
 
 // ── Print All Items ────────────────────────────────────────────────────────────
 async function printInventorySheet() {
@@ -2653,17 +2658,12 @@ async function init() {
 
   renderDashboard();
 
-  DormDB.on(DormDB.KEYS.INVENTORY, () => {
+  DormDB.on('dormInventoryAssets', () => {
     renderDashboard();
     if (_isActive('tab-items'))       renderItems();
     if (_isActive('tab-location'))    renderLocation();
     if (_isActive('tab-labels'))      renderLabels();
     if (_isActive('tab-maintenance')) renderMaintenance();
-  });
-  DormDB.on('dormInvTemplate', () => {
-    if (_isActive('tab-settings'))  renderSettings();
-    if (_isActive('tab-location'))  renderLocation();
-    if (_isActive('tab-dashboard')) renderDashboard();
   });
   DormDB.on(DormDB.KEYS.BEDDING,       () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
   DormDB.on(DormDB.KEYS.BEDDING_STOCK, () => { if (_isActive('tab-bedding')) renderBeddingTab(); });
@@ -2671,7 +2671,12 @@ async function init() {
   DormDB.on(DormDB.KEYS.BEDDING_CFG,   () => { if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
   DormDB.on(DormDB.KEYS.SEMESTER_CFG,  () => { populateBddSemSelects(); if (_isActive('tab-bedding')) { populateBddSemFilter(); renderBeddingTab(); } });
   DormDB.on(DormDB.KEYS.INV_AUDITS,   () => { if (_isActive('tab-auditlog')) renderAuditLog(); });
-  DormDB.on('dormInventoryModels',    () => { if (_isActive('tab-models'))   renderModels(); });
+  DormDB.on('dormInventoryModels',    () => {
+    if (_isActive('tab-models'))    renderModels();
+    if (_isActive('tab-settings'))  renderSettings();
+    if (_isActive('tab-location'))  renderLocation();
+    if (_isActive('tab-dashboard')) renderDashboard();
+  });
 
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
@@ -2680,7 +2685,7 @@ async function init() {
       closeModal('bddCountModal'); closeModal('bddSettingsModal');
       closeModal('snapshotModal');
       closeModal('barcodeViewModal');
-      closeModal('assetDetailModal');
+      closeAssetDetail();
       closeScanModal();
     }
   });
@@ -2690,7 +2695,7 @@ async function init() {
         closeItemModal(); closeModal('confirmModal');
         closeModal('bddSaleModal'); closeModal('bddStockModal');
         closeModal('bddCountModal'); closeModal('bddSettingsModal');
-        closeModal('assetDetailModal');
+        closeAssetDetail();
         if (m.id === 'scanModal') closeScanModal();
       }
     });
@@ -2702,7 +2707,7 @@ init();
 
 <div class="modal" id="assetDetailModal">
   <div class="modal-content" style="max-width:560px">
-    <span class="close-btn" onclick="document.getElementById('assetDetailModal').classList.remove('open')">&times;</span>
+    <span class="close-btn" onclick="closeAssetDetail()">&times;</span>
     <h2 id="adName" style="font-size:1rem;color:#1e3a5f"></h2>
     <div id="adMeta" style="font-size:.8rem;color:#555;margin-bottom:14px"></div>
     <h3 style="font-size:.82rem;font-weight:700;color:#1e3a5f;margin-bottom:8px">History</h3>
