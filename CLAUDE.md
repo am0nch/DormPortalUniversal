@@ -52,16 +52,16 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,866 |
-| `dorm-db.js` | 826 |
+| `index.html` | 1,867 |
+| `dorm-db.js` | 974 |
 | `modules/room-reservations.html` | 2,153 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |
 | `modules/reports.html` | 1,764 |
-| `modules/room-inspection.html` | 1,378 |
+| `modules/room-inspection.html` | 1,565 |
 | `modules/key-inventory.html` | 1,587 |
-| `modules/inventory.html` | 2,518 |
+| `modules/inventory.html` | 2,713 |
 | `modules/attendance.html` | 1,236 |
 | `modules/incidents.html` | 993 |
 | `modules/student-admin.html` | 1,014 |
@@ -143,11 +143,21 @@ s.roomHold.active && (s.summer || s.firstSem)
 ## Pending items
 
 - [ ] `userguide.html` — all major sections documented ✅; Att. Archive tab section not yet added to userguide
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v13)
-- [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v14)
+- [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-17, Snipe-IT inventory + inspection)
+
+- [x] **dorm-db.js** — IDB v4: `dormInventoryModels` + `dormInventoryAssets` stores with indexes; private `_invGetAll/_invGetByIndex/_invPut/_invDelete/_invGetAndUpdate/_invClear` helpers; public async API (`getInvModels/saveInvModel/deleteInvModel/getAllAssets/getAssetsByRoom/saveAsset/deleteAsset/appendCheckoutEvent`); `normalizeRoomId/isAcRoom`; `_cachedStats/_refreshIdbStats`; `_broadcastIdb` for cross-tab IDB sync; `exportAll/importAll` extended for IDB stores; `K.INVENTORY/K.INV_TEMPLATE` retired. 826→974 lines
+- [x] **modules/inventory.html** — Models tab (CRUD, seed-from-template); emptyItem upgraded with Snipe-IT fields (`modelId`, `assetTag`, `statusLabel`, `checkedOutTo`, `checkoutLog`); all 34 `getInventory/saveInventory` call sites migrated to async IDB API; model picker in item modal; status badges; asset detail drawer with checkout history + condition photos; dashboard "Checked Out" + "In Maintenance" stat cards; async `pushToMaintenance`; legacy room template section removed. 2,518→2,713 lines
+- [x] **modules/room-inspection.html** — `SIDE_ITEMS/SHARED_ITEMS/INSP_TO_INV/COND_MAP/_syncInventoryConditions` removed; live asset checklist from `DormDB.getAssetsByRoom()`; `buildGrid` renders `<tr data-asset-id>` rows; `readSideItems/readSharedItems` read from asset rows; `generateCharges` iterates asset data; `useDefaultTemplate()` fallback; `_writeBackAssets` writes `checkout/checkin/condition-change` events back to IDB on save; barcode scanner highlights matching asset row. 1,378→1,565 lines
+- [x] **modules/floor-plan.html** — `isAcRoom` reads `DormDB.isAcRoom()` instead of string suffix. 514 lines (unchanged)
+- [x] **modules/utilities.html** — `isAC` delegates to `DormDB.isAcRoom()`. 688 lines (unchanged)
+- [x] **index.html** — `dormInventory` subscription replaced with `dormInventoryAssets`+`dormInventoryModels` IDB subscriptions. 1,866→1,867 lines
+- [x] **sw.js** — Bumped cache `dormportal-v13` → `dormportal-v14`
 
 ## Completed (2026-06-16, session 3)
 
