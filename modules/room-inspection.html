@@ -98,6 +98,10 @@ body{background:#f0f4f8;min-height:100vh}
   .card{box-shadow:none;border:1px solid #ccc}
 }
 .print-only{display:none}
+.scan-video-wrap{position:relative;width:100%;aspect-ratio:4/3;background:#111;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.scan-video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-aim{position:absolute;inset:0;margin:auto;width:60%;height:60%;border:2px solid rgba(255,200,0,.8);border-radius:6px;pointer-events:none}
+.scan-no-cam{color:#ccc;font-size:.8rem;text-align:center;padding:16px;position:absolute}
 
 #scrollTopBtn{position:fixed;bottom:28px;right:28px;z-index:999;width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;color:#fff;font-size:1.2rem;box-shadow:0 3px 10px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;justify-content:center;}#scrollTopBtn.visible{opacity:1;pointer-events:auto;}@media print{#scrollTopBtn{display:none}}
 </style>
@@ -252,6 +256,7 @@ body{background:#f0f4f8;min-height:100vh}
 
   <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn btn-green" onclick="saveInspection()">💾 Save Inspection</button>
+    <button type="button" class="btn btn-orange" onclick="openInspScanModal()">📷 Scan Asset</button>
     <button class="btn btn-gray" onclick="closeModal('inspModal')">Cancel</button>
   </div>
 </div>
@@ -1449,7 +1454,111 @@ function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){['inspModal','editChargesModal','photoModal'].forEach(id=>{if(document.getElementById(id).style.display==='block')closeModal(id);});}});
 
 window.addEventListener('load',init);
+
+// ── Inspection barcode scanner ────────────────────────────────────────────────
+let _inspScanStream = null, _inspScanLoop = null, _inspScanDetector = null;
+
+function openInspScanModal() {
+  document.getElementById('inspScanModal').classList.add('open');
+  document.getElementById('inspScanResult').textContent = '';
+  document.getElementById('inspScanInput').value = '';
+  _startInspCamera();
+}
+function closeInspScanModal() {
+  document.getElementById('inspScanModal').classList.remove('open');
+  _stopInspCamera();
+}
+
+async function _startInspCamera() {
+  const status = document.getElementById('inspScanStatus');
+  if (!('BarcodeDetector' in window)) {
+    status.textContent = '⚠️ Camera scan not supported. Enter tag manually.';
+    document.getElementById('inspScanVideo').style.display = 'none';
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    status.textContent = '⚠️ Camera unavailable. Enter tag manually.';
+    return;
+  }
+  try {
+    _inspScanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('inspScanVideo');
+    video.srcObject = _inspScanStream;
+    video.style.display = '';
+    await video.play();
+    status.textContent = '';
+    _inspScanDetector = new BarcodeDetector({ formats: ['code_39', 'code_128', 'qr_code'] });
+    _runInspScanLoop();
+  } catch(err) {
+    status.textContent = `⚠️ Camera error: ${err.message}`;
+  }
+}
+function _stopInspCamera() {
+  cancelAnimationFrame(_inspScanLoop);
+  _inspScanLoop = null;
+  if (_inspScanStream) { _inspScanStream.getTracks().forEach(t => t.stop()); _inspScanStream = null; }
+}
+function _runInspScanLoop() {
+  const video = document.getElementById('inspScanVideo');
+  async function tick() {
+    if (!_inspScanStream) return;
+    try {
+      const codes = await _inspScanDetector.detect(video);
+      if (codes.length) {
+        const val = codes[0].rawValue.trim();
+        handleInspScan(val);
+        await new Promise(r => setTimeout(r, 2500));
+      }
+    } catch(_) {}
+    _inspScanLoop = requestAnimationFrame(tick);
+  }
+  _inspScanLoop = requestAnimationFrame(tick);
+}
+
+function handleInspScan(raw) {
+  if (!raw) return;
+  const tag  = raw.toUpperCase();
+  const match = _roomAssets.find(a =>
+    (a.assetTag  && a.assetTag.toUpperCase()  === tag) ||
+    (a.serialNo  && a.serialNo.toUpperCase()  === tag) ||
+    (a.id.toString().toUpperCase() === tag)
+  );
+  const resultEl = document.getElementById('inspScanResult');
+  if (!match) {
+    resultEl.innerHTML = `<span style="color:#c0392b">❌ Tag not found in this room's assets: "${escapeHtml(raw)}"</span>`;
+    return;
+  }
+  document.querySelectorAll('tr[data-asset-id]').forEach(r => r.style.background = '');
+  const row = document.querySelector(`tr[data-asset-id="${CSS.escape(match.id)}"]`);
+  if (row) {
+    row.style.background = '#fffde7';
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  resultEl.innerHTML = `<span style="color:#2c7a4d">✅ Found: <strong>${escapeHtml(match.name)}</strong>${match.side ? ` — Side ${match.side}` : ''}</span>`;
+  setTimeout(closeInspScanModal, 1200);
+}
 </script>
+<!-- ══ Inspection Barcode Scan Modal ══════════════════════════════════════ -->
+<div class="modal" id="inspScanModal">
+  <div class="modal-content" style="max-width:420px">
+    <span class="close-modal" onclick="closeInspScanModal()">&times;</span>
+    <h2 style="font-size:.95rem;color:#1e3a5f;margin-bottom:12px">Scan Asset Tag</h2>
+    <div class="scan-video-wrap" id="inspScanWrap">
+      <video id="inspScanVideo" playsinline muted autoplay style="display:none"></video>
+      <div class="scan-aim"></div>
+      <div id="inspScanStatus" class="scan-no-cam">Initialising camera…</div>
+    </div>
+    <div style="margin:10px 0;font-size:.78rem;text-align:center;color:#888">— or enter manually —</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="inspScanInput" placeholder="Asset tag or serial…"
+             style="flex:1;padding:8px;border:1.5px solid #cdd;border-radius:6px;font-family:monospace;font-size:.9rem"
+             onkeydown="if(event.key==='Enter')handleInspScan(this.value.trim())">
+      <button class="btn btn-blue" onclick="handleInspScan(document.getElementById('inspScanInput').value.trim())">Find</button>
+    </div>
+    <div id="inspScanResult" style="margin-top:10px;font-size:.82rem;color:#555"></div>
+  </div>
+</div>
+
 <script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>
 </body>
 </html>
