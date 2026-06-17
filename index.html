@@ -87,6 +87,8 @@ body{background:#f0f4f8;min-height:100vh}
       Welcome! Set a Dean password to secure the portal.<br>
       <span style="font-size:.73rem;color:#888;margin-top:4px;display:block">You can change or remove it later via the 🔐 Password button.</span>
     </div>
+    <input type="text" id="authName" placeholder="Your name" autocomplete="name"
+      style="display:none;width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:10px;box-sizing:border-box">
     <input type="password" id="authPin" placeholder="Dean password" autocomplete="current-password"
       style="width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;margin-bottom:10px;box-sizing:border-box">
     <input type="password" id="authPinConfirm" placeholder="Confirm password" autocomplete="new-password"
@@ -569,10 +571,11 @@ function _showAuthOverlay({ setup }) {
   document.getElementById('authDormName').textContent = DormDB.getDormName() || 'Elijah Hall';
   document.getElementById('authTitle').textContent    = setup ? 'First-Time Setup' : 'Dormitory Administration';
   document.getElementById('authSetupMsg').style.display    = setup ? 'block' : 'none';
+  document.getElementById('authName').style.display        = setup ? '' : 'none';
   document.getElementById('authPinConfirm').style.display  = setup ? '' : 'none';
   document.getElementById('authBtn').textContent      = setup ? '🔐 Set Password' : '🔓 Unlock';
   document.getElementById('authError').style.display  = 'none';
-  ['authPin', 'authPinConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  ['authName', 'authPin', 'authPinConfirm'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('authOverlay').style.display  = 'flex';
   document.body.style.overflow = 'hidden';
   document.getElementById('authPin').addEventListener('keydown', e => {
@@ -589,7 +592,9 @@ async function submitAuth() {
 
   // First-run: create Dean password
   if (!hashStr) {
+    const name    = (document.getElementById('authName').value || '').trim();
     const confirm = (document.getElementById('authPinConfirm').value || '').trim();
+    if (!name) { errEl.textContent = 'Please enter your name.'; errEl.style.display = 'block'; return; }
     if (!confirm) { errEl.textContent = 'Please confirm your password.'; errEl.style.display = 'block'; return; }
     if (pin !== confirm) {
       errEl.textContent = 'Passwords do not match — try again.';
@@ -599,6 +604,7 @@ async function submitAuth() {
     }
     const { hash, salt } = await DormDB.hashPwd(pin);
     DormDB.savePwdHash({ hash, salt });
+    DormDB.saveCurrentUser(name);
     _setSession();
     document.getElementById('authOverlay').style.display = 'none';
     document.body.style.overflow = '';
