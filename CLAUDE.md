@@ -48,7 +48,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-17)
+## File stats (2026-06-17, post-bug-fix)
 
 | File | Lines |
 |------|-------|
@@ -59,9 +59,9 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |
 | `modules/reports.html` | 1,764 |
-| `modules/room-inspection.html` | 1,585 |
+| `modules/room-inspection.html` | 1,592 |
 | `modules/key-inventory.html` | 1,587 |
-| `modules/inventory.html` | 2,713 |
+| `modules/inventory.html` | 2,718 |
 | `modules/attendance.html` | 1,236 |
 | `modules/incidents.html` | 993 |
 | `modules/student-admin.html` | 1,014 |
@@ -148,6 +148,12 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-17, post-Snipe-IT bug fixes)
+
+- [x] **modules/inventory.html** — `DormDB.on(KEYS.INVENTORY)` → `'dormInventoryAssets'` so Items/Location/Labels/Maintenance tabs refresh after save/delete (same-tab AND cross-tab); folded retired `dormInvTemplate` handler into `dormInventoryModels` (also refreshes Settings/Location/Dashboard); `closeAssetDetail()` helper revokes blob URLs on all three close paths (×button, Escape, backdrop). 2,713→2,718 lines
+- [x] **modules/room-inspection.html** — `_writeBackAssets`: hoisted `getAllAssets()` before loop + Map lookup (O(n)→O(1) IDB reads); `pushMaintenanceStubs`: dedup now filters `status==='Open'` so repaired assets re-stub on re-inspection; `renderSettings`: iterates `Object.entries(def)` instead of `SIDE_ITEMS=[]`, adds `data-name` attrs; `saveDefaultCharges`: reads `[data-name]` inputs instead of empty arrays (was silently wiping all charges); `itemRows`: signature drops template array, iterates `Object.entries(dataObj)` — fixes blank tables in all inspection prints; `printRoomCostSheet`: reads IDB models grouped by scope (`per-side` vs other) instead of `SIDE_ITEMS=[]`. 1,585→1,592 lines
+- [x] **sw.js** — Bumped cache `dormportal-v14` → `dormportal-v15`
 
 ## Completed (2026-06-17, Snipe-IT inventory + inspection)
 
