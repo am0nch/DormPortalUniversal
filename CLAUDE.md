@@ -149,11 +149,11 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
 
-## Completed (2026-06-18, Dean auth redesign)
+## Completed (2026-06-18, Dean auth redesign + userguide)
 
 - [x] **index.html** — Dean-only security redesign: replaced HMAC session machinery with plain `sessionStorage.setItem('dormPortalUnlocked','1')` (HMAC was theater — key was in localStorage); removed M365 as auth bypass (M365 = cloud sync only); removed open-access mode — no password → three-step first-run flow (dorm selection → name + password → done); removed staff role from main gate (single Dean credential; Staff Access PIN stays in Portal Access modal for future use); `openPwdModal()` no longer gates on M365 backup being configured; bumped SW cache v15→v16. 1,867→1,823 lines
-- [x] **modules/room-reservations.html** — Removed `window.prompt('Your name:')` fallback; `currentUser` is now a plain `DormDB.getCurrentUser()` read — always populated after first-run setup. 2,153→2,143 lines
 - [x] **modules/room-reservations.html** — Removed `window.prompt('Your name:')` fallback and M365 display-name branch; `currentUser` is now a plain `DormDB.getCurrentUser()` read — always populated after first-run setup. 2,153→2,143 lines
+- [x] **modules/userguide.html** — Updated for Dean-only security model: fixed System Overview ("no login required" → mentions Dean password); rewrote First Launch steps to reflect 3-step first-run flow; added "Security & Access" subsection (Dean password, Portal Access PINs, password recovery); added v4.3 version history entry; TOC updated. 2,785→2,823 lines
 
 ## Completed (2026-06-17, post-Snipe-IT bug fixes)
 
