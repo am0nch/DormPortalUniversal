@@ -841,6 +841,7 @@ async function switchTab(name) {
 // ── Asset Models ─────────────────────────────────────────────────────────────
 let _editingModelId = null;
 let _models = [];
+let _detailBlobUrls = [];
 
 async function loadModels() {
   _models = await DormDB.getInvModels();
@@ -1274,16 +1275,19 @@ async function openAssetDetail(id) {
       DormDB.getPhoto(e.photoId).then(blob => {
         if (!blob) return;
         const img = document.querySelector(`img[data-photoid="${CSS.escape(e.photoId)}"]`);
-        if (img) img.src = URL.createObjectURL(blob);
+        if (img) { const url = URL.createObjectURL(blob); _detailBlobUrls.push(url); img.src = url; }
       });
     }
     return `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:.78rem">
-      ${icon} <strong>${escapeHtml(e.event)}</strong>${detail} &mdash; ${escapeHtml(e.room||'')}${e.side?' Side '+e.side:''}<br>
+      ${icon} <strong>${escapeHtml(e.event)}</strong>${detail} &mdash; ${escapeHtml(e.room||'')}${e.side ? ' Side ' + escapeHtml(String(e.side)) : ''}<br>
       <span style="color:#aaa">${escapeHtml(e.date||'')} · ${escapeHtml(e.by||'')}</span>
       ${e.notes ? `<br><span style="color:#666">${escapeHtml(e.notes)}</span>` : ''}
       ${photoHtml}
     </div>`;
   }).join('') : '<p class="empty-msg">No history recorded yet.</p>';
+  // Revoke any previous blob URLs from last open
+  _detailBlobUrls.forEach(u => URL.revokeObjectURL(u));
+  _detailBlobUrls = [];
   document.getElementById('assetDetailModal').classList.add('open');
 }
 
@@ -1304,11 +1308,6 @@ async function resolveFlag(id) {
 function renderSettings() {
   renderCategories();
   renderCustomLocs();
-}
-
-function _saveTpl(tpl) {
-  const cfg = DormDB.getInvCfg();
-  DormDB.saveInvCfg({ ...cfg, template: tpl });
 }
 
 function renderCategories() {
