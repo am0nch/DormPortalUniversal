@@ -288,16 +288,6 @@ table.h-tbl tr:hover td{background:#f7fafc}
 <!-- SETTINGS -->
 <div id="tab-settings" class="tab-panel">
   <div class="sec-card">
-    <h3>🏠 Room Item Template</h3>
-    <p style="font-size:.77rem;color:#888;margin-bottom:12px">Items each student room should contain. Used by "Seed All Rooms" and the By Location missing-item comparison.</p>
-    <div id="tplRows"></div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <button class="btn btn-green btn-sm" onclick="addTemplateRow()">+ Add Row</button>
-      <button class="btn btn-blue btn-sm" onclick="saveTemplate()">💾 Save Template</button>
-      <button class="btn btn-gray btn-sm" onclick="resetTemplateToDefaults()">↺ Reset Defaults</button>
-    </div>
-  </div>
-  <div class="sec-card">
     <h3>📂 Item Categories</h3>
     <div id="catList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;align-items:center">
@@ -982,6 +972,8 @@ async function renderDashboard() {
     card('🔴', poor,    'Poor / Damaged',    '#e74c3c'),
     card('❓', missing, 'Missing',           '#8e44ad'),
     card('🔧', flagged, 'Needs Repair',      '#c0392b'),
+    card('📤', DormDB._cachedStats.invCheckedOut, 'Checked Out',    '#2980b9'),
+    card('🔩', DormDB._cachedStats.invMaint,      'In Maintenance', '#e67e22'),
   ].join('');
 
   const topMaint = inv.filter(i => i.maintenanceFlag && !i.maintenancePushed).slice(0, 5);
@@ -1043,7 +1035,7 @@ async function renderItems() {
   document.getElementById('itemsBody').innerHTML = `
     <table class="h-tbl">
       <thead><tr><th>ID</th><th>Name</th><th>Category</th><th>Location</th><th>Side</th><th>Condition</th><th>Status</th><th>🔧</th><th>Actions</th></tr></thead>
-      <tbody>${inv.map(i => `<tr>
+      <tbody>${inv.map(i => `<tr style="cursor:pointer" onclick="openAssetDetail('${escapeHtml(i.id)}')">
         <td><span style="font-family:monospace;font-size:.68rem;color:#aaa">${escapeHtml(i.id)}</span></td>
         <td><strong>${escapeHtml(i.name)}</strong>${i.brand?`<br><span style="font-size:.7rem;color:#aaa">${escapeHtml(i.brand)}</span>`:''}</td>
         <td>${catBadge(i.category)}</td>
@@ -1052,7 +1044,7 @@ async function renderItems() {
         <td>${condBadge(i.condition)}</td>
         <td>${statusBadge(i.statusLabel)}</td>
         <td style="text-align:center">${i.maintenanceFlag ? (i.maintenancePushed ? '<span style="font-size:.7rem;color:#888">📤</span>' : '<span style="font-size:.7rem;color:#e74c3c;font-weight:700">⚠</span>') : ''}</td>
-        <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openEditModal('${escapeHtml(i.id)}')">✏️</button> <button class="btn btn-sm btn-red" onclick="confirmRemove('${escapeHtml(i.id)}')">✕</button></td>
+        <td style="white-space:nowrap"><button class="btn btn-sm" onclick="event.stopPropagation();openEditModal('${escapeHtml(i.id)}')">✏️</button> <button class="btn btn-sm btn-red" onclick="event.stopPropagation();confirmRemove('${escapeHtml(i.id)}')">✕</button></td>
       </tr>`).join('')}</tbody>
     </table>`;
 }
@@ -1259,6 +1251,42 @@ async function pushToMaintenance(id) {
   renderDashboard();
 }
 
+async function openAssetDetail(id) {
+  const assets = await DormDB.getAllAssets();
+  const item   = assets.find(a => a.id === id);
+  if (!item) return;
+  document.getElementById('adName').textContent = item.name + (item.side ? ` — Side ${item.side}` : '');
+  document.getElementById('adMeta').innerHTML =
+    `<strong>Status:</strong> ${statusBadge(item.statusLabel)} &nbsp;
+     <strong>Condition:</strong> ${escapeHtml(item.condition || 'Good')} &nbsp;
+     ${item.assetTag ? `<strong>Tag:</strong> <code>${escapeHtml(item.assetTag)}</code>` : ''}`;
+  const log = item.checkoutLog || [];
+  document.getElementById('adLog').innerHTML = log.length ? log.slice().reverse().map(e => {
+    let icon = { checkout:'📤', checkin:'📥', 'condition-change':'⚠️', maintenance:'🔧', retired:'🗄️' }[e.event] || '•';
+    let detail = '';
+    if (e.conditionBefore && e.conditionAfter) detail = ` <span style="color:#888">${escapeHtml(e.conditionBefore)} → ${escapeHtml(e.conditionAfter)}</span>`;
+    let photoHtml = '';
+    if (e.photoId) {
+      photoHtml = `<img data-photoid="${escapeHtml(e.photoId)}" src="" alt="condition photo"
+        style="max-width:120px;max-height:90px;border-radius:4px;margin-top:4px;cursor:pointer;border:1px solid #ddd"
+        onclick="window.open(this.src)"
+        onload="this.style.display='block'" onerror="this.style.display='none'">`;
+      DormDB.getPhoto(e.photoId).then(blob => {
+        if (!blob) return;
+        const img = document.querySelector(`img[data-photoid="${CSS.escape(e.photoId)}"]`);
+        if (img) img.src = URL.createObjectURL(blob);
+      });
+    }
+    return `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:.78rem">
+      ${icon} <strong>${escapeHtml(e.event)}</strong>${detail} &mdash; ${escapeHtml(e.room||'')}${e.side?' Side '+e.side:''}<br>
+      <span style="color:#aaa">${escapeHtml(e.date||'')} · ${escapeHtml(e.by||'')}</span>
+      ${e.notes ? `<br><span style="color:#666">${escapeHtml(e.notes)}</span>` : ''}
+      ${photoHtml}
+    </div>`;
+  }).join('') : '<p class="empty-msg">No history recorded yet.</p>';
+  document.getElementById('assetDetailModal').classList.add('open');
+}
+
 async function resolveFlag(id) {
   const inv = await DormDB.getAllAssets();
   const item = inv.find(i => i.id === id);
@@ -1274,59 +1302,10 @@ async function resolveFlag(id) {
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 function renderSettings() {
-  renderTemplateRows();
   renderCategories();
   renderCustomLocs();
 }
 
-function renderTemplateRows() {
-  const tpl = getTemplate();
-  const cats = getCategories();
-  document.getElementById('tplRows').innerHTML = tpl.map((row, i) =>
-    `<div class="tpl-row">
-      <input type="text" id="tpl_name_${i}" value="${escapeHtml(row.name)}" placeholder="Item name" style="flex:2;min-width:130px">
-      <select id="tpl_cat_${i}">${cats.map(c => `<option${c===row.category?' selected':''}>${escapeHtml(c)}</option>`).join('')}</select>
-      <input type="number" id="tpl_qty_${i}" value="${row.qty}" min="1" max="10" style="width:52px" title="Qty per room">
-      <label style="white-space:nowrap;font-size:.75rem"><input type="checkbox" id="tpl_ac_${i}" ${row.acOnly?'checked':''}> AC only</label>
-      <button class="btn btn-red btn-sm" onclick="removeTemplateRow(${i})">✕</button>
-    </div>`
-  ).join('');
-}
-
-function addTemplateRow() {
-  const tpl = getTemplate();
-  tpl.push({ name: '', category: 'Furniture', qty: 1, acOnly: false });
-  _saveTpl(tpl);
-  renderTemplateRows();
-}
-function removeTemplateRow(i) {
-  const tpl = getTemplate();
-  tpl.splice(i, 1);
-  _saveTpl(tpl);
-  renderTemplateRows();
-}
-function saveTemplate() {
-  const tpl = getTemplate();
-  tpl.forEach((_, i) => {
-    const n = document.getElementById('tpl_name_' + i);
-    if (!n) return;
-    tpl[i] = {
-      name: n.value.trim(),
-      category: document.getElementById('tpl_cat_' + i)?.value || 'Furniture',
-      qty: parseInt(document.getElementById('tpl_qty_' + i)?.value || '1') || 1,
-      acOnly: document.getElementById('tpl_ac_' + i)?.checked || false,
-    };
-  });
-  _saveTpl(tpl.filter(r => r.name));
-  showToast('✅ Room template saved.');
-  renderTemplateRows();
-}
-function resetTemplateToDefaults() {
-  if (!confirm('Reset to default room template? Your custom changes will be lost.')) return;
-  _saveTpl(DEFAULT_TEMPLATE);
-  showToast('✅ Template reset to defaults.');
-  renderTemplateRows();
-}
 function _saveTpl(tpl) {
   const cfg = DormDB.getInvCfg();
   DormDB.saveInvCfg({ ...cfg, template: tpl });
@@ -2702,6 +2681,7 @@ async function init() {
       closeModal('bddCountModal'); closeModal('bddSettingsModal');
       closeModal('snapshotModal');
       closeModal('barcodeViewModal');
+      closeModal('assetDetailModal');
       closeScanModal();
     }
   });
@@ -2711,6 +2691,7 @@ async function init() {
         closeItemModal(); closeModal('confirmModal');
         closeModal('bddSaleModal'); closeModal('bddStockModal');
         closeModal('bddCountModal'); closeModal('bddSettingsModal');
+        closeModal('assetDetailModal');
         if (m.id === 'scanModal') closeScanModal();
       }
     });
@@ -2719,5 +2700,15 @@ async function init() {
 init();
 </script>
 <script>(function(){const btn=document.createElement('button');btn.id='scrollTopBtn';btn.title='Back to top';btn.innerHTML='&#8679;';document.body.appendChild(btn);window.addEventListener('scroll',()=>btn.classList.toggle('visible',window.scrollY>300),{passive:true});btn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));})()</script>
+
+<div class="modal" id="assetDetailModal">
+  <div class="modal-content" style="max-width:560px">
+    <span class="close-btn" onclick="document.getElementById('assetDetailModal').classList.remove('open')">&times;</span>
+    <h2 id="adName" style="font-size:1rem;color:#1e3a5f"></h2>
+    <div id="adMeta" style="font-size:.8rem;color:#555;margin-bottom:14px"></div>
+    <h3 style="font-size:.82rem;font-weight:700;color:#1e3a5f;margin-bottom:8px">History</h3>
+    <div id="adLog" style="max-height:340px;overflow-y:auto"></div>
+  </div>
+</div>
 </body>
 </html>
