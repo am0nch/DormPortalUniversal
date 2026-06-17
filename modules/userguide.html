@@ -285,7 +285,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-overview">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> System Overview</div>
       <div class="collapse-body">
-        <p>The Dormitory Administration system is a <strong>browser-based application</strong> — no internet connection, no server, and no login required after the files are opened. All data is saved automatically to your browser's local storage and can be exported as a JSON backup file.</p>
+        <p>The Dormitory Administration system is a <strong>browser-based application</strong> — no internet connection and no server required. Access is protected by a <strong>Dean password</strong> set on first use. All data is saved automatically to your browser's local storage and can be exported as a JSON backup file.</p>
         <div class="two-col">
           <div class="info-card">
             <h4>🔒 Data Storage</h4>
@@ -303,13 +303,32 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-first-launch">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> First Launch</div>
       <div class="collapse-body">
+        <p>The first time you open <strong>index.html</strong>, a three-step setup screen walks you through configuration before the portal opens:</p>
         <ol class="steps">
-          <li>Open <strong>index.html</strong> in a modern web browser (Chrome or Edge recommended).</li>
-          <li>When prompted for your name, enter it — this is shown as the current user and stamped on every save.</li>
-          <li>Select your dorm from the <strong>🏢 Dorm</strong> dropdown (top-right of the menu). Choose "Other" to type a custom name.</li>
+          <li><strong>Select Dormitory</strong> — Choose your dorm from the list (Elijah Hall, Esther Hall, etc.) or pick "Other" to type a custom name. Click <strong>Continue →</strong>.</li>
+          <li><strong>First-Time Setup</strong> — Enter your name and create a Dean password (type it twice to confirm). Click <strong>🔐 Set Password</strong>. The portal unlocks immediately.</li>
           <li>Click any module card to open it. All modules share the same data.</li>
         </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>After setup, every visit shows a password gate ("🔓 Unlock"). The session stays unlocked until you close the browser tab.</span></div>
         <div class="tip"><span class="tip-icon">💡</span><span><strong>Tip:</strong> Keep the index.html tab open while working in module tabs — it updates live as data changes and shows at-a-glance stats for all modules.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-security">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Security &amp; Access</div>
+      <div class="collapse-body">
+        <p>The portal uses a <strong>password gate</strong> to prevent walk-up access on an unattended computer. The password is hashed with PBKDF2-SHA256 (100,000 iterations, random salt) and stored locally — it is never sent anywhere.</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>🔐 Dean Password</h4>
+            <p>Set on first use. To change it: click the <strong>🔐 Password</strong> button in the menu header, enter your current password, then choose a new one. Leave "New password" blank to keep the existing password unchanged.</p>
+          </div>
+          <div class="info-card">
+            <h4>🔑 Portal Access PINs</h4>
+            <p>Click <strong>🔑 Portal Access</strong> in the menu header to set separate PINs for the <strong>RA Portal</strong>, <strong>Monitor Portal</strong>, and a <strong>Staff Access PIN</strong> for limited Dean Portal access. Leave blank to keep a portal open.</p>
+          </div>
+        </div>
+        <div class="danger"><span class="danger-icon">⚠️</span><span><strong>Forgot your Dean password?</strong> There is no reset link — the system is offline. To recover: open browser DevTools → Application → Local Storage → delete the <code>dormPwdHash</code> key. The next visit will show the First-Time Setup screen again. <strong>Your data is safe</strong> — only the password entry is removed. If you also lost your data, restore from your last <strong>💾 Export All Data</strong> backup or from OneDrive via Cloud Sync.</span></div>
       </div>
     </div>
 
@@ -2204,6 +2223,23 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       </div>
     </div>
 
+    <div class="subsection" id="sub-ver-v43">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.3 — Dean-Only Security Model (June 2026)</div>
+      <div class="collapse-body">
+        <p>v4.3 replaces the previous multi-path authentication with a single, honest security model designed for the Dean as the sole system operator.</p>
+        <table class="guide-table">
+          <thead><tr><th>Change</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td>Three-step first-run setup</td><td>First visit guides Dean through: (1) select dormitory, (2) enter name + create password. Portal never opens without a password.</td></tr>
+            <tr><td>Plain session flag</td><td>Session stored as a simple <code>sessionStorage</code> flag. Previous HMAC signing was removed — the signing key was in localStorage alongside the hash, providing no real protection.</td></tr>
+            <tr><td>M365 auth bypass removed</td><td>Microsoft 365 is now cloud sync / backup only. It no longer bypasses the password gate.</td></tr>
+            <tr><td>Staff role removed from main gate</td><td>Single Dean credential at the main portal. Staff Access PIN remains settable in Portal Access for future use.</td></tr>
+            <tr><td>Name prompt removed</td><td>Room Reservations no longer shows a <code>window.prompt</code> for the user's name — it is captured once during first-run setup and stored.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-ver-v42">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.2 — Archive System &amp; Data Quality (June 2026)</div>
       <div class="collapse-body">
@@ -2457,6 +2493,7 @@ const TOC = [
     { id:'sec-getting-started', text:'🏛️ Getting Started', subs:[
       { id:'sub-overview',         text:'System Overview' },
       { id:'sub-first-launch',     text:'First Launch' },
+      { id:'sub-security',         text:'Security & Access' },
       { id:'sub-backup',           text:'Backup & Restore' },
       { id:'sub-archive',          text:'Archive Old Semesters' },
       { id:'sub-semesters',        text:'Semester Management & Rollover' },
@@ -2590,6 +2627,7 @@ const TOC = [
       { id:'sub-about-updates',   text:'Requesting Future Updates' },
     ]},
     { id:'sec-version', text:'📋 Version History', subs:[
+      { id:'sub-ver-v43', text:'v4.3 — Dean-Only Security Model' },
       { id:'sub-ver-v42', text:'v4.2 — Archive System & Data Quality' },
       { id:'sub-ver-v4',  text:'v4.0 — Multi-Module System' },
       { id:'sub-ver-v41', text:'v4.1 — Behavioral & Staff Modules' },
