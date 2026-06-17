@@ -48,7 +48,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-16)
+## File stats (2026-06-17)
 
 | File | Lines |
 |------|-------|
@@ -59,7 +59,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |
 | `modules/reports.html` | 1,764 |
-| `modules/room-inspection.html` | 1,565 |
+| `modules/room-inspection.html` | 1,585 |
 | `modules/key-inventory.html` | 1,587 |
 | `modules/inventory.html` | 2,713 |
 | `modules/attendance.html` | 1,236 |
