@@ -52,7 +52,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,867 |
+| `index.html` | 1,794 |
 | `dorm-db.js` | 974 |
 | `modules/room-reservations.html` | 2,153 |
 | `modules/student-profiles.html` | 1,246 |
@@ -143,11 +143,15 @@ s.roomHold.active && (s.summer || s.firstSem)
 ## Pending items
 
 - [ ] `userguide.html` — all major sections documented ✅; Att. Archive tab section not yet added to userguide
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v14)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v16)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-18, Dean auth redesign)
+
+- [x] **index.html** — Dean-only security redesign: replaced HMAC session machinery with plain `sessionStorage.setItem('dormPortalUnlocked','1')` (HMAC was theater — key was in localStorage); removed M365 as auth bypass (M365 = cloud sync only); removed open-access mode — no password → first-run setup overlay prompts Dean to create password; removed staff role from main gate (single Dean credential; Staff Access PIN stays in Portal Access modal for future use); `openPwdModal()` no longer gates on M365 backup being configured; bumped SW cache v15→v16. 1,867→1,794 lines
 
 ## Completed (2026-06-17, post-Snipe-IT bug fixes)
 
