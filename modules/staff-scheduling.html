@@ -587,7 +587,7 @@ function renderSlots() {
             onclick="openShiftModal(${n.wId},'${c.day}',${n.blockId},${n.si})"
             title="Click to edit">${esc(n.name)}</span>`).join('')}
           ${slotFull ? '' : `<span class="slot-add"
-            onclick="openShiftModalSlot(${JSON.stringify(c.day)},${JSON.stringify(addStart)},${JSON.stringify(addEnd)})"
+            onclick="openShiftModalSlot('${esc(c.day)}','${esc(addStart)}','${esc(addEnd)}')"
             title="Add ${cat} to this slot">+</span>`}
         </td>`;
       }).join('')}
@@ -605,6 +605,8 @@ function renderMaster() {
   const slots = buildSlots(cat);
   const days  = dayOrder();
   const entries = masterEntries().filter(e => e.category === cat);
+  // Pre-indexed for O(1) inner-loop access (global ei needed for edit path)
+  const indexedEntries = masterEntries().map((e, ei) => ({ e, ei })).filter(({ e }) => e.category === cat);
 
   const totalSlots = slots.filter(s=>s!=='OVERNIGHT').length;
   const overnightInfo = sc.overnight ? ` + overnight (${sc.dayEnd}–${sc.dayStart}, ${sc.overnightHours}h)` : '';
@@ -624,17 +626,14 @@ function renderMaster() {
       <td class="slot-label${isOvn?' overnight-slot':''}">${slotLabel(slotStart, cat)}</td>
       ${days.map(d => {
         // Find master entries for this slot+day
-        const matched = [];
-        masterEntries().forEach((e, ei) => {
-          if (e.category === cat && e.day === d && isShiftInSlot({ startTime: e.startTime, endTime: e.endTime }, slotStart, cat))
-            matched.push({ e, ei });
-        });
+        const matched = indexedEntries.filter(({ e }) =>
+          e.day === d && isShiftInSlot({ startTime: e.startTime, endTime: e.endTime }, slotStart, cat));
         return `<td>
           ${matched.map(({ e, ei }) => `<span class="slot-name master-name"
-            onclick="openMasterModal(${JSON.stringify(d)},${JSON.stringify(e.startTime)},${JSON.stringify(e.endTime)},${ei})"
+            onclick="openMasterModal('${esc(d)}','${esc(e.startTime)}','${esc(e.endTime)}',${ei})"
             title="Click to edit">${esc(displayName(e.workerName))}</span>`).join('')}
           <span class="slot-add"
-            onclick="openMasterModal(${JSON.stringify(d)},${JSON.stringify(addStart)},${JSON.stringify(addEnd)},-1)"
+            onclick="openMasterModal('${esc(d)}','${esc(addStart)}','${esc(addEnd)}',-1)"
             title="Assign ${cat} to this slot">+</span>
         </td>`;
       }).join('')}
@@ -805,7 +804,7 @@ function saveMasterEntry() {
   const wId = Number(document.getElementById('sm_worker').value);
   if (!wId) { showToast('⚠️ Select a worker'); return; }
   const w = workers.find(x => x.id === wId);
-  if (!w) return;
+  if (!w) { showToast('⚠️ Worker no longer found — please refresh'); return; }
   const day      = document.getElementById('sm_day').value;
   const start    = document.getElementById('sm_start').value;
   const end      = document.getElementById('sm_end').value;
@@ -814,12 +813,9 @@ function saveMasterEntry() {
 
   if (!start || !end) { showToast('⚠️ Enter start and end time'); return; }
   if (start === end)  { showToast('⚠️ Start and end time cannot be the same'); return; }
-  const wMaster = workers.find(x => x.id === wId);
-  if (wMaster) {
-    const scm = getSlotConfig(wMaster.category);
-    if (isOvernightShift(start, end) && !scm.overnight) {
-      if (!confirm(`⚠️ ${wMaster.name}: end time (${end}) is before start (${start}), creating an overnight shift. ${wMaster.category}s don't normally work overnight. Save anyway?`)) return;
-    }
+  const scm = getSlotConfig(w.category);
+  if (isOvernightShift(start, end) && !scm.overnight) {
+    if (!confirm(`⚠️ ${w.name}: end time (${end}) is before start (${start}), creating an overnight shift. ${w.category}s don't normally work overnight. Save anyway?`)) return;
   }
 
   const allEntries = masterEntries();
@@ -1176,7 +1172,6 @@ function printSlotSheet() {
   const blockOf = {};
   schedule.filter(b => b.weekStart === wsIso && b.category === cat).forEach(b => { blockOf[b.workerId] = b; });
   const catWorkers = workers.filter(w => w.status === 'Active' && w.category === cat);
-  const dName = n => slotCfg().nameDisplay === 'full' ? n : (n||'').split(' ')[0];
   let rows = '';
   slots.forEach(slotStart => {
     const isOvn = slotStart === 'OVERNIGHT';
@@ -1187,7 +1182,7 @@ function printSlotSheet() {
         catWorkers.forEach(w => {
           const block = blockOf[w.id];
           if (!block) return;
-          (block.shifts||[]).filter(s => s.day===d && isShiftInSlot(s,slotStart,cat)).forEach(() => names.push(dName(w.name)));
+          (block.shifts||[]).filter(s => s.day===d && isShiftInSlot(s,slotStart,cat)).forEach(() => names.push(displayName(w.name)));
         });
         return `<td>${names.join(', ')}</td>`;
       }).join('')}

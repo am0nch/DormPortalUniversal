@@ -66,7 +66,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/incidents.html` | 993 |
 | `modules/student-admin.html` | 1,014 |
 | `modules/dorm-workers.html` | 759 |
-| `modules/staff-scheduling.html` | 1,281 |
+| `modules/staff-scheduling.html` | 1,276 |
 | `modules/plant-requests.html` | 722 |
 | `modules/ra-portal.html` | 605 |
 | `modules/monitor-portal.html` | 571 |
@@ -157,6 +157,11 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 - [x] **index.html** — AES-256-GCM encrypted backup export/import: `_deriveAesKey`, `_encryptDump`, `_decryptDump` crypto helpers; `exportAll` prompts for Dean password when set → `#exportPwdModal` → `_submitExportEncrypt`/`_submitExportPlain`; `restoreAll` detects `_enc:1` → `#decryptModal` → `decryptAndRestore`; `_triggerDownload` and `_doImport` extracted as helpers. 1,826→1,967 lines
 - [x] **index.html** — Auth open-access fix: `checkAuth()` auto-unlocks when no `dormPwdHash` but dorm already configured; `removePwd()` calls `_setSession()` instead of clearing session. 1,823→1,826 lines
+
+## Completed (2026-06-18, staff-scheduling Master Schedule fix)
+
+- [x] **modules/staff-scheduling.html** — Master Schedule '+' button broken (onclick truncated at first `"` due to `JSON.stringify()` inside double-quoted attribute); fixed 3 sites (lines 590, 633, 636) to use `'${esc(x)}'` (single-quoted args, `esc()` for XSS safety); `saveMasterEntry` silent `return` → toast; duplicate `wMaster` lookup removed; O(n²) `masterEntries()` in inner loop → pre-indexed `indexedEntries`; duplicate `dName` closure in `printSlotSheet` → `displayName()`. 1,281→1,276 lines
+- [x] **dorm-db.js** — `getWorkers()` normalizes workers with missing `status` to `'Active'` (legacy import defence). 974 lines (unchanged)
 
 ## Completed (2026-06-18, Snipe-IT code review bug fixes)
 

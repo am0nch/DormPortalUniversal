@@ -505,7 +505,7 @@ const DormDB = (() => {
     saveOffCampusReq: (d) => _w(K.OFFCAMPUS_REQ, d),
     getAssistance:    ()  => _r(K.ASSISTANCE, []),
     saveAssistance:   (d) => _w(K.ASSISTANCE, d),
-    getWorkers:       ()  => _r(K.WORKERS, []),
+    getWorkers:       ()  => _r(K.WORKERS, []).map(w => w.status ? w : { ...w, status: 'Active' }),
     saveWorkers:      (d) => _w(K.WORKERS, d),
     getWorkersCfg()       { return _r(K.WORKERS_CFG, { semesterLabel: '', raFloorAssignments: {}, jobDocs: [] }); },
     saveWorkersCfg:   (d) => _w(K.WORKERS_CFG, d),
