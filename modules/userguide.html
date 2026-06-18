@@ -493,7 +493,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>👤 Student Profiles</td><td>Full student directory with photos, Registrar/MS Forms import</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🏢 Floor Plan</td><td>Visual room grid with occupancy colors and bathroom pairing</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>⚡ Electricity & Hot Water</td><td>Meter readings and per-student utility bill calculation</td><td><span class="badge badge-green">Ready</span></td></tr>
-            <tr><td>📊 Reports</td><td>12-tab hub: archive, away students, room, custom, pivot, holds, storage, clearance, fees, attendance, incidents, bedding</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📊 Reports</td><td>13-tab hub: archive, away students, room, custom, pivot, holds, storage, clearance, fees, attendance, att. archive, incidents, bedding</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔑 Key Inventory</td><td>Key checkout, return, lost key tracking, fines, shift print</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔍 Room Inspection</td><td>Move-in/out checklists, damage charges, clearance pre-fill</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>📦 Inventory</td><td>Asset tracking, Code 39 barcodes, room template comparison, bedding sales ledger</td><td><span class="badge badge-green">Ready</span></td></tr>
@@ -965,7 +965,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       <span class="section-badge ready">Ready</span>
     </div>
 
-    <p style="margin-bottom:16px">The Reports module has <strong>12 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
+    <p style="margin-bottom:16px">The Reports module has <strong>13 tabs</strong> covering all major report types. All output is print or PDF — no data is entered here. The module is <em>read-only</em> and intentionally lightweight.</p>
 
     <div class="subsection" id="sub-rpt-archive">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 📁 Archive Tab</div>
@@ -1046,6 +1046,20 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         </ul>
         <p>Click <strong>🖨️ Print Attendance Report</strong> for an A4 summary — useful for semester-end reviews or parent communication.</p>
         <div class="note"><span class="note-icon">ℹ️</span><span>This tab reads from the Nightly Attendance module. If no attendance sessions exist yet, the tab will show empty stats.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-rpt-att-archive">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> 🗄️ Att. Archive Tab</div>
+      <div class="collapse-body">
+        <p>Shows all attendance sessions that have been archived from previous semesters — pulled from the browser's IndexedDB archive store, not the live attendance data. Archived sessions remain fully visible and printable even after the active semester rolls over.</p>
+        <p>The tab groups sessions by semester. Each semester entry shows the session count; click <strong>▶ View Sessions</strong> to expand it (sessions load lazily on first open). Expanding a semester shows:</p>
+        <ul>
+          <li><strong>Session Log</strong> — one row per session: Date, Floor, Present, Absent, On Leave, Total, Conducted By</li>
+          <li><strong>Absence Count per Student</strong> — aggregated across all sessions in that semester; rows with 3 or more absences are highlighted and marked <em>⚠️ Follow up</em></li>
+        </ul>
+        <p>Click <strong>🖨️ Print This Semester</strong> to open a dedicated A4 print window for the expanded semester — includes the session log and absence summary.</p>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Sessions are archived by the <strong>Nightly Attendance</strong> module via <em>Archive Semester</em>. If no sessions are archived yet the tab shows an empty state with instructions. Once archived, sessions no longer appear in the live Attendance tab — this is the only place to view them in-app.</span></div>
       </div>
     </div>
 
@@ -2252,6 +2266,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td><strong>↩ Restore</strong></td><td>Archived records can be merged back into live data at any time via the 📦 View Archive modal. Restore is deduped — re-importing the same records is safe.</td></tr>
             <tr><td><strong>📷 Photo compression</strong></td><td>Room inspection photos are now compressed to ~100–150 KB (from 2–8 MB raw) using canvas resize to 1024 px / JPEG q=0.75 before saving. Existing photos are unaffected.</td></tr>
             <tr><td><strong>🔄 Cross-tab sync fixes</strong></td><td>Four modules now subscribe to shared data keys so their UI refreshes when another browser tab writes: RA Portal and Monitor Portal (workers list), Room Reservations (profiles + inspections), Maintenance (config changes).</td></tr>
+            <tr><td><strong>🗄️ Att. Archive tab (Reports tab 11)</strong></td><td>New Reports tab shows attendance sessions archived from past semesters, grouped by semester. Per-semester expandable view includes a session log and per-student absence count. Print-to-A4 available per semester.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2533,19 +2548,20 @@ const TOC = [
       { id:'sub-util-hw',      text:'Hot Water Tab' },
       { id:'sub-util-summary', text:'Summary & Export' },
     ]},
-    { id:'sec-reports', text:'📊 Reports (12 tabs)', subs:[
-      { id:'sub-rpt-archive',    text:'📁 Archive' },
-      { id:'sub-rpt-room',       text:'🛏️ Room Report' },
-      { id:'sub-rpt-custom',     text:'📋 Custom Report' },
-      { id:'sub-rpt-pivot',      text:'🔀 Pivot' },
-      { id:'sub-rpt-holds',      text:'🏠 Holds' },
-      { id:'sub-rpt-storage',    text:'📦 Storage' },
-      { id:'sub-rpt-clearance',  text:'📋 Clearance' },
-      { id:'sub-rpt-fees',       text:'💰 Fee Collection' },
-      { id:'sub-rpt-attendance', text:'📅 Attendance' },
-      { id:'sub-rpt-incidents',  text:'🚨 Incidents' },
-      { id:'sub-rpt-away',       text:'🏃 Away Students' },
-      { id:'sub-rpt-bedding',    text:'🛏️ Bedding' },
+    { id:'sec-reports', text:'📊 Reports (13 tabs)', subs:[
+      { id:'sub-rpt-archive',     text:'📁 Archive' },
+      { id:'sub-rpt-room',        text:'🛏️ Room Report' },
+      { id:'sub-rpt-custom',      text:'📋 Custom Report' },
+      { id:'sub-rpt-pivot',       text:'🔀 Pivot' },
+      { id:'sub-rpt-holds',       text:'🏠 Holds' },
+      { id:'sub-rpt-storage',     text:'📦 Storage' },
+      { id:'sub-rpt-clearance',   text:'📋 Clearance' },
+      { id:'sub-rpt-fees',        text:'💰 Fee Collection' },
+      { id:'sub-rpt-attendance',  text:'📅 Attendance' },
+      { id:'sub-rpt-att-archive', text:'🗄️ Att. Archive' },
+      { id:'sub-rpt-incidents',   text:'🚨 Incidents' },
+      { id:'sub-rpt-away',        text:'🏃 Away Students' },
+      { id:'sub-rpt-bedding',     text:'🛏️ Bedding' },
     ]},
     { id:'sec-key-inventory', text:'🔑 Key Inventory', subs:[
       { id:'sub-ki-setup',    text:'Initial Setup' },

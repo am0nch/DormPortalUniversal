@@ -48,12 +48,12 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-18, post-export-modal-fix)
+## File stats (2026-06-18, post-att-archive-userguide)
 
 | File | Lines |
 |------|-------|
 | `index.html` | 1,966 |
-| `dorm-db.js` | 974 |
+| `dorm-db.js` | 963 |
 | `modules/room-reservations.html` | 2,143 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
@@ -70,7 +70,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/plant-requests.html` | 722 |
 | `modules/ra-portal.html` | 605 |
 | `modules/monitor-portal.html` | 571 |
-| `modules/userguide.html` | 2,823 |
+| `modules/userguide.html` | 2,839 |
 | `modules/handbook.html` | 1,875 |
 
 ---
@@ -142,12 +142,16 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] `userguide.html` — all major sections documented ✅; Att. Archive tab section not yet added to userguide
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v16)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v17)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
-- [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-18, att-archive userguide + dead code removal)
+
+- [x] **modules/userguide.html** — Added `🗄️ Att. Archive` tab section (sub-rpt-att-archive): describes grouped-by-semester layout, lazy session loading, session log columns, per-student absence count with ≥3 alert, and Print This Semester; updated Reports intro from "12 tabs" to "13 tabs"; updated module table; added TOC entry; added v4.2 changelog row. 2,823→2,839 lines
+- [x] **dorm-db.js** — Removed dead `archiveAttendance()` method (old sync localStorage path, no callers since `archiveSemester([K.ATTENDANCE])` replaced it). 974→963 lines
+- [x] **sw.js** — Bumped cache `dormportal-v16` → `dormportal-v17`
 
 ## Completed (2026-06-18, export modal fix)
 

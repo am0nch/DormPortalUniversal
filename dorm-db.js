@@ -654,17 +654,6 @@ const DormDB = (() => {
       if (changed) _w(K.KEYS_ASSIGNED, updated);
     },
 
-    // Archive attendance sessions for a completed semester
-    archiveAttendance(semesterLabel) {
-      const all      = _r(K.ATTENDANCE, []);
-      const toArc    = all.filter(s => s.semesterLabel === semesterLabel);
-      const remaining = all.filter(s => s.semesterLabel !== semesterLabel);
-      const existing = _r(K.ATT_ARCHIVE, []);
-      _w(K.ATT_ARCHIVE, [...existing, ...toArc]);
-      _w(K.ATTENDANCE, remaining);
-      return toArc.length;
-    },
-
     // Reactive subscriptions — returns unsubscribe fn
     on(key, fn) {
       if (!_subs[key]) _subs[key] = [];
