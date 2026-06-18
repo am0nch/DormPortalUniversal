@@ -629,6 +629,8 @@ const DormDB = (() => {
           semester: newLabel,
           summer: false,
           firstSem: false,
+          secondSem: false,
+          semBreak: false,
           returnDate: '',
           requestedRoom: '',
           requestStatus: 'Confirmed',

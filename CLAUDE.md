@@ -44,7 +44,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | New DormDB key | Add to `K` constants + getter/setter pair + `getMenuStats()` if countable + covered by `exportAll/importAll`. |
 | Print pages | `@page { size: A4; margin: 12mm; }`. Landscape for floor plan, A5 for clearance cost card. |
 | Editing | Targeted str_replace only. Grep for uniqueness first. Run `wc -l` after each change. |
-| Columns (room-reservations) | `_COL_DEFS` n-values must be sequential 1-based integers. 18 columns total. |
+| Columns (room-reservations) | `_COL_DEFS` n-values must be sequential 1-based integers. 21 columns total. |
 
 ---
 
@@ -53,8 +53,8 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | File | Lines |
 |------|-------|
 | `index.html` | 1,966 |
-| `dorm-db.js` | 963 |
-| `modules/room-reservations.html` | 2,143 |
+| `dorm-db.js` | 965 |
+| `modules/room-reservations.html` | 2,217 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |

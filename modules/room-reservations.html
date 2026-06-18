@@ -263,14 +263,15 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
 <div class="table-container">
   <table id="studentTable">
     <thead><tr>
-      <th style="min-width:90px">Room &amp; Occup.</th>
+      <th style="min-width:90px">Room No.</th>
       <th style="width:40px" title="Air conditioned room">❄️</th>
       <th style="min-width:145px">Name</th>
       <th style="min-width:90px">🪪 ID</th>
       <th style="min-width:78px">Req. Room</th>
       <th style="min-width:88px">Reservation</th>
-      <th style="width:40px">☀️</th><th style="width:40px">📖</th>
+      <th style="width:40px">☀️</th><th style="width:40px">📖</th><th style="width:40px">📗</th><th style="width:40px">🏖️</th>
       <th style="min-width:140px">🚪 Move Out</th>
+      <th style="min-width:98px">📅 Move In</th>
       <th style="min-width:98px">Leave Date</th>
       <th style="min-width:98px">Return Date</th>
       <th style="min-width:125px">📊 Status</th>
@@ -294,6 +295,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
     <h3>📥 Incoming Transfers &amp; Pre-Reservations</h3>
     <button class="btn btn-teal" onclick="openAddIncomingModal()">➕ Add Incoming Student</button>
+    <button class="btn" onclick="printQueuePanel()" style="font-size:.74rem;padding:4px 10px">🖨️ Print</button>
     <span id="queueInfo" style="font-size:.8rem;color:#555"></span>
   </div>
   <div style="overflow-x:auto"><div id="queueTableContainer"></div></div>
@@ -301,6 +303,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
 <div id="awayPanel" class="queue-panel" style="display:none">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
     <h3>📤 Temporarily Away Students</h3>
+    <button class="btn" onclick="printAwayPanel()" style="font-size:.74rem;padding:4px 10px">🖨️ Print</button>
     <span style="font-size:.8rem;color:#555">Bed released — student data preserved for restore</span>
   </div>
   <div id="awayPanelBody"><em style="color:#888">No away students.</em></div>
@@ -523,7 +526,7 @@ function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'
 function getFloor(room){const m=String(room).trim().match(/\d+/);if(m){const d=m[0].charAt(0);if(d==='1'||d==='2')return'1,2';if(d==='3')return'3';if(d==='4')return'4';}return'unknown';}
 function matchesFloor(room,f){return f==='all'||getFloor(room)===f;}
 function debounce(fn,ms){let t;return function(...a){clearTimeout(t);t=setTimeout(()=>fn.apply(this,a),ms);};}
-function isHoldActive(s){return!!(s.roomHold&&s.roomHold.active&&(s.summer||s.firstSem)&&s.moveOutReason!=='Graduating'&&!(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm'));}
+function isHoldActive(s){return!!(s.roomHold&&s.roomHold.active&&(s.summer||s.firstSem||s.secondSem||s.semBreak)&&s.moveOutReason!=='Graduating'&&!(s.moveOutReason==='Off Campus'&&s.offCampusType==='Leaving Dorm'));}
 const DORM_LIST=['Elijah Hall','Esther Hall','Eve Hall','Ruth Hall','Sarah Hall','Solomon Hall'];
 
 // ═══ DATA MODEL ═══
@@ -538,8 +541,8 @@ function clearanceDef(){
 function emptyStudent(room){
   return{room,name:'',studentId:'',side:'',requestedRoom:'',requestStatus:'Confirmed',manualStatus:false,
     ac:/AC/i.test(room),semester:'',
-    summer:false,firstSem:false,graduating:false,moveOutReason:'',offCampusType:'',
-    studentType:'regular',keysReturned:false,solo:false,returnDate:'',
+    summer:false,firstSem:false,secondSem:false,semBreak:false,graduating:false,moveOutReason:'',offCampusType:'',
+    moveInDate:'',studentType:'regular',keysReturned:false,solo:false,returnDate:'',
     storageRental:false,storageQty:1,
     box1Color:'',box1No:'',box2Color:'',box2No:'',box3Color:'',box3No:'',
     paymentMethod:'Not Paid',totalAmount:0,
@@ -560,6 +563,9 @@ function ensureStudent(s){
   if(!s.roomHold)s.roomHold={active:false,paymentMethod:'Not Paid',amountPaid:0};
   if(s.ac===undefined)s.ac=/AC/i.test(s.room);
   if(s.semester===undefined)s.semester='';
+  if(s.secondSem===undefined)s.secondSem=false;
+  if(s.semBreak===undefined)s.semBreak=false;
+  if(s.moveInDate===undefined)s.moveInDate='';
   ['box1Color','box1No','box2Color','box2No','box3Color','box3No'].forEach(k=>{if(s[k]===undefined)s[k]='';});
   return s;
 }
@@ -1065,14 +1071,26 @@ function renderTable(){
     // 4: Summer
     const td4=document.createElement('td');td4.className='checkbox-cell';
     const chkS=document.createElement('input');chkS.type='checkbox';chkS.checked=!!s.summer;
-    chkS.onchange=e=>{s.summer=e.target.checked;if(!s.summer&&!s.firstSem&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
+    chkS.onchange=e=>{s.summer=e.target.checked;if(!s.summer&&!s.firstSem&&!s.secondSem&&!s.semBreak&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem||s.secondSem||s.semBreak){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
     addInteractivity(chkS,row,ri,6);td4.appendChild(chkS);row.appendChild(td4);
 
     // 5: 1st Sem
     const td5=document.createElement('td');td5.className='checkbox-cell';
     const chkF=document.createElement('input');chkF.type='checkbox';chkF.checked=!!s.firstSem;
-    chkF.onchange=e=>{s.firstSem=e.target.checked;if(!s.summer&&!s.firstSem&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
+    chkF.onchange=e=>{s.firstSem=e.target.checked;if(!s.summer&&!s.firstSem&&!s.secondSem&&!s.semBreak&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem||s.secondSem||s.semBreak){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
     addInteractivity(chkF,row,ri,7);td5.appendChild(chkF);row.appendChild(td5);
+
+    // 5b: 2nd Sem
+    const td5b=document.createElement('td');td5b.className='checkbox-cell';
+    const chk2=document.createElement('input');chk2.type='checkbox';chk2.checked=!!s.secondSem;
+    chk2.onchange=e=>{s.secondSem=e.target.checked;if(!s.summer&&!s.firstSem&&!s.secondSem&&!s.semBreak&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem||s.secondSem||s.semBreak){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
+    addInteractivity(chk2,row,ri,8);td5b.appendChild(chk2);row.appendChild(td5b);
+
+    // 5c: Break
+    const td5c=document.createElement('td');td5c.className='checkbox-cell';
+    const chkBrk=document.createElement('input');chkBrk.type='checkbox';chkBrk.checked=!!s.semBreak;
+    chkBrk.onchange=e=>{s.semBreak=e.target.checked;if(!s.summer&&!s.firstSem&&!s.secondSem&&!s.semBreak&&s.name.trim()){s.graduating=true;if(!s.moveOutReason)s.moveOutReason='Graduating';}else if(s.summer||s.firstSem||s.secondSem||s.semBreak){s.graduating=false;s.moveOutReason='';s.offCampusType='';}applyFilter();pushState();recordUpdate();};
+    addInteractivity(chkBrk,row,ri,9);td5c.appendChild(chkBrk);row.appendChild(td5c);
 
     // 6: Move Out + Off Campus sub-select
     const td6=document.createElement('td');td6.style.minWidth='138px';
@@ -1093,21 +1111,27 @@ function renderTable(){
       subDiv.style.display=s.moveOutReason==='Off Campus'?'block':'none';
       recalcWaiting();applyFilter();pushState();recordUpdate();
     };
-    addInteractivity(selMO,row,ri,8);td6.appendChild(selMO);td6.appendChild(subDiv);row.appendChild(td6);
+    addInteractivity(selMO,row,ri,10);td6.appendChild(selMO);td6.appendChild(subDiv);row.appendChild(td6);
+
+    // 6b: Move In Date
+    const td6m=document.createElement('td');
+    const miI=document.createElement('input');miI.type='date';miI.value=s.moveInDate||'';
+    miI.onchange=e=>{s.moveInDate=e.target.value;pushState();recordUpdate();};
+    addInteractivity(miI,row,ri,11);td6m.appendChild(miI);row.appendChild(td6m);
 
     // 7: Leave Date
     const td7=document.createElement('td');
     const ldI=document.createElement('input');ldI.type='date';ldI.value=s.clearance.leaveDate||'';
-    ldI.disabled=!(s.summer||s.firstSem||s.graduating);
+    ldI.disabled=!(s.summer||s.firstSem||s.secondSem||s.semBreak||s.graduating);
     ldI.onchange=e=>{s.clearance.leaveDate=e.target.value;pushState();recordUpdate();};
-    addInteractivity(ldI,row,ri,9);td7.appendChild(ldI);row.appendChild(td7);
+    addInteractivity(ldI,row,ri,12);td7.appendChild(ldI);row.appendChild(td7);
 
     // 8: Return Date
     const td8=document.createElement('td');
     const rdI=document.createElement('input');rdI.type='date';rdI.value=s.returnDate||'';
-    rdI.disabled=!(s.summer||s.firstSem);
+    rdI.disabled=!(s.summer||s.firstSem||s.secondSem||s.semBreak);
     rdI.onchange=e=>{s.returnDate=e.target.value;pushState();recordUpdate();};
-    addInteractivity(rdI,row,ri,10);td8.appendChild(rdI);row.appendChild(td8);
+    addInteractivity(rdI,row,ri,13);td8.appendChild(rdI);row.appendChild(td8);
 
     // 9: Status
     const td9=document.createElement('td');td9.style.cssText='font-size:.75rem;white-space:pre-line';
@@ -1117,7 +1141,7 @@ function renderTable(){
     const td10=document.createElement('td');td10.className='checkbox-cell';
     const chkK=document.createElement('input');chkK.type='checkbox';chkK.checked=!!s.keysReturned;
     chkK.onchange=e=>{s.keysReturned=e.target.checked;pushState();recordUpdate();};
-    addInteractivity(chkK,row,ri,12);td10.appendChild(chkK);row.appendChild(td10);
+    addInteractivity(chkK,row,ri,15);td10.appendChild(chkK);row.appendChild(td10);
 
     // 11: Storage
     const td11=document.createElement('td');
@@ -1134,13 +1158,13 @@ function renderTable(){
     const td12=document.createElement('td');td12.className='checkbox-cell';
     const chkSolo=document.createElement('input');chkSolo.type='checkbox';chkSolo.checked=!!s.solo;
     chkSolo.onchange=e=>{s.solo=e.target.checked;recalcWaiting();applyFilter();pushState();recordUpdate();};
-    addInteractivity(chkSolo,row,ri,14);td12.appendChild(chkSolo);row.appendChild(td12);
+    addInteractivity(chkSolo,row,ri,17);td12.appendChild(chkSolo);row.appendChild(td12);
 
     // Room-hold column
     const td13h=document.createElement('td');td13h.className='checkbox-cell';
     const chkH=document.createElement('input');chkH.type='checkbox';
     chkH.checked=!!(s.roomHold&&s.roomHold.active);
-    chkH.disabled=!(s.summer||s.firstSem)||!s.name.trim();
+    chkH.disabled=!(s.summer||s.firstSem||s.secondSem||s.semBreak)||!s.name.trim();
     chkH.title='Hold room during absence (paid)';
     chkH.onchange=e=>{
       if(!s.roomHold)s.roomHold={active:false,paymentMethod:'Not Paid',amountPaid:0};
@@ -1274,24 +1298,27 @@ function populateSemesterFilter(){
 }
 // ═══ COLUMN VISIBILITY ═══
 const _COL_DEFS=[
-  {n:1,label:'Room & Occup.',locked:true},
-  {n:2,label:'❄️ AC',locked:false},
-  {n:3,label:'Name',locked:true},
-  {n:4,label:'🪪 Student ID',locked:false},
-  {n:5,label:'Req. Room',locked:false},
-  {n:6,label:'Reservation',locked:false},
-  {n:7,label:'☀️ Summer',locked:false},
-  {n:8,label:'📖 1st Sem',locked:false},
-  {n:9,label:'🚪 Move Out',locked:true},
-  {n:10,label:'Leave Date',locked:false},
-  {n:11,label:'Return Date',locked:false},
-  {n:12,label:'📊 Status',locked:false},
-  {n:13,label:'🔑 Keys',locked:false},
-  {n:14,label:'📦 Storage',locked:false},
-  {n:15,label:'🧍 Solo',locked:false},
-  {n:16,label:'🏠 Hold',locked:false},
-  {n:17,label:'📋 Clearance',locked:false},
-  {n:18,label:'📅 Semester',locked:false},
+  {n:1, label:'Room No.',       locked:true},
+  {n:2, label:'❄️ AC',          locked:false},
+  {n:3, label:'Name',           locked:true},
+  {n:4, label:'🪪 Student ID',  locked:false},
+  {n:5, label:'Req. Room',      locked:false},
+  {n:6, label:'Reservation',    locked:false},
+  {n:7, label:'☀️ Summer',      locked:false},
+  {n:8, label:'📖 1st Sem',     locked:false},
+  {n:9, label:'📗 2nd Sem',     locked:false},
+  {n:10,label:'🏖️ Break',       locked:false},
+  {n:11,label:'🚪 Move Out',    locked:true},
+  {n:12,label:'📅 Move In',     locked:false},
+  {n:13,label:'Leave Date',     locked:false},
+  {n:14,label:'Return Date',    locked:false},
+  {n:15,label:'📊 Status',      locked:false},
+  {n:16,label:'🔑 Keys',        locked:false},
+  {n:17,label:'📦 Storage',     locked:false},
+  {n:18,label:'🧍 Solo',        locked:false},
+  {n:19,label:'🏠 Hold',        locked:false},
+  {n:20,label:'📋 Clearance',   locked:false},
+  {n:21,label:'📅 Semester',    locked:false},
 ];
 function applyColVis(){
   const rules=[];
@@ -1312,7 +1339,7 @@ function toggleCol(n,visible){
 }
 function initColPicker(){
   const saved=DormDB.getCols();
-  hiddenCols=saved.length?new Set(saved):new Set([4,18]);
+  hiddenCols=saved.length?new Set(saved):new Set([4,21]);
   const panel=document.getElementById('colPickerPanel');
   if(!panel)return;
   panel.innerHTML=_COL_DEFS.map(c=>`<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:${c.locked?'default':'pointer'};color:${c.locked?'#aaa':'inherit'};user-select:none"><input type="checkbox" ${c.locked?'disabled':''} ${hiddenCols.has(c.n)?'':'checked'} onchange="toggleCol(${c.n},this.checked)"> ${c.label}</label>`).join('');
@@ -1974,7 +2001,7 @@ function saveToExcel(){
   const rows=fullData.map(s=>{
     const c=s.clearance||{};const f=c.fees||{};
     return{Room:s.room,'AC Room':s.ac?1:0,Name:s.name,'Requested Room':s.requestedRoom,Status:s.requestStatus,'Manual Status':s.manualStatus?1:0,
-      Summer:s.summer?1:0,'1st Semester':s.firstSem?1:0,'Move Out':s.graduating?1:0,
+      Summer:s.summer?1:0,'1st Semester':s.firstSem?1:0,'2nd Semester':s.secondSem?1:0,Break:s.semBreak?1:0,'Move Out':s.graduating?1:0,'Move In Date':s.moveInDate||'',
       'Move Out Reason':s.moveOutReason||'',"Off Campus Type":s.offCampusType||'',
       'Student Type':s.studentType||'regular',
       'Leave Date':c.leaveDate||'',"Return Date":s.returnDate||'',
@@ -2016,7 +2043,7 @@ function loadFromInput(){
       const pb=v=>typeof v==='boolean'?v:String(v).toLowerCase()==='yes'||String(v)==='1';
       const str=v=>String(v||'').trim();
       fullData=rows.filter(r=>str(r.Room)||str(r.Name)).map(r=>{
-        const s=emptyStudent(str(r.Room));s.ac=r['AC Room']!==undefined&&r['AC Room']!==''?pb(r['AC Room']):/AC/i.test(str(r.Room));s.name=str(r.Name);s.studentId=str(r['Student ID'])||'';s.requestedRoom=str(r['Requested Room']);s.requestStatus=str(r.Status)||'Confirmed';s.manualStatus=pb(r['Manual Status']);s.summer=pb(r.Summer);s.firstSem=pb(r['1st Semester']);s.graduating=pb(r['Move Out'])||!!str(r['Move Out Reason']);s.moveOutReason=str(r['Move Out Reason']);s.offCampusType=str(r['Off Campus Type']);s.studentType=str(r['Student Type'])||'regular';s.keysReturned=pb(r['Keys Returned']);s.solo=pb(r.Solo);s.returnDate=str(r['Return Date']);s.storageRental=pb(r['Storage Rental']);s.storageQty=parseInt(r['Storage Qty'])||1;s.paymentMethod=str(r['Payment Method'])||'Not Paid';s.totalAmount=parseInt(r['Total Amount'])||0;s.box1Color=str(r['Box 1 Color']||'');s.box1No=str(r['Box 1 No']||'');s.box2Color=str(r['Box 2 Color']||'');s.box2No=str(r['Box 2 No']||'');s.box3Color=str(r['Box 3 Color']||'');s.box3No=str(r['Box 3 No']||'');
+        const s=emptyStudent(str(r.Room));s.ac=r['AC Room']!==undefined&&r['AC Room']!==''?pb(r['AC Room']):/AC/i.test(str(r.Room));s.name=str(r.Name);s.studentId=str(r['Student ID'])||'';s.requestedRoom=str(r['Requested Room']);s.requestStatus=str(r.Status)||'Confirmed';s.manualStatus=pb(r['Manual Status']);s.summer=pb(r.Summer);s.firstSem=pb(r['1st Semester']);s.secondSem=pb(r['2nd Semester']);s.semBreak=pb(r.Break);s.moveInDate=str(r['Move In Date']||'');s.graduating=pb(r['Move Out'])||!!str(r['Move Out Reason']);s.moveOutReason=str(r['Move Out Reason']);s.offCampusType=str(r['Off Campus Type']);s.studentType=str(r['Student Type'])||'regular';s.keysReturned=pb(r['Keys Returned']);s.solo=pb(r.Solo);s.returnDate=str(r['Return Date']);s.storageRental=pb(r['Storage Rental']);s.storageQty=parseInt(r['Storage Qty'])||1;s.paymentMethod=str(r['Payment Method'])||'Not Paid';s.totalAmount=parseInt(r['Total Amount'])||0;s.box1Color=str(r['Box 1 Color']||'');s.box1No=str(r['Box 1 No']||'');s.box2Color=str(r['Box 2 Color']||'');s.box2No=str(r['Box 2 No']||'');s.box3Color=str(r['Box 3 Color']||'');s.box3No=str(r['Box 3 No']||'');
         s.transferIn={fromDorm:str(r['Transfer From Dorm']),fromRoom:str(r['Transfer From Room']),transferDate:str(r['Transfer Date']),notes:str(r['Transfer Notes']||'')};
         s.semester=str(r['Semester'])||'';
         s.roomHold={active:pb(r['Room Hold Active']),paymentMethod:str(r['Room Hold Payment'])||'Not Paid',amountPaid:parseFloat(r['Room Hold Amount'])||0};
@@ -2051,6 +2078,53 @@ function resetAllEdits(){
     fullData=JSON.parse(JSON.stringify(masterList));historyStack=[];historyIndex=-1;
     pushState();recalcWaiting();applyFilter();recordUpdate();markSaved();
   });
+}
+
+// ═══ PRINT QUEUE / AWAY ═══
+function printQueuePanel(){
+  if(!incomingQueue.length){showToast('Queue is empty — nothing to print.','warning');return;}
+  const typeIcon={regular:'🎓',new:'🆕',visitor:'👤',guest:'🏨'};
+  const rows=incomingQueue.map(q=>`<tr>
+    <td><strong>${escapeHtml(q.name)}</strong></td>
+    <td>${typeIcon[q.studentType]||'🎓'} ${escapeHtml(q.studentType||'regular')}</td>
+    <td><strong>${escapeHtml(q.targetRoom||'—')}</strong></td>
+    <td>${escapeHtml(q.fromDorm||'—')}</td>
+    <td>${escapeHtml(q.fromRoom||'—')}</td>
+    <td>${escapeHtml(q.expectedMoveIn||'—')}</td>
+    <td>${escapeHtml(q.notes||'')}</td>
+  </tr>`).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Incoming Queue — ${escapeHtml(currentDormName)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:20px}h2{color:#1e3a5f;margin-bottom:12px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{background:#1e3a5f;color:#fff;padding:6px 8px;text-align:left}td{padding:5px 8px;border-bottom:1px solid #ddd}tr:nth-child(even) td{background:#f5f8fb}.pbtn{position:fixed;top:14px;right:16px;background:#1e3a5f;color:#fff;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600}@media print{.pbtn{display:none}@page{size:A4;margin:12mm}}</style>
+</head><body>
+<button class="pbtn" onclick="window.print()">🖶️ Print</button>
+<h2>📥 Incoming Queue — ${escapeHtml(currentDormName)}</h2>
+<p style="font-size:.78rem;color:#555;margin-bottom:10px">Printed: ${new Date().toLocaleDateString()} · ${incomingQueue.length} entr${incomingQueue.length===1?'y':'ies'}</p>
+<table><thead><tr><th>Name</th><th>Type</th><th>Target Room</th><th>From Dorm</th><th>From Room</th><th>Move-In Date</th><th>Notes</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<script>window.print();<\/script></body></html>`);
+  win.document.close();
+}
+function printAwayPanel(){
+  if(!awayStudents.length){showToast('No away students — nothing to print.','warning');return;}
+  const rows=awayStudents.map(e=>`<tr>
+    <td><strong>${escapeHtml(e.name)}</strong></td>
+    <td>${escapeHtml(e.studentType||'regular')}</td>
+    <td><strong>${escapeHtml(e.originalRoom||e.room)}</strong></td>
+    <td>${escapeHtml(e.awayReturnDate||'—')}</td>
+    <td>${escapeHtml(e.notes||'')}</td>
+  </tr>`).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Away Students — ${escapeHtml(currentDormName)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:20px}h2{color:#1e3a5f;margin-bottom:12px}table{width:100%;border-collapse:collapse;font-size:.82rem}th{background:#8e44ad;color:#fff;padding:6px 8px;text-align:left}td{padding:5px 8px;border-bottom:1px solid #ddd}tr:nth-child(even) td{background:#fdf6ff}.pbtn{position:fixed;top:14px;right:16px;background:#8e44ad;color:#fff;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:600}@media print{.pbtn{display:none}@page{size:A4;margin:12mm}}</style>
+</head><body>
+<button class="pbtn" onclick="window.print()">🖶️ Print</button>
+<h2>📤 Temporarily Away Students — ${escapeHtml(currentDormName)}</h2>
+<p style="font-size:.78rem;color:#555;margin-bottom:10px">Printed: ${new Date().toLocaleDateString()} · ${awayStudents.length} student${awayStudents.length===1?'':'s'}</p>
+<table><thead><tr><th>Name</th><th>Type</th><th>Original Room</th><th>Expected Return</th><th>Notes</th></tr></thead>
+<tbody>${rows}</tbody></table>
+<script>window.print();<\/script></body></html>`);
+  win.document.close();
 }
 
 // ═══ INIT ═══
