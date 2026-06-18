@@ -588,15 +588,14 @@ async function exportAll() {
     const dump = await DormDB.exportAll();
     const failed = dump._photosFailed || 0;
     delete dump._photosFailed;
-    if (DormDB.getPwdHash()) {
-      _pendingExportDump = dump;
-      _pendingExportFailed = failed;
-      document.getElementById('exportPwdInput').value = '';
-      document.getElementById('exportPwdError').style.display = 'none';
-      document.getElementById('exportPwdModal').style.display = 'flex';
-    } else {
-      await _triggerDownload(dump, false, failed);
-    }
+    _pendingExportDump = dump;
+    _pendingExportFailed = failed;
+    document.getElementById('exportPwdInput').value = '';
+    document.getElementById('exportPwdError').style.display = 'none';
+    const hasPassword = !!DormDB.getPwdHash();
+    document.getElementById('exportPwdSection').style.display = hasPassword ? '' : 'none';
+    document.getElementById('exportEncryptBtn').style.display = hasPassword ? '' : 'none';
+    document.getElementById('exportPwdModal').style.display = 'flex';
   } catch(e) {
     alert('Export failed: ' + e.message);
   }
@@ -1893,7 +1892,7 @@ async function _m365HandleRedirect() {
   <div style="background:#fff;border-radius:14px;width:360px;max-width:95vw;padding:28px 26px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
     <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔐 Encrypt Backup</div>
     <div style="font-size:.78rem;color:#888;margin-bottom:16px">Enter your Dean password to encrypt the export. Choose <em>Export Plain</em> to skip encryption.</div>
-    <div style="margin-bottom:10px">
+    <div id="exportPwdSection" style="margin-bottom:10px">
       <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Dean password</label>
       <input type="password" id="exportPwdInput" placeholder="Enter password"
         onkeydown="if(event.key==='Enter')_submitExportEncrypt()"
@@ -1901,9 +1900,9 @@ async function _m365HandleRedirect() {
     </div>
     <div id="exportPwdError" style="color:#c0392b;font-size:.78rem;margin-bottom:10px;display:none"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-      <button onclick="document.getElementById('exportPwdModal').style.display='none'" style="padding:8px 14px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.82rem">Cancel</button>
+      <button onclick="document.getElementById('exportPwdModal').style.display='none';_pendingExportDump=null;_pendingExportFailed=0" style="padding:8px 14px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.82rem">Cancel</button>
       <button onclick="_submitExportPlain()" style="padding:8px 14px;background:#fff;color:#555;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:.82rem">Export Plain</button>
-      <button onclick="_submitExportEncrypt()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🔐 Export &amp; Encrypt</button>
+      <button id="exportEncryptBtn" onclick="_submitExportEncrypt()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🔐 Export &amp; Encrypt</button>
     </div>
   </div>
 </div>
