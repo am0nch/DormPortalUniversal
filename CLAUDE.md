@@ -52,9 +52,9 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,966 |
+| `index.html` | 1,977 |
 | `dorm-db.js` | 965 |
-| `modules/room-reservations.html` | 2,217 |
+| `modules/room-reservations.html` | 2,221 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
 | `modules/utilities.html` | 688 |
@@ -146,6 +146,14 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-18, mobile header + Saved stamp + Dean name fixes)
+
+- [x] **index.html** — `.menu-controls` class extracted from inline flex rows; `@media(max-width:768px)` overrides left-align and wrap the Dorm/Semester control rows on narrow screens; no-op `.menu-header{flex-wrap:wrap}` removed. 1,969→1,977 lines
+- [x] **index.html** — Dean name field added to 🔐 Password modal; `savePwd()` calls `saveCurrentUser()` + refreshes `#headerUser` immediately; works standalone (no password change needed). 1,969→1,977 lines
+- [x] **dorm-db.js** — `getCurrentUser()` fallback changed `'Unknown'` → `'Dean'` for installs where name was never captured.
+- [x] **modules/room-reservations.html** — `Saved: — · —` fixed: init falls back to `currentUser`/`'Never'` instead of leaving dashes; `saveToExcel()` now updates the stamp + calls `DormDB.saveLastSave()`. 2,217→2,221 lines
+- [x] **sw.js** — Bumped `dormportal-v18` → `v19` → `v20` across three deploys to deliver all fixes above.
 
 ## Completed (2026-06-18, room-reservations column additions)
 
