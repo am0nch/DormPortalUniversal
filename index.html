@@ -565,7 +565,10 @@ function _setSession() {
 
 async function checkAuth() {
   const hashStr = DormDB.getPwdHashStr ? DormDB.getPwdHashStr() : null;
-  if (!hashStr) { _showAuthOverlay({ step: 'dorm' }); return false; }
+  if (!hashStr) {
+    if (DormDB.getDormName()) { _setSession(); return true; }  // no password set → open access
+    _showAuthOverlay({ step: 'dorm' }); return false;          // first-time setup
+  }
   if (sessionStorage.getItem('dormPortalUnlocked') === '1') return true;
   _showAuthOverlay({ step: 'unlock' }); return false;
 }
@@ -776,8 +779,8 @@ async function removePwd() {
   const ok = await DormDB.verifyPwd(current);
   if (!ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
   DormDB.savePwdHash(null);
-  sessionStorage.removeItem('dormPortalUnlocked');
-  _toast('🔓 Dean password removed — portal will prompt for setup on next visit');
+  _setSession();
+  _toast('🔓 Dean password removed — portal is now open access');
   closePwdModal();
 }
 
