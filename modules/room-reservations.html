@@ -612,8 +612,8 @@ function recordUpdate(){
   markUnsaved();autoSave();
 }
 const {ts:_st,user:_su}=DormDB.getLastSave();
-if(_st)document.getElementById('lastUpdateTime').innerText=_st;
-if(_su)document.getElementById('lastUpdateUser').innerText=_su;
+document.getElementById('lastUpdateTime').innerText=_st||'Never';
+document.getElementById('lastUpdateUser').innerText=_su||currentUser||'—';
 function autoSave(){
   try{
     const data=JSON.stringify(fullData),queue=JSON.stringify(incomingQueue),hist=JSON.stringify(roomHistory),away=JSON.stringify(awayStudents);
@@ -2030,6 +2030,10 @@ function saveToExcel(){
   if(roomHistory.length){XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(roomHistory),'RoomHistory');}
   if(awayStudents.length){const awayRows=awayStudents.map(e=>({...e,roomHold:JSON.stringify(e.roomHold||{}),transferIn:JSON.stringify(e.transferIn||{}),clearance:JSON.stringify(e.clearance||{})}));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(awayRows),'AwayStudents');}
   XLSX.writeFile(wb,`${currentDormName.replace(/\s/g,'_')}_DormData_v4.xlsx`);
+  const _xT=new Date().toLocaleString();
+  document.getElementById('lastUpdateTime').innerText=_xT;
+  document.getElementById('lastUpdateUser').innerText=currentUser;
+  DormDB.saveLastSave(_xT,currentUser);
   markSaved();document.getElementById('loadStatus').innerText='✓ Saved!';setTimeout(()=>document.getElementById('loadStatus').innerText='',3000);
 }
 function loadFromInput(){
