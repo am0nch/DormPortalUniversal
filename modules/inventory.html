@@ -1248,8 +1248,8 @@ async function pushToMaintenance(id) {
   item.maintenancePushed = true;
   await DormDB.saveAsset(item);
   showToast('📤 Pushed to Maintenance module.');
-  renderMaintenance();
-  renderDashboard();
+  await renderMaintenance();
+  await renderDashboard();
 }
 
 async function openAssetDetail(id) {
@@ -1300,8 +1300,8 @@ async function resolveFlag(id) {
   item.maintenanceNotes = '';
   await DormDB.saveAsset(item);
   showToast('✅ Maintenance flag cleared.');
-  renderMaintenance();
-  renderDashboard();
+  await renderMaintenance();
+  await renderDashboard();
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
@@ -1571,8 +1571,9 @@ async function saveItem() {
   if (_editingId) {
     const inv = await DormDB.getAllAssets();
     const existing = inv.find(i => i.id === _editingId);
+    if (!existing) { showToast('Item no longer exists — it may have been deleted in another tab.'); return; }
     const updated = { ...existing, ...fields,
-      maintenancePushed: mf ? (existing?.maintenancePushed || false) : false };
+      maintenancePushed: mf ? (existing.maintenancePushed || false) : false };
     await DormDB.saveAsset(updated);
     showToast('✅ Item updated.');
   } else {
@@ -2352,9 +2353,9 @@ async function saveSnapshot() {
              category: i.category, condition: c, qty: i.qty || 1 };
   });
 
-  // Stamp lastChecked on all items
+  // Stamp lastChecked on all items (parallel writes — faster for large inventories)
   const today = date;
-  for (const i of inv) { i.lastChecked = today; await DormDB.saveAsset(i); }
+  await Promise.all(inv.map(i => { i.lastChecked = today; return DormDB.saveAsset(i); }));
 
   const audits = DormDB.getInvAudits();
   audits.unshift({
