@@ -48,7 +48,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-18, post-Dean-auth-redesign)
+## File stats (2026-06-18, post-code-review)
 
 | File | Lines |
 |------|-------|
@@ -61,7 +61,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/reports.html` | 1,764 |
 | `modules/room-inspection.html` | 1,592 |
 | `modules/key-inventory.html` | 1,587 |
-| `modules/inventory.html` | 2,718 |
+| `modules/inventory.html` | 2,719 |
 | `modules/attendance.html` | 1,236 |
 | `modules/incidents.html` | 993 |
 | `modules/student-admin.html` | 1,014 |
@@ -148,6 +148,10 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-18, Snipe-IT code review bug fixes)
+
+- [x] **modules/inventory.html** — `/code-review high` of Snipe-IT system: 4 bugs fixed: (1) `saveItem` guard against missing `existing` when item deleted between edit-open and save (IDB DataError); (2) `pushToMaintenance`: `await` added to `renderMaintenance()`/`renderDashboard()` so IDB errors surface; (3) `resolveFlag`: same unawaited renders fixed; (4) `saveSnapshot`: sequential `for-await` loop → `Promise.all()` parallel writes. 2,718→2,719 lines
 
 ## Completed (2026-06-18, Dean auth redesign + userguide)
 
