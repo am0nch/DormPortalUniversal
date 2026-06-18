@@ -147,6 +147,11 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
 
+## Completed (2026-06-18, room-reservations column additions)
+
+- [x] **modules/room-reservations.html** — Col 1 renamed "Room & Occup." → "Room No."; 3 new columns added (📗 2nd Sem n=9, 🏖️ Break n=10, 📅 Move In date n=12); total 18→21 columns; all staying-period logic updated at 8 sites (isHoldActive, graduation, hold/date enablement) to include secondSem/semBreak; print buttons + printQueuePanel()/printAwayPanel() for Queue & Away panels; emptyStudent + ensureStudent + Excel export/import updated; CLAUDE.md column count updated 18→21. 2,143→2,217 lines
+- [x] **dorm-db.js** — rolloverToSemester resets secondSem/semBreak to false alongside summer/firstSem. 963→965 lines
+
 ## Completed (2026-06-18, att-archive userguide + dead code removal)
 
 - [x] **modules/userguide.html** — Added `🗄️ Att. Archive` tab section (sub-rpt-att-archive): describes grouped-by-semester layout, lazy session loading, session log columns, per-student absence count with ≥3 alert, and Print This Semester; updated Reports intro from "12 tabs" to "13 tabs"; updated module table; added TOC entry; added v4.2 changelog row. 2,823→2,839 lines
