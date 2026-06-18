@@ -845,6 +845,7 @@ function openPwdModal() {
     ? 'Enter your current password, then choose a new one. Leave "New password" blank to keep it.'
     : 'Set a Dean password to protect portal access.';
   ['pwdCurrent','pwdNew','pwdConfirm'].forEach(id => { document.getElementById(id).value = ''; });
+  const _cn=DormDB.getCurrentUser();document.getElementById('pwdName').value=(_cn&&_cn!=='Dean')?_cn:'';
   document.getElementById('pwdError').style.display = 'none';
   document.getElementById('pwdModal').style.display = 'flex';
 }
@@ -866,12 +867,14 @@ async function savePwd() {
   if (!newPwd && !hasHash) { errEl.textContent = 'Enter a new password.'; errEl.style.display = 'block'; return; }
   if (newPwd && newPwd !== confirm) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
 
+  const newName=(document.getElementById('pwdName').value||'').trim();
+  if(newName){DormDB.saveCurrentUser(newName);document.getElementById('headerUser').textContent=newName;}
   if (newPwd) {
     const { hash, salt } = await DormDB.hashPwd(newPwd);
     DormDB.savePwdHash({ hash, salt });
     _setSession();
     _toast('✅ Dean password saved');
-  }
+  } else if(newName){_toast('✅ Dean name updated');}
   closePwdModal();
 }
 
@@ -1865,6 +1868,11 @@ async function _m365HandleRedirect() {
     <div id="pwdM365Warning" style="display:none"></div>
     <div id="pwdFormFields">
       <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:16px">Set a password to protect the Dean Portal from unauthorized access.</div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Dean name</label>
+        <input type="text" id="pwdName" placeholder="Your name" autocomplete="name"
+          style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+      </div>
       <div id="pwdCurrentRow" style="margin-bottom:10px">
         <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Current password</label>
         <input type="password" id="pwdCurrent" placeholder="Enter current password"

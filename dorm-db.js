@@ -446,7 +446,7 @@ const DormDB = (() => {
     },
     getMaxOcc:       ()     => _r(K.MAX_OCC, 2),
     saveMaxOcc:      (v)    => _w(K.MAX_OCC, v),
-    getCurrentUser:  ()     => _r(K.USER, '') || 'Unknown',
+    getCurrentUser:  ()     => _r(K.USER, '') || 'Dean',
     hasCurrentUser:  ()     => _r(K.USER, null) !== null,
     saveCurrentUser: (name) => _w(K.USER, name),
     saveLastSave(ts, user) {
