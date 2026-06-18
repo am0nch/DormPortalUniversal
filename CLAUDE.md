@@ -48,11 +48,11 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-18, post-code-review)
+## File stats (2026-06-18, post-encrypted-backup)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,823 |
+| `index.html` | 1,967 |
 | `dorm-db.js` | 974 |
 | `modules/room-reservations.html` | 2,143 |
 | `modules/student-profiles.html` | 1,246 |
@@ -148,6 +148,11 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-18, encrypted backup + auth open-access fix)
+
+- [x] **index.html** — AES-256-GCM encrypted backup export/import: `_deriveAesKey`, `_encryptDump`, `_decryptDump` crypto helpers; `exportAll` prompts for Dean password when set → `#exportPwdModal` → `_submitExportEncrypt`/`_submitExportPlain`; `restoreAll` detects `_enc:1` → `#decryptModal` → `decryptAndRestore`; `_triggerDownload` and `_doImport` extracted as helpers. 1,826→1,967 lines
+- [x] **index.html** — Auth open-access fix: `checkAuth()` auto-unlocks when no `dormPwdHash` but dorm already configured; `removePwd()` calls `_setSession()` instead of clearing session. 1,823→1,826 lines
 
 ## Completed (2026-06-18, Snipe-IT code review bug fixes)
 
