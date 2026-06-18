@@ -48,11 +48,11 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-18, post-encrypted-backup)
+## File stats (2026-06-18, post-export-modal-fix)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,967 |
+| `index.html` | 1,966 |
 | `dorm-db.js` | 974 |
 | `modules/room-reservations.html` | 2,143 |
 | `modules/student-profiles.html` | 1,246 |
@@ -148,6 +148,10 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `archiveAttendance()` in dorm-db.js is dead code — old sync path replaced by `archiveSemester([K.ATTENDANCE])`; safe to remove
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-18, export modal fix)
+
+- [x] **index.html** — Export modal always shows: `exportAll()` no longer auto-downloads when no password set; modal shows with encrypt section hidden (no password) or visible (password set); Cancel now clears `_pendingExportDump`; added `id="exportPwdSection"` and `id="exportEncryptBtn"` for JS toggling. 1,967→1,966 lines
 
 ## Completed (2026-06-18, encrypted backup + auth open-access fix)
 
