@@ -48,12 +48,12 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-18, post-att-archive-userguide)
+## File stats (2026-06-19)
 
 | File | Lines |
 |------|-------|
-| `index.html` | 1,977 |
-| `dorm-db.js` | 965 |
+| `index.html` | 2,094 |
+| `dorm-db.js` | 981 |
 | `modules/room-reservations.html` | 2,221 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
