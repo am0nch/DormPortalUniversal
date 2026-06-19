@@ -563,11 +563,11 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-rr-table">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Understanding the Table</div>
       <div class="collapse-body">
-        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Cols ▾</strong> in the toolbar to show or hide specific columns. The 18 columns are:</p>
+        <p>The main table shows every bed slot in the dorm — each row is one student position (up to 4 beds per room). Use <strong>Cols ▾</strong> in the toolbar to show or hide specific columns. The 21 columns are:</p>
         <table class="guide-table">
           <thead><tr><th>#</th><th>Column</th><th>What it does</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>Room & Occup.</td><td>Room number + color badge. Click room number to view history.</td></tr>
+            <tr><td>1</td><td>Room No.</td><td>Room number + color badge. Click room number to view history.</td></tr>
             <tr><td>2</td><td>❄️ AC</td><td>Air-conditioned flag — auto-detected from "AC" room suffix</td></tr>
             <tr><td>3</td><td>Name</td><td>Student name. Shows 👤 Profile, 🔀 Transfer, and 🅰/🅱 side badges.</td></tr>
             <tr><td>4</td><td>🪪 ID</td><td>Student ID — hidden by default. Links across all modules.</td></tr>
@@ -575,16 +575,19 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>6</td><td>Reservation</td><td>Confirmed or Waiting — auto-calculated by waiting list logic</td></tr>
             <tr><td>7</td><td>☀️ Summer</td><td>Staying over summer break</td></tr>
             <tr><td>8</td><td>📖 1st Sem</td><td>Staying over 1st semester break</td></tr>
-            <tr><td>9</td><td>🚪 Move Out</td><td>Graduating / Off Campus / Internship — triggers Clearance button</td></tr>
-            <tr><td>10</td><td>Leave Date</td><td>Expected departure date (set via the Clearance modal)</td></tr>
-            <tr><td>11</td><td>Return Date</td><td>Return date for break-staying students</td></tr>
-            <tr><td>12</td><td>📊 Status</td><td>Computed status: roommate names, hold status, departure info</td></tr>
-            <tr><td>13</td><td>🔑 Keys</td><td>Checkbox — mark when keys are returned at departure</td></tr>
-            <tr><td>14</td><td>📦 Storage</td><td>Storage box rental summary + Manage button</td></tr>
-            <tr><td>15</td><td>🧍 Solo</td><td>Student paying double rate for a private room (blocks roommates)</td></tr>
-            <tr><td>16</td><td>🏠 Hold</td><td>Room Hold (paid absence). Requires ☀️ or 📖 to be checked first.</td></tr>
-            <tr><td>17</td><td>📋 Clearance</td><td>Opens clearance form — appears only when Move Out is set</td></tr>
-            <tr><td>18</td><td>📅 Semester</td><td>Semester the student is enrolled in — hidden by default; select from shared semester registry</td></tr>
+            <tr><td>9</td><td>📗 2nd Sem</td><td>Staying over 2nd semester break</td></tr>
+            <tr><td>10</td><td>🏖️ Break</td><td>Staying during a short semester break (not full summer)</td></tr>
+            <tr><td>11</td><td>🚪 Move Out</td><td>Graduating / Off Campus / Internship — triggers Clearance button</td></tr>
+            <tr><td>12</td><td>📅 Move In date</td><td>Expected move-in date — for incoming or transfer students</td></tr>
+            <tr><td>13</td><td>Leave Date</td><td>Expected departure date (set via the Clearance modal)</td></tr>
+            <tr><td>14</td><td>Return Date</td><td>Return date for break-staying students</td></tr>
+            <tr><td>15</td><td>📊 Status</td><td>Computed status: roommate names, hold status, departure info</td></tr>
+            <tr><td>16</td><td>🔑 Keys</td><td>Checkbox — mark when keys are returned at departure</td></tr>
+            <tr><td>17</td><td>📦 Storage</td><td>Storage box rental summary + Manage button</td></tr>
+            <tr><td>18</td><td>🧍 Solo</td><td>Student paying double rate for a private room (blocks roommates)</td></tr>
+            <tr><td>19</td><td>🏠 Hold</td><td>Room Hold (paid absence). Requires a staying-period checkbox (☀️/📖/📗/🏖️) first.</td></tr>
+            <tr><td>20</td><td>📋 Clearance</td><td>Opens clearance form — appears only when Move Out is set</td></tr>
+            <tr><td>21</td><td>📅 Semester</td><td>Semester the student is enrolled in — hidden by default; select from shared semester registry</td></tr>
           </tbody>
         </table>
         <div class="tip"><span class="tip-icon">💡</span><span>The room color badge updates automatically: <span class="badge badge-green">🟢 Available</span> → <span class="badge" style="background:#fff9c4;color:#5d4037">🟡 Leaving Soon</span> → <span class="badge badge-amber">🟠 Held</span> → <span class="badge badge-red">🔴 Full</span></span></div>
@@ -706,6 +709,9 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Discarding an away record</h4>
         <p>Click <strong>✕ Discard</strong> in the Away panel to permanently delete the record. Use this only if the student has left for good without going through the normal Archive &amp; Vacate clearance process. Discarding cannot be undone — the student's data is lost from the away panel entirely.</p>
         <div class="danger"><span class="danger-icon">⚠️</span><span>If a student is leaving permanently, use <strong>Archive &amp; Vacate</strong> from the table instead of Discard — it adds them to Room History and marks them as an alumni in Student Profiles, preserving the full departure record.</span></div>
+
+        <h4 style="margin:16px 0 6px;font-size:.88rem;color:#1e3a5f">Printing the Away list</h4>
+        <p>Click <strong>🖨️ Print</strong> inside the Away panel to generate a printable A4 portrait sheet of all current away students — useful for RA handovers and duty briefings.</p>
       </div>
     </div>
 
@@ -719,6 +725,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <li>To remove a queue entry, click <strong>✕ Remove</strong>.</li>
         </ol>
         <p>The queue count badge updates live on the Room Reservations card in the main menu.</p>
+        <p>Click <strong>🖨️ Print</strong> inside the Queue panel to generate an A4 printout of the full incoming queue — useful for pre-move-in preparation and room assignments.</p>
       </div>
     </div>
 
