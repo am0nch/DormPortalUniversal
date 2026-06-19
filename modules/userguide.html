@@ -321,7 +321,11 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         <div class="two-col">
           <div class="info-card">
             <h4>🔐 Dean Password</h4>
-            <p>Set on first use. To change it: click the <strong>🔐 Password</strong> button in the menu header, enter your current password, then choose a new one. Leave "New password" blank to keep the existing password unchanged.</p>
+            <p>Set on first use. To manage it later: click <strong>🔐 Password</strong> in the menu header. A toggle at the top lets you choose:</p>
+            <ul style="margin:.4rem 0 0 1rem;font-size:.82rem">
+              <li><strong>💾 Change Password</strong> — enter your current password and a new one, then click Save.</li>
+              <li><strong>🗑️ Remove Password</strong> — enter your current password to confirm removal. An amber warning appears before you proceed.</li>
+            </ul>
           </div>
           <div class="info-card">
             <h4>🔑 Portal Access PINs</h4>
@@ -335,11 +339,25 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
     <div class="subsection" id="sub-backup">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Backup & Restore</div>
       <div class="collapse-body">
-        <p>Use the buttons in the menu footer to protect your data:</p>
-        <ul>
-          <li><strong>💾 Export All Data</strong> — Downloads a <code>.json</code> file containing all module data (rooms, profiles, keys, inspections, inventory, history, and photos). Store this on a USB drive or cloud backup.</li>
-          <li><strong>📂 Restore Backup</strong> — Imports a previously exported <code>.json</code> file. <em>This overwrites all current data.</em></li>
-        </ul>
+        <p>Use the buttons in the menu footer to protect your data. Two backup formats are available:</p>
+        <div class="two-col">
+          <div class="info-card">
+            <h4>💾 JSON Backup (data only)</h4>
+            <ul style="margin:.4rem 0 0 1rem;font-size:.82rem">
+              <li><strong>💾 Export All Data</strong> — Downloads a <code>.json</code> file with all module data and photos (photos embedded as base64). Optionally encrypted with your Dean password.</li>
+              <li><strong>📂 Restore Backup</strong> — Imports a <code>.json</code> backup. <em>Overwrites all current data.</em></li>
+              <li><strong>🔀 Merge Backup</strong> — Merges a <code>.json</code> backup into existing data without overwriting records that already exist.</li>
+            </ul>
+          </div>
+          <div class="info-card">
+            <h4>📸 ZIP Backup (data + photos as files)</h4>
+            <ul style="margin:.4rem 0 0 1rem;font-size:.82rem">
+              <li><strong>📸 Export with Photos</strong> — Downloads a <code>.zip</code> containing <code>backup.json</code> (data) and a <code>photos/</code> folder with each photo as a separate <code>.jpg</code> or <code>.png</code> file. Smaller than JSON and browsable in any file manager.</li>
+              <li><strong>📦 Restore ZIP</strong> — Imports a <code>.zip</code> backup. Restores data from <code>backup.json</code>, clears existing photos, then restores each photo from the <code>photos/</code> folder. <em>Overwrites all current data and photos.</em></li>
+            </ul>
+          </div>
+        </div>
+        <div class="tip"><span class="tip-icon">💡</span><span>Use <strong>📸 Export with Photos</strong> as your primary off-device backup — it gives you a browsable folder of photos alongside the data, and is smaller than the all-in-one JSON.</span></div>
         <div class="danger"><span class="danger-icon">⚠️</span><span><strong>Important:</strong> localStorage is browser-specific. If you switch to a different browser or computer, use Export/Restore to transfer your data. Export at least once a week — or after any significant data entry session.</span></div>
       </div>
     </div>
@@ -397,8 +415,9 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
           <tbody>
             <tr><td>Keep live data lean after semester ends</td><td>🗄️ Archive Data</td></tr>
             <tr><td>View or restore old semester records in-app</td><td>📦 View Archive</td></tr>
-            <tr><td>Full off-device backup including photos</td><td>💾 Export All Data</td></tr>
-            <tr><td>Move data to a new browser or computer</td><td>💾 Export All Data + 📂 Restore Backup</td></tr>
+            <tr><td>Full off-device backup including photos (browsable)</td><td>📸 Export with Photos</td></tr>
+            <tr><td>Full off-device backup (encrypted)</td><td>💾 Export All Data (with Dean password)</td></tr>
+            <tr><td>Move data to a new browser or computer</td><td>📸 Export with Photos + 📦 Restore ZIP</td></tr>
           </tbody>
         </table>
         <div class="danger"><span class="danger-icon">⚠️</span><span><strong>Before clearing browser data:</strong> Run <strong>💾 Export All Data</strong> first. Clearing the browser deletes <em>both</em> the live database and the archive store. The downloaded archive JSON files and export backup are the only copies that survive.</span></div>
