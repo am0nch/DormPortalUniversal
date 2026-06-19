@@ -147,6 +147,14 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
 
+## Completed (2026-06-19)
+
+- [x] **index.html** — Password modal split into Change/Remove modes: `_setPwdMode()` toggle; Change mode shows current+new+confirm+Save; Remove mode shows current+amber warning+danger Remove button; first-time setup unaffected. 1,977→2,094 lines (combined with ZIP feature below)
+- [x] **index.html** — ZIP export/import: `_buildZip/_crc32/_u16/_u32` (~50 lines, STORE method, no library); `_parseZip`; `exportWithPhotos()` builds ZIP with `backup.json` + `photos/<id>.jpg|png`; `restoreFromZip()` calls `_doImport` + `clearAllPhotos` + per-photo `savePhoto`; 📸 Export with Photos + 📦 Restore ZIP buttons in footer.
+- [x] **dorm-db.js** — `getAllPhotos()` (IDB `getAll` on photos store → `[{id,blob}]`) + `clearAllPhotos()` (IDB `clear`). 965→981 lines
+- [x] **modules/userguide.html** — Security & Access: Dean Password card rewritten for Change/Remove toggle. Backup & Restore: two-column layout (JSON vs ZIP formats), tip recommends ZIP. Archive vs Export table: ZIP row added. Room Reservations: column table 18→21 (col 1 "Room No.", +📗 2nd Sem n=9, +🏖️ Break n=10, +📅 Move In date n=12, renumbered all); Away panel print note; Queue panel print note. 2,785→2,865 lines
+- [x] **sw.js** — Bumped cache v20→v24 across four deploys this session
+
 ## Completed (2026-06-18, mobile header + Saved stamp + Dean name fixes)
 
 - [x] **index.html** — `.menu-controls` class extracted from inline flex rows; `@media(max-width:768px)` overrides left-align and wrap the Dorm/Semester control rows on narrow screens; no-op `.menu-header{flex-wrap:wrap}` removed. 1,969→1,977 lines
