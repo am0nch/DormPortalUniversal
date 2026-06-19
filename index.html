@@ -834,19 +834,33 @@ function _initAfterAuth() {
 }
 
 // Password management modal
+let _pwdMode = 'change';
+function _setPwdMode(mode) {
+  _pwdMode = mode;
+  const isChange = mode === 'change';
+  const hasHash = !!DormDB.getPwdHash();
+  document.getElementById('pwdNewFields').style.display = isChange ? 'block' : 'none';
+  document.getElementById('pwdRemoveWarning').style.display = isChange ? 'none' : 'block';
+  document.getElementById('pwdSaveBtn').style.display = isChange ? 'inline-block' : 'none';
+  document.getElementById('pwdRemoveBtn').style.display = (!isChange && hasHash) ? 'inline-block' : 'none';
+  document.getElementById('pwdModalDesc').textContent = isChange
+    ? (hasHash ? 'Enter your current password, then type a new one.' : 'Set a Dean password to protect portal access.')
+    : 'Enter your current password to confirm removal.';
+  const chgBtn = document.getElementById('pwdModeChange');
+  const rmvBtn = document.getElementById('pwdModeRemove');
+  if (chgBtn) { chgBtn.style.background = isChange ? '#1e3a5f' : '#eee'; chgBtn.style.color = isChange ? '#fff' : '#333'; }
+  if (rmvBtn) { rmvBtn.style.background = !isChange ? '#c0392b' : '#fff'; rmvBtn.style.color = !isChange ? '#fff' : '#c0392b'; }
+  document.getElementById('pwdError').style.display = 'none';
+}
 function openPwdModal() {
   document.getElementById('pwdM365Warning').style.display = 'none';
   document.getElementById('pwdFormFields').style.display = 'block';
   const hasHash = !!DormDB.getPwdHash();
   document.getElementById('pwdCurrentRow').style.display = hasHash ? 'block' : 'none';
-  document.getElementById('pwdRemoveBtn').style.display  = hasHash ? 'inline-block' : 'none';
-  document.getElementById('pwdSaveBtn').style.display    = 'inline-block';
-  document.getElementById('pwdModalDesc').textContent = hasHash
-    ? 'Enter your current password, then choose a new one. Leave "New password" blank to keep it.'
-    : 'Set a Dean password to protect portal access.';
+  document.getElementById('pwdModeToggle').style.display = hasHash ? 'flex' : 'none';
   ['pwdCurrent','pwdNew','pwdConfirm'].forEach(id => { document.getElementById(id).value = ''; });
   const _cn=DormDB.getCurrentUser();document.getElementById('pwdName').value=(_cn&&_cn!=='Dean')?_cn:'';
-  document.getElementById('pwdError').style.display = 'none';
+  _setPwdMode('change');
   document.getElementById('pwdModal').style.display = 'flex';
 }
 function closePwdModal() { document.getElementById('pwdModal').style.display = 'none'; }
@@ -864,17 +878,15 @@ async function savePwd() {
     const ok = await DormDB.verifyPwd(current);
     if (!ok) { errEl.textContent = 'Current password is incorrect.'; errEl.style.display = 'block'; return; }
   }
-  if (!newPwd && !hasHash) { errEl.textContent = 'Enter a new password.'; errEl.style.display = 'block'; return; }
-  if (newPwd && newPwd !== confirm) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
+  if (!newPwd) { errEl.textContent = 'Enter a new password.'; errEl.style.display = 'block'; return; }
+  if (newPwd !== confirm) { errEl.textContent = 'New passwords do not match.'; errEl.style.display = 'block'; return; }
 
   const newName=(document.getElementById('pwdName').value||'').trim();
   if(newName){DormDB.saveCurrentUser(newName);document.getElementById('headerUser').textContent=newName;}
-  if (newPwd) {
-    const { hash, salt } = await DormDB.hashPwd(newPwd);
-    DormDB.savePwdHash({ hash, salt });
-    _setSession();
-    _toast('✅ Dean password saved');
-  } else if(newName){_toast('✅ Dean name updated');}
+  const { hash, salt } = await DormDB.hashPwd(newPwd);
+  DormDB.savePwdHash({ hash, salt });
+  _setSession();
+  _toast('✅ Dean password saved');
   closePwdModal();
 }
 
@@ -1867,7 +1879,11 @@ async function _m365HandleRedirect() {
     <div style="font-weight:800;font-size:1rem;color:#1e3a5f;margin-bottom:4px">🔐 Dean Password</div>
     <div id="pwdM365Warning" style="display:none"></div>
     <div id="pwdFormFields">
-      <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:16px">Set a password to protect the Dean Portal from unauthorized access.</div>
+      <div id="pwdModalDesc" style="font-size:.78rem;color:#888;margin-bottom:10px">Set a password to protect the Dean Portal from unauthorized access.</div>
+      <div id="pwdModeToggle" style="display:none;gap:6px;margin-bottom:14px">
+        <button id="pwdModeChange" onclick="_setPwdMode('change')" style="flex:1;padding:7px;font-size:.8rem;font-weight:700;border:1.5px solid #1e3a5f;border-radius:6px;cursor:pointer;background:#1e3a5f;color:#fff">💾 Change Password</button>
+        <button id="pwdModeRemove" onclick="_setPwdMode('remove')" style="flex:1;padding:7px;font-size:.8rem;font-weight:700;border:1.5px solid #c0392b;border-radius:6px;cursor:pointer;background:#fff;color:#c0392b">🗑️ Remove Password</button>
+      </div>
       <div style="margin-bottom:10px">
         <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Dean name</label>
         <input type="text" id="pwdName" placeholder="Your name" autocomplete="name"
@@ -1878,20 +1894,23 @@ async function _m365HandleRedirect() {
         <input type="password" id="pwdCurrent" placeholder="Enter current password"
           style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
       </div>
-      <div style="margin-bottom:10px">
-        <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">New password</label>
-        <input type="password" id="pwdNew" placeholder="Enter new password"
-          style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+      <div id="pwdNewFields">
+        <div style="margin-bottom:10px">
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">New password</label>
+          <input type="password" id="pwdNew" placeholder="Enter new password"
+            style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Confirm new password</label>
+          <input type="password" id="pwdConfirm" placeholder="Re-enter new password"
+            style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
+        </div>
       </div>
-      <div style="margin-bottom:16px">
-        <label style="font-size:.75rem;font-weight:700;color:#555;display:block;margin-bottom:3px">Confirm new password</label>
-        <input type="password" id="pwdConfirm" placeholder="Re-enter new password"
-          style="width:100%;font-size:.85rem;padding:8px 10px;border:1.5px solid #ddd;border-radius:6px;box-sizing:border-box">
-      </div>
+      <div id="pwdRemoveWarning" style="display:none;background:#fff3cd;border:1px solid #f0ad4e;border-radius:6px;padding:9px 11px;font-size:.78rem;color:#7a4f00;margin-bottom:10px">⚠️ This will remove the password gate. Anyone with the link can access the portal.</div>
       <div id="pwdError" style="color:#c0392b;font-size:.78rem;margin-bottom:10px;display:none"></div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-      <button id="pwdRemoveBtn" onclick="removePwd()" style="padding:8px 14px;background:#fff;color:#c0392b;border:1px solid #c0392b;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🗑️ Remove Password</button>
+      <button id="pwdRemoveBtn" onclick="removePwd()" style="display:none;padding:8px 14px;background:#c0392b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">🗑️ Remove Password</button>
       <button onclick="closePwdModal()" style="padding:8px 14px;background:#eee;border:none;border-radius:6px;cursor:pointer;font-size:.82rem">Cancel</button>
       <button id="pwdSaveBtn" onclick="savePwd()" style="padding:8px 18px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">💾 Save</button>
     </div>
