@@ -710,6 +710,22 @@ const DormDB = (() => {
         req.onerror   = () => rej(req.error);
       });
     },
+    async getAllPhotos() {
+      const db = await _openIDB();
+      return new Promise((res, rej) => {
+        const req = db.transaction(IDB_PHOTOS, 'readonly').objectStore(IDB_PHOTOS).getAll();
+        req.onsuccess = () => res(req.result); // [{id, blob}, ...]
+        req.onerror   = () => rej(req.error);
+      });
+    },
+    async clearAllPhotos() {
+      const db = await _openIDB();
+      return new Promise((res, rej) => {
+        const req = db.transaction(IDB_PHOTOS, 'readwrite').objectStore(IDB_PHOTOS).clear();
+        req.onsuccess = () => res();
+        req.onerror   = () => rej(req.error);
+      });
+    },
 
     // Full backup — export all managed keys + photos
     async exportAll() {
