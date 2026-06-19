@@ -142,10 +142,15 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v24)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v25)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-19, session 2)
+
+- [x] **modules/inventory.html** — Bedding tab Semester dropdown stale selection bug: `populateBddSemFilter()` used `_bddSemFilter || sel.value` causing the cached old semester to override the user's new choice on every `onchange` rebuild; flipped to `sel.value || _bddSemFilter`. 2,719 lines (unchanged)
+- [x] **sw.js** — Bumped cache v24 → v25
 
 ## Completed (2026-06-19)
 
