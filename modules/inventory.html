@@ -1811,7 +1811,7 @@ function populateBddSemFilter() {
   DormDB.getBeddingCount().forEach(c => c.semester && set.add(c.semester));
   const sems = [...set].filter(Boolean).sort();
   const sel  = document.getElementById('bddSemFilter');
-  const prev = _bddSemFilter || sel.value;
+  const prev = sel.value || _bddSemFilter;
   sel.innerHTML = sems.map(s => `<option value="${escapeHtml(s)}"${s===prev?' selected':''}>${escapeHtml(s)}</option>`).join('');
   if (!sel.value && sems.length) sel.value = sems[sems.length - 1];
   _bddSemFilter = sel.value;
