@@ -142,9 +142,13 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v25)
-- [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
-- [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v26)
+
+## Completed (2026-06-20, session 3 — pending item cleanup)
+
+- [x] **sw.js** — Bumped cache v25 → v26 (XSS fix commits touched HTML/JS)
+- [x] **dorm-db.js** — `migrateAttArchive()` made idempotent: deduplicate by `session.id` on IDB merge so mid-loop retry never produces duplicate sessions. 981→983 lines
+- [x] Cross-module dep map pending item removed — `dormSchedule`, `dormWorkersConfig`, `dormInventoryAudits` were already in the table
 
 ## Completed (2026-06-20, CodeQL XSS fixes — all 42 js/xss-through-dom alerts)
 

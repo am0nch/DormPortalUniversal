@@ -928,8 +928,10 @@ const DormDB = (() => {
         bySem[k].push(s);
       });
       for (const [semLabel, records] of Object.entries(bySem)) {
-        const existing = await _arcGet(K.ATTENDANCE, semLabel);
-        const merged   = existing ? [...existing.records, ...records] : records;
+        const existing   = await _arcGet(K.ATTENDANCE, semLabel);
+        const existingIds = new Set((existing ? existing.records : []).map(r => r.id));
+        const toAdd      = records.filter(r => !existingIds.has(r.id));
+        const merged     = existing ? [...existing.records, ...toAdd] : records;
         await _arcSet(K.ATTENDANCE, semLabel, {
           dormKey: K.ATTENDANCE, semLabel,
           records: merged,
