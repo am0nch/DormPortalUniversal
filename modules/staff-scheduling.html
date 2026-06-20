@@ -1190,7 +1190,7 @@ function printSlotSheet() {
   });
   const content = `<h2>${esc(cat)} Shift Schedule</h2>
     <table><tr><th style="text-align:left">Time Slot</th>${days.map(d=>`<th>${d}</th>`).join('')}</tr>${rows}</table>`;
-  _doPrint(`${cat} Shift Schedule — ${esc(dorm)}`, wkLabel, content);
+  _doPrint(`${esc(cat)} Shift Schedule — ${esc(dorm)}`, wkLabel, content);
 }
 function _doPrint(title, wkLabel, content) {
   const win = window.open('','_blank');

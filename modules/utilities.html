@@ -635,7 +635,7 @@ function printBills() {
 
   document.getElementById('printSection').innerHTML = `
     <div class="pr-title">⚡ ${escapeHtml(DormDB.getDormName())} — Utility Bills</div>
-    <div class="pr-sub">Period: ${currentPeriod} &nbsp;·&nbsp; Printed: ${new Date().toLocaleString()}</div>
+    <div class="pr-sub">Period: ${escapeHtml(String(currentPeriod))} &nbsp;·&nbsp; Printed: ${new Date().toLocaleString()}</div>
     <div class="pr-section"><div class="pr-section-title">Electricity</div>${elecHtml}</div>
     <div class="pr-section"><div class="pr-section-title">Hot Water</div>${hwHtml}</div>
   `;

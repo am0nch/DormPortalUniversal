@@ -694,14 +694,14 @@ function incCardHtml(inc, showCheckbox) {
             : '<span class="badge badge-pending">SARRA2 Pending</span>'}
           ${followupOverdue ? '<span class="badge badge-major">⚠️ Follow-up Overdue</span>' : ''}
         </div>
-        <div class="inc-meta">${fmtDate(inc.date)} ${inc.time||''} &nbsp;·&nbsp; ${studs}</div>
+        <div class="inc-meta">${fmtDate(inc.date)} ${escapeHtml(inc.time||'')} &nbsp;·&nbsp; ${studs}</div>
       </div>
     </div>
     <div class="inc-body">
       <div style="color:#444;margin-bottom:8px">${escapeHtml(inc.description)}</div>
       ${inc.witnesses ? `<div style="font-size:.76rem;color:#888">Witnesses: ${escapeHtml(inc.witnesses)}</div>` : ''}
       ${inc.actionTaken ? `<div style="font-size:.76rem;color:#888">Action taken: ${escapeHtml(inc.actionTaken)}</div>` : ''}
-      ${inc.followUpRequired ? `<div style="font-size:.76rem;color:#e65100">⏰ Follow-up: ${inc.followUpDate||'No date set'} — ${escapeHtml(inc.followUpNotes||'')}</div>` : ''}
+      ${inc.followUpRequired ? `<div style="font-size:.76rem;color:#e65100">⏰ Follow-up: ${escapeHtml(inc.followUpDate||'No date set')} — ${escapeHtml(inc.followUpNotes||'')}</div>` : ''}
       ${inc.resolved ? `<div style="font-size:.76rem;color:#2e7d32">✅ Resolved ${fmtTs(inc.resolvedAt)} by ${escapeHtml(inc.resolvedBy||'')}</div>` : ''}
       <div class="btn-row">
         ${!inc.resolved ? `<button class="btn btn-green btn-sm" onclick="openResolveModal(${inc.id})">✅ Resolve</button>` : ''}
@@ -810,10 +810,15 @@ function _renderHistPage() {
     : `<div style="text-align:center;padding:28px;color:#aaa;font-size:.85rem">No incidents match the filter.</div>`;
 
   const pages = Math.ceil(data.length / HIST_PG);
-  document.getElementById('histPager').innerHTML =
-    Array.from({length:pages},(_,i)=>
-      `<button class="btn ${i===histPage?'btn-primary':'btn-ghost'} btn-sm" onclick="histPage=${i};_renderHistPage()">${i+1}</button>`
-    ).join('');
+  const _pager = document.getElementById('histPager');
+  _pager.innerHTML = '';
+  Array.from({length: pages}, (_, pageIdx) => {
+    const btn = document.createElement('button');
+    btn.className = `btn ${pageIdx === histPage ? 'btn-primary' : 'btn-ghost'} btn-sm`;
+    btn.textContent = String(pageIdx + 1);
+    btn.onclick = () => { histPage = pageIdx; _renderHistPage(); };
+    _pager.appendChild(btn);
+  });
 }
 
 // ── Print ─────────────────────────────────────────────────────────────────────
@@ -841,8 +846,8 @@ function printIncident(id) {
     </style></head><body>
     <h2>🚨 Incident Report</h2>
     <div class="meta">
-      ${DormDB.getDormName()} &nbsp;·&nbsp; Date: ${inc.date} ${inc.time||''} &nbsp;·&nbsp;
-      Type: <strong>${escapeHtml(inc.type)}</strong> &nbsp;·&nbsp; Severity: ${inc.severity} &nbsp;·&nbsp;
+      ${escapeHtml(DormDB.getDormName())} &nbsp;·&nbsp; Date: ${escapeHtml(inc.date)} ${escapeHtml(inc.time||'')} &nbsp;·&nbsp;
+      Type: <strong>${escapeHtml(inc.type)}</strong> &nbsp;·&nbsp; Severity: ${escapeHtml(String(inc.severity))} &nbsp;·&nbsp;
       Semester: ${escapeHtml(inc.semesterLabel||'—')} &nbsp;·&nbsp;
       Reported by: ${escapeHtml(inc.reportedBy||'—')}
       ${inc.resolved ? '&nbsp;·&nbsp; <strong>RESOLVED</strong> '+fmtTs(inc.resolvedAt) : '&nbsp;·&nbsp; <strong>OPEN</strong>'}
@@ -853,7 +858,7 @@ function printIncident(id) {
     <div class="section"><label>Description</label><p>${escapeHtml(inc.description)}</p></div>
     ${inc.witnesses ? `<div class="section"><label>Witnesses</label><p>${escapeHtml(inc.witnesses)}</p></div>` : ''}
     ${inc.actionTaken ? `<div class="section"><label>Action Taken</label><p>${escapeHtml(inc.actionTaken)}</p></div>` : ''}
-    ${inc.followUpRequired ? `<div class="section"><label>Follow-up Required</label><p>Date: ${inc.followUpDate||'—'} &nbsp; Notes: ${escapeHtml(inc.followUpNotes||'')}</p></div>` : ''}
+    ${inc.followUpRequired ? `<div class="section"><label>Follow-up Required</label><p>Date: ${escapeHtml(inc.followUpDate||'—')} &nbsp; Notes: ${escapeHtml(inc.followUpNotes||'')}</p></div>` : ''}
     <div class="sig">
       <div class="sig-line">Reporting Dean / RA</div>
       <div class="sig-line">Dean's Signature</div>
