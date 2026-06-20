@@ -142,7 +142,13 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v26)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v27)
+
+## Completed (2026-06-20, session 3 continued — userguide documentation)
+
+- [x] **modules/userguide.html** — Added RA Portal section (overview card table, identity/PIN gate, curfew banner & roster sync, backup & cloud sync); added Monitor Portal section (same structure); added Key Inventory "Assigned Keys (Semester)" subsection (deposit, issuance, status tracking); added Inventory Models tab to overview card; added RA Portal + Monitor Portal rows to Getting Started table; "16 modules" → "18 modules" in table + index.html badge; v4.4 version history entry (42 XSS fixes, migrateAttArchive idempotency, SW v26); updated all TOC JS entries. 2,863→3,035 lines
+- [x] **index.html** — User Guide card badge: "16 modules covered" → "18 modules covered"
+- [x] **sw.js** — Bumped cache v26 → v27 (userguide.html + index.html touched)
 
 ## Completed (2026-06-20, session 3 — pending item cleanup)
 
