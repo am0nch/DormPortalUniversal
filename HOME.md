@@ -1,6 +1,7 @@
 # DormPortal Universal — Hub
 
-> Browser-only dormitory admin system for APIU (Elijah Hall) · 20 modules · Vanilla JS ES6+ · No build tools · Deployed to GitHub Pages
+> Browser-only dormitory admin system for APIU (Elijah Hall) · 20 modules · Vanilla JS ES6+ · No build tools
+> **Live app:** https://am0nch.github.io/DormPortalUniversal
 
 ---
 
@@ -64,12 +65,74 @@ Completed feature plans linked to their design specs:
 
 ---
 
+## SW Cache
+
+| Version | Date | What changed |
+|---------|------|--------------|
+| **v25** ← current | 2026-06-19 | Bedding semester dropdown stale-selection fix |
+| v24 | 2026-06-19 | userguide Room Reservations — 21 columns, Away/Queue print |
+| v23 | 2026-06-19 | userguide updated for password toggle + ZIP backup |
+| v22 | 2026-06-19 | ZIP export/import with photos |
+| v21 | 2026-06-19 | Password modal Change/Remove mode split |
+| v20 | 2026-06-18 | Mobile header + Saved stamp + Dean name fixes |
+| v19 | 2026-06-18 | Mobile header intermediate deploy |
+| v18 | 2026-06-18 | Export modal fix + encrypted backup |
+| v17 | 2026-06-18 | Att. Archive userguide; dead `archiveAttendance()` removed |
+| v16 | 2026-06-18 | Dean-only auth redesign; M365 auth bypass removed |
+| v15 | 2026-06-17 | room-inspection + inventory post-Snipe-IT bug fixes |
+| v14 | 2026-06-17 | Snipe-IT inventory + room inspection IDB rewrite |
+
+> Bump `dormportal-vN` in `sw.js` after **every deploy** that touches HTML or JS.
+
+---
+
+## Pre-Push Checklist
+
+1. `grep -n "localStorage\.\(setItem\|getItem\)" modules/*.html | grep "dorm"` — zero hits required (BF-016)
+2. Run `/code-review --fix` — fix all CONFIRMED findings before pushing
+3. Bump SW cache: update `dormportal-vN` → `dormportal-v(N+1)` in `sw.js`
+4. `wc -l <file>` — verify line count delta is expected
+5. `git push`
+
+---
+
+## Cross-Module Dependency Map
+
+| DormDB key | Written by | Read by |
+|------------|-----------|---------|
+| `dormData` | room-reservations | reports, floor-plan, utilities, room-inspection, key-inventory, student-profiles, index.html |
+| `dormHistory` | room-reservations | reports (archive tab) |
+| `dormAway` | room-reservations | reports (fee collection) |
+| `dormProfiles` | student-profiles | room-reservations (profile badge), floor-plan |
+| `dormKeysInv` | key-inventory | reports (fee collection), index.html |
+| `dormKeysAssigned` | key-inventory, room-inspection | student-profiles, index.html |
+| `dormInspections` | room-inspection | room-reservations (clearance pre-fill), reports |
+| `dormInventoryAssets` | inventory | index.html |
+| `dormInventoryModels` | inventory | index.html |
+| `dormInventoryAudits` | inventory | inventory (audit log tab) |
+| `dormMaintenance` | room-inspection, inventory | index.html |
+| `dormWorkers` | dorm-workers | ra-portal, monitor-portal, staff-scheduling, index.html |
+| `dormWorkersConfig` | staff-scheduling | staff-scheduling (scheduleCfg + masterSchedule) |
+| `dormSchedule` | staff-scheduling | staff-scheduling |
+| `dormSemesterCfg` | index.html | all modules with semester selects |
+
+---
+
+## Unmerged Branches
+
+| Branch | Contents | Status |
+|--------|----------|--------|
+| `claude/dorm-mis-migration-3oy2h2` | Full-stack MIS migration (WIP) | Blocked — needs design decision |
+| `claude/test-coverage-analysis-bBZsg` | 104 Vitest tests | Ready to review |
+| `claude/wonderful-hawking-TRPrZ` | Multi-agent workflow | Ready to review |
+
+---
+
 ## Pending Items
 
-- [ ] SW cache bump required after every deploy — currently at **v25**
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits` to [[CLAUDE]]
-- [ ] 3 unmerged branches: `dorm-mis-migration`, `test-coverage-analysis` (104 Vitest tests), `wonderful-hawking` (multi-agent workflow)
-- [ ] `migrateAttArchive()` not fully atomic — see [[BUGFIX_LOG]] for risk
+- [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated (see [[BUGFIX_LOG]])
+- [ ] Backward-compat stubs (`getInventory` etc.) in `dorm-db.js` — remove once confirmed no callers remain
 
 ---
 
