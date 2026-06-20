@@ -142,7 +142,12 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v27)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v28)
+
+## Completed (2026-06-20, session 4 — CodeQL alert #40 XSS fix)
+
+- [x] **modules/staff-scheduling.html** — `printSlotSheet()`: replaced `innerHTML→textContent` DOM round-trip IIFE with `esc(slotLabel(slotStart,cat))`. Non-OVERNIGHT `slotLabel()` returns only `"HH:MM–HH:MM"` (no HTML), so the round-trip was unnecessary and triggered CodeQL `js/xss-through-dom`. 1,274 lines (unchanged)
+- [x] **sw.js** — Bumped cache v27 → v28. 0 open code scanning alerts.
 
 ## Completed (2026-06-20, session 3 continued — userguide documentation)
 
