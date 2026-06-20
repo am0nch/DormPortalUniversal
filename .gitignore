@@ -28,6 +28,9 @@ docs/
 language-servers.md
 per-project-language-backend.md
 
+# Local PDF generation script (hardcoded paths, reportlab dependency)
+generate_security_doc.py
+
 # Generated / unrelated scripts
 DormPortal API - Swagger UI.html
 DormPortal API - Swagger UI_files/
