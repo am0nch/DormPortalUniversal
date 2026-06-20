@@ -1,7 +1,7 @@
 # DormPortal Universal — Hub
 
 > Browser-only dormitory admin system for APIU (Elijah Hall) · 20 modules · Vanilla JS ES6+ · No build tools
-> **Live app:** https://am0nch.github.io/DormPortalUniversal
+> **Live app:** https://am0nch.github.io/DormPortalUniversal · **Repo:** https://github.com/am0nch/DormPortalUniversal
 
 ---
 
@@ -125,6 +125,24 @@ Completed feature plans linked to their design specs:
 | `claude/dorm-mis-migration-3oy2h2` | Full-stack MIS migration (WIP) | Blocked — needs design decision |
 | `claude/test-coverage-analysis-bBZsg` | 104 Vitest tests | Ready to review |
 | `claude/wonderful-hawking-TRPrZ` | Multi-agent workflow | Ready to review |
+
+---
+
+## Known Pitfalls — Do Not Reintroduce
+
+| Area | Pitfall | Fix |
+|------|---------|-----|
+| Column picker panel | `window.scrollY` added to `position:fixed` top → panel jumps | Remove it; fixed is already viewport-relative |
+| `renderTable()` | Full-array `.filter()` inside row loop → O(n²) | Pre-compute `occMap`, `iqMap`, `histMap` Maps before loop |
+| AC room normalization | `426` vs `426AC` treated as different rooms in utilities | Use `getStudentSlotsFlexible()` |
+| Maintenance status | `status: 'open'` didn't match `getMenuStats()` `'Open'` check | Always write `status: 'Open'` (Title case) |
+| Edit Charges modal | Bathroom cost editable inline AND via `ec_bathCost` → double-edit | `ec_bathCost` is the sole control |
+| Shared charge split | Live occupant count wrong if occupant leaves mid-semester | Use `c.splitBy` (set at generate time) |
+| `importAll()` crash | `JSON.parse` on plain string like `dormUserName="Richmond"` | Restore plain strings via `localStorage.setItem` directly |
+| Photos in localStorage | Base64 in `dormProfiles` → quota exceeded | Photos → IndexedDB only via `DormDB.savePhoto/getPhoto` |
+| `_COL_DEFS` n-values | Non-sequential → hides wrong CSS `nth-child` | Sequential 1-based integers only |
+| `ensureStudent` on import | Missing fields break `recalcWaiting()` | Always `ensureStudent(row)` before pushing to `fullData` |
+| Staff Scheduling `+` | `onclick` truncated at first `"` due to `JSON.stringify` in double-quoted attribute | Use `'${esc(x)}'` (single-quoted args + `esc()`) |
 
 ---
 
