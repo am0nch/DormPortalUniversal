@@ -18,6 +18,9 @@ backend/
 .serena/
 serena/
 
+# Obsidian vault config (local only)
+.obsidian/
+
 # Generated / unrelated scripts
 DormPortal API - Swagger UI.html
 DormPortal API - Swagger UI_files/
