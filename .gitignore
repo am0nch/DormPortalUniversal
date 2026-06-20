@@ -18,6 +18,9 @@ backend/
 .serena/
 serena/
 
+# Claude Code local config and worktrees (local tooling only)
+.claude/
+
 # Obsidian vault config (local only)
 .obsidian/
 
