@@ -6,26 +6,26 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ## Modules
 
-| File | Purpose |
-|------|---------|
-| `modules/room-reservations.html` | Beds, check-in/out, clearance, holds, queue, history, away students |
-| `modules/student-profiles.html` | Student directory, A4 profile cards, CSV/Excel import |
-| `modules/floor-plan.html` | Visual room grid, bathroom pairing config |
-| `modules/utilities.html` | Meter readings, per-student billing, archive |
-| `modules/reports.html` | 13-tab report hub — all reports are print/PDF only, no SheetJS; tab 13 = Att. Archive (IDB-backed) |
-| `modules/room-inspection.html` | Move-in/out checklists, charge calc, clearance pre-fill |
-| `modules/key-inventory.html` | Key checkout/return/lost, overdue alerts, assigned keys |
-| `modules/inventory.html` | Asset tracking, Code 39 barcodes, room templates, bedding |
-| `modules/attendance.html` | Nightly roll call, curfew countdown, SARRA2 leave import |
-| `modules/incidents.html` | Behavioral incident tracking, SARRA2 CSV export |
-| `modules/student-admin.html` | Off-campus requests, Dean's assistance log |
-| `modules/dorm-workers.html` | HR register for RAs/Monitors/Janitors/SWP, floor coverage |
-| `modules/staff-scheduling.html` | Weekly shift grid, on-duty detection, A4 print |
-| `modules/plant-requests.html` | Maintenance requests, urgency levels, dashboard |
-| `modules/ra-portal.html` | Mobile-first RA launcher (attendance, inspection, incidents, maintenance) |
-| `modules/monitor-portal.html` | Mobile-first Monitor launcher (incidents, key borrow log) |
-| `modules/userguide.html` | Interactive Dean's User Guide |
-| `modules/handbook.html` | APIU Residence Hall Handbook, fines reference |
+| File                             | Purpose                                                                                            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `modules/room-reservations.html` | Beds, check-in/out, clearance, holds, queue, history, away students                                |
+| `modules/student-profiles.html`  | Student directory, A4 profile cards, CSV/Excel import                                              |
+| `modules/floor-plan.html`        | Visual room grid, bathroom pairing config                                                          |
+| `modules/utilities.html`         | Meter readings, per-student billing, archive                                                       |
+| `modules/reports.html`           | 13-tab report hub — all reports are print/PDF only, no SheetJS; tab 13 = Att. Archive (IDB-backed) |
+| `modules/room-inspection.html`   | Move-in/out checklists, charge calc, clearance pre-fill                                            |
+| `modules/key-inventory.html`     | Key checkout/return/lost, overdue alerts, assigned keys                                            |
+| `modules/inventory.html`         | Asset tracking, Code 39 barcodes, room templates, bedding                                          |
+| `modules/attendance.html`        | Nightly roll call, curfew countdown, SARRA2 leave import                                           |
+| `modules/incidents.html`         | Behavioral incident tracking, SARRA2 CSV export                                                    |
+| `modules/student-admin.html`     | Off-campus requests, Dean's assistance log                                                         |
+| `modules/dorm-workers.html`      | HR register for RAs/Monitors/Janitors/SWP, floor coverage                                          |
+| `modules/staff-scheduling.html`  | Weekly shift grid, on-duty detection, A4 print                                                     |
+| `modules/plant-requests.html`    | Maintenance requests, urgency levels, dashboard                                                    |
+| `modules/ra-portal.html`         | Mobile-first RA launcher (attendance, inspection, incidents, maintenance)                          |
+| `modules/monitor-portal.html`    | Mobile-first Monitor launcher (incidents, key borrow log)                                          |
+| `modules/userguide.html`         | Interactive Dean's User Guide                                                                      |
+| `modules/handbook.html`          | APIU Residence Hall Handbook, fines reference                                                      |
 
 ---
 
@@ -48,7 +48,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 ---
 
-## File stats (2026-06-19)
+## File stats (2026-06-20)
 
 | File | Lines |
 |------|-------|
@@ -60,18 +60,18 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/utilities.html` | 688 |
 | `modules/reports.html` | 1,764 |
 | `modules/room-inspection.html` | 1,592 |
-| `modules/key-inventory.html` | 1,587 |
-| `modules/inventory.html` | 2,719 |
-| `modules/attendance.html` | 1,236 |
-| `modules/incidents.html` | 993 |
-| `modules/student-admin.html` | 1,014 |
-| `modules/dorm-workers.html` | 759 |
-| `modules/staff-scheduling.html` | 1,276 |
-| `modules/plant-requests.html` | 722 |
+| `modules/key-inventory.html` | 1,584 |
+| `modules/inventory.html` | 2,717 |
+| `modules/attendance.html` | 1,234 |
+| `modules/incidents.html` | 996 |
+| `modules/student-admin.html` | 1,012 |
+| `modules/dorm-workers.html` | 757 |
+| `modules/staff-scheduling.html` | 1,274 |
+| `modules/plant-requests.html` | 719 |
 | `modules/ra-portal.html` | 605 |
 | `modules/monitor-portal.html` | 571 |
-| `modules/userguide.html` | 2,865 |
-| `modules/handbook.html` | 1,875 |
+| `modules/userguide.html` | 2,863 |
+| `modules/handbook.html` | 1,873 |
 
 ---
 
@@ -146,6 +146,15 @@ s.roomHold.active && (s.summer || s.firstSem)
 - [ ] Cross-module dep map: add `dormSchedule`, `dormWorkersConfig.masterSchedule`, `dormInventoryAudits`; IDB stores `dormInventoryModels` + `dormInventoryAssets` added (Task 12)
 - [ ] 3 unmerged branches: `claude/dorm-mis-migration-3oy2h2` (WIP full-stack), `claude/test-coverage-analysis-bBZsg` (104 Vitest tests), `claude/wonderful-hawking-TRPrZ` (multi-agent workflow)
 - [ ] `migrateAttArchive()` not fully atomic — mid-loop IDB failure could leave `dormAttendanceArchive` partially migrated, causing duplicate sessions on retry
+
+## Completed (2026-06-20, CodeQL XSS fixes — all 42 js/xss-through-dom alerts)
+
+- [x] **modules/incidents.html** — Escaped `inc.severity` in `incCardHtml()` badge (line 688); earlier: escaped `inc.time`/`inc.followUpDate` in card + `printIncident()` header fields; refactored `histPager` from `innerHTML` to DOM creation to break IDB taint path. 993→996 lines
+- [x] **modules/reports.html** — Escaped `flLabel` (line 622), `fl` (line 698), and `colMap[c] || escapeHtml(c)` fallback for unknown column keys (line 693). 1,764 lines (unchanged)
+- [x] **modules/room-inspection.html** — Escaped `s.side` in `kiRows.innerHTML`; escaped `DormDB.getDormName()` + `room` in print popup; escaped `defDeposit` (IDB) and `today` (DOM input) in key-issuance `value=""` attrs (lines 541/543). 1,592 lines (unchanged)
+- [x] **modules/staff-scheduling.html** — Escaped `cat` in `_doPrint()` title; escaped `s.startTime`/`s.endTime`/`s.area` in weekly sheet print rows (line 1155); escaped `esc(displayName(w.name))` in slot sheet names (line 1185). 1,276→1,274 lines
+- [x] **modules/utilities.html** — Escaped `currentPeriod` in `printSection.innerHTML`. 688 lines (unchanged)
+- [x] Commits: `13aff84` (30 alerts), `0bb5787` (9 alerts), `1655d9d` (5 remaining alerts)
 
 ## Completed (2026-06-19, session 2)
 
