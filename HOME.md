@@ -118,16 +118,6 @@ Completed feature plans linked to their design specs:
 
 ---
 
-## Unmerged Branches
-
-| Branch | Contents | Status |
-|--------|----------|--------|
-| `claude/dorm-mis-migration-3oy2h2` | Full-stack MIS migration (WIP) | Blocked — needs design decision |
-| `claude/test-coverage-analysis-bBZsg` | 104 Vitest tests | Ready to review |
-| `claude/wonderful-hawking-TRPrZ` | Multi-agent workflow | Ready to review |
-
----
-
 ## Known Pitfalls — Do Not Reintroduce
 
 | Area | Pitfall | Fix |
