@@ -522,7 +522,9 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td>👷 Dorm Workers</td><td>HR register for RAs, Monitors, Janitors, SWP workers; job documents</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>📆 Staff Scheduling</td><td>Weekly shift grid, on-duty detection, A4 print sheet</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>🔧 Maintenance</td><td>Plant service request tracking, urgency levels, dashboard chart</td><td><span class="badge badge-green">Ready</span></td></tr>
-            <tr><td>📖 Dean's User Guide</td><td>This guide — complete reference for all 16 modules</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🏠 RA Portal</td><td>Mobile PWA for RAs: nightly attendance, room inspection, incidents, maintenance, cloud backup</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>🖥️ Monitor Portal</td><td>Mobile PWA for Monitors: incidents, key borrowing, cloud backup</td><td><span class="badge badge-green">Ready</span></td></tr>
+            <tr><td>📖 Dean's User Guide</td><td>This guide — complete reference for all 18 modules</td><td><span class="badge badge-green">Ready</span></td></tr>
             <tr><td>📋 Residence Hall Handbook</td><td>Interactive APIU policy reference — 50+ policies, fines table</td><td><span class="badge badge-green">Ready</span></td></tr>
           </tbody>
         </table>
@@ -1156,6 +1158,21 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
       </div>
     </div>
 
+    <div class="subsection" id="sub-ki-assigned">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Issuing a Permanent Key (Assigned Tab)</div>
+      <div class="collapse-body">
+        <p>Use the <strong>🗂️ Assigned</strong> tab when a student is given a room key for the whole semester with a refundable deposit — as opposed to a short-term borrow.</p>
+        <ol class="steps">
+          <li>Click <strong>➕ Issue Assigned Key</strong> in the toolbar.</li>
+          <li>Fill in: Room, Student Name, Student ID, Side (A = door-side / B = balcony-side), Issued Date, Deposit Amount, Deposit Paid (Cash / QR / Not Paid), Received By, and optional Notes.</li>
+          <li>Click <strong>💾 Issue Key</strong>. The record appears in the Assigned tab with status <span class="badge badge-green">With Student</span>.</li>
+          <li>At semester end or move-out, update the record status to <span class="badge">Returned</span> when the key is handed back.</li>
+          <li>If the key is lost, mark the record as <span class="badge badge-red">Lost</span> — fine handling may then apply under the standard lost-key flow.</li>
+        </ol>
+        <p>Use the status filter (With Student / Returned / Lost) or the search box to find a specific student or room.</p>
+      </div>
+    </div>
+
     <div class="subsection" id="sub-ki-checkout">
       <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Checking Out & Returning Keys</div>
       <div class="collapse-body">
@@ -1313,7 +1330,7 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
         </div>
         <div class="info-card" style="margin-top:10px">
           <h4>📑 Module Tabs</h4>
-          <p>📦 Items &nbsp;·&nbsp; 📍 By Location &nbsp;·&nbsp; 🏷️ Labels &nbsp;·&nbsp; 📅 Audit Log &nbsp;·&nbsp; 🔧 Maintenance Flags &nbsp;·&nbsp; ⚙️ Settings &nbsp;·&nbsp; 🛏️ Bedding</p>
+          <p>📦 Items &nbsp;·&nbsp; 📍 By Location &nbsp;·&nbsp; 🏷️ Labels &nbsp;·&nbsp; 🏷️ Models &nbsp;·&nbsp; 📅 Audit Log &nbsp;·&nbsp; 🔧 Maintenance Flags &nbsp;·&nbsp; ⚙️ Settings &nbsp;·&nbsp; 🛏️ Bedding</p>
         </div>
       </div>
     </div>
@@ -2076,6 +2093,133 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 15 ─ RA PORTAL                                                    -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-ra-portal">
+    <div class="section-header">
+      <span class="section-icon">🏠</span>
+      <div class="section-meta">
+        <div class="section-title">RA Portal</div>
+        <div class="section-path">modules/ra-portal.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-ra-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The RA Portal is a standalone mobile-optimized page for Resident Advisors doing nightly duty rounds. It gives RAs one-tap access to the modules they use most — without exposing the Dean's full portal or requiring a separate login to each module.</p>
+        <p>The portal is installable as a PWA (Progressive Web App) on any phone or tablet. Tap the "Install" banner at the bottom of the screen to add it to the home screen.</p>
+        <div class="info-card" style="margin-top:10px">
+          <h4>🃏 Portal Cards</h4>
+          <table class="guide-table">
+            <thead><tr><th>Card</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td>🌙 Nightly Attendance</td><td>Start or continue the current night's attendance session</td></tr>
+              <tr><td>🔍 Room Inspection</td><td>📥 Move-In Inspection &nbsp;·&nbsp; 📤 Move-Out Inspection</td></tr>
+              <tr><td>🚨 Incident Reports</td><td>New Incident Report &nbsp;·&nbsp; View All Incidents</td></tr>
+              <tr><td>🔧 Maintenance</td><td>Log Plant Request &nbsp;·&nbsp; View All Requests</td></tr>
+              <tr><td>💾 Data Backup</td><td>Export My Backup &nbsp;·&nbsp; Merge a Backup</td></tr>
+              <tr><td>☁️ Cloud Sync</td><td>Microsoft 365 sign-in for automatic OneDrive backup</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ra-identity">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Identity & PIN Gate</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>When the portal loads, a "Who are you?" modal opens. Select your name from the RA list (only Dorm Workers with category <strong>RA</strong> appear).</li>
+          <li>If a <strong>Portal PIN</strong> has been set by the Dean (in Portal Access settings on the main menu), enter it to proceed. The "Other (type name below)" option is disabled when a PIN is active — you must select your registered name.</li>
+          <li>Once confirmed, your name appears in the header chip and your assigned floor or area is shown beneath the dorm name.</li>
+          <li>The identity is remembered for the current browser session. Tap the 👤 chip at any time to switch identity.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Lockout: repeated incorrect PINs trigger an exponential backoff (starting ~30 s, up to 30 min). Ask the Dean to clear the PIN if you are locked out.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ra-curfew">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Curfew Banner & Roster Sync</div>
+      <div class="collapse-body">
+        <p>A <strong>curfew banner</strong> appears in the header when Attendance curfew times are configured — showing tonight's curfew (weekday or weekend) and the grace period, so the RA sees it immediately without opening the Attendance module.</p>
+        <p>A <strong>roster update banner</strong> (green) appears when the Dean has published a newer <code>Dean_Roster_*.json</code> to OneDrive. Tap <strong>📥 Update</strong> to pull the latest room assignments, workers list, curfew settings, semester config, max occupants, and dorm name. Tap <strong>Skip</strong> to dismiss without updating.</p>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ra-backup">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Data Backup & Cloud Sync</div>
+      <div class="collapse-body">
+        <ul>
+          <li><strong>💾 Export My Backup</strong> — downloads <code>RA_Backup_[Name]_[date].json</code>. If Cloud Sync is configured and you are signed in, the file is also uploaded to OneDrive automatically.</li>
+          <li><strong>🔀 Merge a Backup</strong> — imports a <code>.json</code> backup and adds any records not already present (deduped — nothing is overwritten).</li>
+          <li><strong>☁️ Cloud Sync</strong> — sign in with your @apiu.edu Microsoft 365 account. Once signed in, a backup uploads silently to OneDrive every 10 minutes and again whenever the browser tab is hidden.</li>
+        </ul>
+        <div class="note"><span class="note-icon">ℹ️</span><span>Cloud Sync must first be configured by the Dean in the Cloud Sync card on the main menu (Client ID required). If not yet configured, the card shows "Not configured — dean must set up Cloud Sync first."</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- 16 ─ MONITOR PORTAL                                               -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <section class="guide-section" id="sec-monitor-portal">
+    <div class="section-header">
+      <span class="section-icon">🖥️</span>
+      <div class="section-meta">
+        <div class="section-title">Monitor Portal</div>
+        <div class="section-path">modules/monitor-portal.html</div>
+      </div>
+      <span class="section-badge ready">Ready</span>
+    </div>
+
+    <div class="subsection" id="sub-mon-overview">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Overview</div>
+      <div class="collapse-body">
+        <p>The Monitor Portal is a standalone mobile-optimized page for Monitor staff (nightly duty monitors). It mirrors the RA Portal in structure but is tailored for Monitors: Incident Reports and Key Borrowing, rather than attendance or room inspections.</p>
+        <p>Same deep-purple theme as the Nightly Attendance module. Installable as a PWA the same way as the RA Portal.</p>
+        <div class="info-card" style="margin-top:10px">
+          <h4>🃏 Portal Cards</h4>
+          <table class="guide-table">
+            <thead><tr><th>Card</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr><td>🚨 Incident Reports</td><td>New Incident Report &nbsp;·&nbsp; View All Incidents</td></tr>
+              <tr><td>🔑 Key Borrowing Log</td><td>Check Out / Return Key &nbsp;·&nbsp; View Borrow Log</td></tr>
+              <tr><td>☁️ Cloud Sync</td><td>Microsoft 365 sign-in for automatic OneDrive backup</td></tr>
+              <tr><td>💾 Data Backup</td><td>Export My Backup &nbsp;·&nbsp; Merge a Backup</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-mon-identity">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Identity & PIN Gate</div>
+      <div class="collapse-body">
+        <ol class="steps">
+          <li>On load, a "Who are you?" modal opens. Select your name from the Monitor list (Dorm Workers with category <strong>Monitor</strong>).</li>
+          <li>If the Dean has set a Monitor Portal PIN, enter it. The "Other" option is disabled when a PIN is active.</li>
+          <li>Your name and assigned area appear in the header chip. Tap it at any time to change identity.</li>
+        </ol>
+        <div class="note"><span class="note-icon">ℹ️</span><span>If Microsoft 365 Cloud Sync is configured and enabled by the Dean, the portal shows an M365 sign-in gate before loading — Monitors must sign in with their @apiu.edu account first. Lockout policy matches the RA Portal.</span></div>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-mon-backup">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> Data Backup & Cloud Sync</div>
+      <div class="collapse-body">
+        <ul>
+          <li><strong>💾 Export My Backup</strong> — downloads <code>Monitor_Backup_[Name]_[date].json</code>. If Cloud Sync is active and signed in, also uploads to OneDrive.</li>
+          <li><strong>🔀 Merge a Backup</strong> — imports a backup and adds new records (deduped).</li>
+          <li><strong>☁️ Cloud Sync</strong> — same M365 PKCE flow as the RA Portal; auto-backup every 10 minutes.</li>
+        </ul>
+        <p>Roster sync works identically to the RA Portal — a green banner appears when the Dean has published a new <code>Dean_Roster_*.json</code> to OneDrive.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
   <!-- 10 ─ TIPS & REFERENCE                                            -->
   <!-- ══════════════════════════════════════════════════════════════════ -->
   <section class="guide-section" id="sec-tips">
@@ -2258,6 +2402,21 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
             <tr><td><strong>📦 Inventory</strong></td><td>May–Jun 2026</td><td>Asset tracking with Code 39 barcode labels, room template comparison, condition assessment, maintenance flag push, 6-tab layout; Bedding Inventory tab added Jun 2026 (sales ledger, stock events, physical counts, semester summary)</td></tr>
             <tr><td><strong>📖 Dean's User Guide</strong></td><td>May 2026</td><td>Interactive HTML guide, sticky TOC, collapsible sections, live search, print-friendly</td></tr>
             <tr><td><strong>📋 Residence Hall Handbook</strong></td><td>May 2026</td><td>Interactive APIU policy reference — 50+ policies, fines quick-reference table, dark green theme</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="subsection" id="sub-ver-v44">
+      <div class="collapse-trigger" onclick="toggleSection(this)"><span class="chevron">▾</span> v4.4 — Security Hardening &amp; Data Reliability (June 2026)</div>
+      <div class="collapse-body">
+        <p>v4.4 addresses two non-user-facing but critical issues: a systematic XSS audit and an attendance archive reliability fix.</p>
+        <table class="guide-table">
+          <thead><tr><th>Change</th><th>Detail</th></tr></thead>
+          <tbody>
+            <tr><td>XSS hardening (42 alerts)</td><td>CodeQL <code>js/xss-through-dom</code> scan identified 42 unsafe DOM writes across Incidents, Reports, Room Inspection, Staff Scheduling, and Utilities. All replaced with safe <code>textContent</code> assignments or DOMPurify-sanitized HTML. No user-visible behavior changed.</td></tr>
+            <tr><td>Attendance archive idempotency</td><td><code>migrateAttArchive()</code> in <code>dorm-db.js</code> now deduplicates by <code>session.id</code> before writing to IndexedDB. A failed migration that retried could previously create duplicate attendance sessions in the archive; this is now impossible.</td></tr>
+            <tr><td>SW cache v26</td><td>Service Worker cache bumped from v25 to v26 to force clients to receive the patched files.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2588,10 +2747,11 @@ const TOC = [
       { id:'sub-rpt-bedding',     text:'🛏️ Bedding' },
     ]},
     { id:'sec-key-inventory', text:'🔑 Key Inventory', subs:[
-      { id:'sub-ki-setup',    text:'Initial Setup' },
-      { id:'sub-ki-checkout', text:'Check Out & Return' },
-      { id:'sub-ki-lost',     text:'Lost Keys' },
-      { id:'sub-ki-prints',   text:'Shift Sheet & Ledger' },
+      { id:'sub-ki-setup',     text:'Initial Setup' },
+      { id:'sub-ki-assigned',  text:'Assigned Keys (Semester)' },
+      { id:'sub-ki-checkout',  text:'Check Out & Return' },
+      { id:'sub-ki-lost',      text:'Lost Keys' },
+      { id:'sub-ki-prints',    text:'Shift Sheet & Ledger' },
     ]},
     { id:'sec-room-inspection', text:'🔍 Room Inspection', subs:[
       { id:'sub-ri-create',    text:'Creating an Inspection' },
@@ -2653,6 +2813,17 @@ const TOC = [
       { id:'sub-maint-dashboard',    text:'Dashboard & Status' },
       { id:'sub-maint-integration',  text:'Integration' },
     ]},
+    { id:'sec-ra-portal', text:'🏠 RA Portal', subs:[
+      { id:'sub-ra-overview',  text:'Overview' },
+      { id:'sub-ra-identity',  text:'Identity & PIN Gate' },
+      { id:'sub-ra-curfew',    text:'Curfew Banner & Roster Sync' },
+      { id:'sub-ra-backup',    text:'Data Backup & Cloud Sync' },
+    ]},
+    { id:'sec-monitor-portal', text:'🖥️ Monitor Portal', subs:[
+      { id:'sub-mon-overview',  text:'Overview' },
+      { id:'sub-mon-identity',  text:'Identity & PIN Gate' },
+      { id:'sub-mon-backup',    text:'Data Backup & Cloud Sync' },
+    ]},
   ]},
   { label:'Reference', items:[
     { id:'sec-tips', text:'⌨️ Tips & Reference', subs:[
@@ -2667,6 +2838,7 @@ const TOC = [
       { id:'sub-about-updates',   text:'Requesting Future Updates' },
     ]},
     { id:'sec-version', text:'📋 Version History', subs:[
+      { id:'sub-ver-v44', text:'v4.4 — Security Hardening & Data Reliability' },
       { id:'sub-ver-v43', text:'v4.3 — Dean-Only Security Model' },
       { id:'sub-ver-v42', text:'v4.2 — Archive System & Data Quality' },
       { id:'sub-ver-v4',  text:'v4.0 — Multi-Module System' },

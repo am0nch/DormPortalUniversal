@@ -70,7 +70,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/plant-requests.html` | 719 |
 | `modules/ra-portal.html` | 605 |
 | `modules/monitor-portal.html` | 571 |
-| `modules/userguide.html` | 2,863 |
+| `modules/userguide.html` | 3,035 |
 | `modules/handbook.html` | 1,873 |
 
 ---
