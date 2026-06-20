@@ -2505,11 +2505,9 @@ mark.hl{background:#fff176;border-radius:2px;padding:0 1px}
 (function() {
   const p = new URLSearchParams(location.search).get('back');
   if (p) {
-    const titles = { 'room-reservations':'Room Reservations', 'reports':'Reports' };
-    const lbl = titles[p] || p.replace(/-/g,' ').replace(/\b\w/g, c => c.toUpperCase());
-    const el = document.getElementById('backLink');
-    el.textContent = '← ' + lbl;
-    el.href = p + '.html';
+    const _BACK_NAV = {'room-reservations':{href:'room-reservations.html',text:'← Room Reservations'},'reports':{href:'reports.html',text:'← Reports'}};
+    const _e = _BACK_NAV[p];
+    if (_e) { const el = document.getElementById('backLink'); el.href = _e.href; el.textContent = _e.text; }
   }
 })();
 

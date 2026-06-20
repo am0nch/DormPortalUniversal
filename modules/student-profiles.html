@@ -178,7 +178,7 @@ tr:hover td{background:#f4f8fc}
 <!-- ── Navigation ── -->
 <div class="nav-bar">
   <a id="backLink" href="../index.html" class="nav-back">← Menu</a>
-  <script>(function(){const from=new URLSearchParams(location.search).get('back');if(from){const labels={'room-reservations':'← Room Reservations','reports':'← Reports','floor-plan':'← Floor Plan'};const l=document.getElementById('backLink');if(l&&labels[from]){l.href=from+'.html';l.textContent=labels[from];}}})()</script>
+  <script>(function(){const from=new URLSearchParams(location.search).get('back');const _n={'room-reservations':{href:'room-reservations.html',text:'← Room Reservations'},'reports':{href:'reports.html',text:'← Reports'},'floor-plan':{href:'floor-plan.html',text:'← Floor Plan'}};const _e=_n[from];const l=document.getElementById('backLink');if(l&&_e){l.href=_e.href;l.textContent=_e.text;}})()</script>
   <span class="nav-title">👤 Student Profiles</span>
   <span class="nav-dorm" id="navDorm"></span>
 </div>

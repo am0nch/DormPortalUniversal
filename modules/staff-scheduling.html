@@ -1176,7 +1176,7 @@ function printSlotSheet() {
   slots.forEach(slotStart => {
     const isOvn = slotStart === 'OVERNIGHT';
     rows += `<tr${isOvn?' style="background:#f5f5f5"':''}>
-      <td style="font-weight:700;white-space:nowrap;color:${isOvn?'#37474f':'#1565c0'}">${isOvn?`${sc.dayEnd}–${sc.dayStart} (Overnight·${sc.overnightHours}h)`:slotLabel(slotStart,cat).replace(/<[^>]+>/g,'')}</td>
+      <td style="font-weight:700;white-space:nowrap;color:${isOvn?'#37474f':'#1565c0'}">${isOvn?`${sc.dayEnd}–${sc.dayStart} (Overnight·${sc.overnightHours}h)`:(()=>{const _d=document.createElement('div');_d.innerHTML=slotLabel(slotStart,cat);return _d.textContent||'';})()}</td>
       ${days.map(d => {
         const names = [];
         catWorkers.forEach(w => {
@@ -1233,11 +1233,9 @@ async function init() {
   await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
-  if (back) {
-    const el = document.getElementById('backLink');
-    el.href = back + '.html';
-    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-  }
+  const _BACK_NAV = {'ra-portal':{href:'ra-portal.html',text:'← RA Portal'},'monitor-portal':{href:'monitor-portal.html',text:'← Monitor Portal'},'reports':{href:'reports.html',text:'← Reports'}};
+  const _backEntry = _BACK_NAV[back];
+  if (_backEntry) { const el = document.getElementById('backLink'); el.href = _backEntry.href; el.textContent = _backEntry.text; }
   document.getElementById('navDorm').textContent = DormDB.getDormName();
   document.getElementById('navUser').textContent = DormDB.getCurrentUser();
 

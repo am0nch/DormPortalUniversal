@@ -689,12 +689,9 @@ async function init() {
   await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
-  const BACK_LABELS = { 'ra-portal': '← RA Portal', 'monitor-portal': '← Monitor Portal' };
-  if (back) {
-    const el = document.getElementById('backLink');
-    el.href        = back + '.html';
-    el.textContent = BACK_LABELS[back] || ('← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
-  }
+  const _BACK_NAV = {'ra-portal':{href:'ra-portal.html',text:'← RA Portal'},'monitor-portal':{href:'monitor-portal.html',text:'← Monitor Portal'}};
+  const _backEntry = _BACK_NAV[back];
+  if (_backEntry) { const el = document.getElementById('backLink'); el.href = _backEntry.href; el.textContent = _backEntry.text; }
   const VALID_TABS = ['dashboard','requests','history','settings'];
   const tabParam = params.get('tab');
   if (tabParam && VALID_TABS.includes(tabParam)) switchTab(tabParam);

@@ -1132,7 +1132,7 @@ function _renderSemesterTable(cfg) {
       <td style="padding:6px 8px">${s.startDate || ''}</td>
       <td style="padding:6px 8px">${s.endDate || ''}</td>
       <td style="padding:6px 8px;text-align:center">
-        <button onclick="deleteSemesterFromList('${s.label.replace(/'/g,"\\'")}')
+        <button onclick="deleteSemesterFromList('${s.label.replace(/\\/g,"\\\\").replace(/'/g,"\\'")}')
 " style="font-size:.7rem;padding:1px 7px;border:1px solid #e57373;color:#c62828;background:#fff;border-radius:4px;cursor:pointer">🗑️</button>
       </td>
     </tr>`).join('');

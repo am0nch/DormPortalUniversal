@@ -981,11 +981,9 @@ async function init() {
   await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
-  if (back) {
-    const el = document.getElementById('backLink');
-    el.href        = back + '.html';
-    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-  }
+  const _BACK_NAV = {'ra-portal':{href:'ra-portal.html',text:'← RA Portal'},'monitor-portal':{href:'monitor-portal.html',text:'← Monitor Portal'},'reports':{href:'reports.html',text:'← Reports'}};
+  const _backEntry = _BACK_NAV[back];
+  if (_backEntry) { const el = document.getElementById('backLink'); el.href = _backEntry.href; el.textContent = _backEntry.text; }
   document.getElementById('navDorm').textContent = DormDB.getDormName();
   document.getElementById('navUser').textContent = DormDB.getCurrentUser();
 

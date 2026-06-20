@@ -309,8 +309,8 @@ function renderPairTable() {
   (fp.bathroomPairs || []).forEach((pair, i) => {
     rows += `<tr>
       <td>${idx + 1}</td>
-      <td>${pair[0]}</td>
-      <td>${pair[1]}</td>
+      <td>${escapeHtml(String(pair[0]))}</td>
+      <td>${escapeHtml(String(pair[1]))}</td>
       <td>Shared</td>
       <td>
         <button class="btn-sm orange" onclick="openPairModal({type:'pair',idx:${i}})">✏️</button>
@@ -323,7 +323,7 @@ function renderPairTable() {
   (fp.soloPairs || []).forEach((room, i) => {
     rows += `<tr>
       <td>${idx + 1}</td>
-      <td>${room}</td>
+      <td>${escapeHtml(String(room))}</td>
       <td>—</td>
       <td>Solo meter</td>
       <td>

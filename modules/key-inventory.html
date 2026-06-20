@@ -472,12 +472,9 @@ async function init() {
   await DormDB.ready;
   const params = new URLSearchParams(location.search);
   const back = params.get('back');
-  if (back) {
-    const el = document.getElementById('backLink');
-    const labels = { 'room-reservations': '← Room Reservations', 'floor-plan': '← Floor Plan', 'monitor-portal': '← Monitor Portal', 'ra-portal': '← RA Portal' };
-    el.textContent = labels[back] || '← Menu';
-    el.href = back + '.html';
-  }
+  const _BACK_NAV = {'room-reservations':{href:'room-reservations.html',text:'← Room Reservations'},'floor-plan':{href:'floor-plan.html',text:'← Floor Plan'},'monitor-portal':{href:'monitor-portal.html',text:'← Monitor Portal'},'ra-portal':{href:'ra-portal.html',text:'← RA Portal'}};
+  const _backEntry = _BACK_NAV[back];
+  if (_backEntry) { const el = document.getElementById('backLink'); el.href = _backEntry.href; el.textContent = _backEntry.text; }
   const tabParam = params.get('tab');
   const VALID_TABS = ['dashboard','assigned','borrow','inventory','settings','agreement'];
   if (tabParam && VALID_TABS.includes(tabParam)) switchTab(tabParam);

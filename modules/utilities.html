@@ -117,7 +117,7 @@ td input[type=number]:focus{outline:none;border-color:#1e3a5f;background:#f0f7ff
 
 <div class="nav-bar">
   <a id="backLink" href="../index.html" class="nav-back">← Menu</a>
-  <script>(function(){const from=new URLSearchParams(location.search).get('back');if(from){const labels={'room-reservations':'← Room Reservations','reports':'← Reports','floor-plan':'← Floor Plan'};const l=document.getElementById('backLink');if(l&&labels[from]){l.href=from+'.html';l.textContent=labels[from];}}})()</script>
+  <script>(function(){const from=new URLSearchParams(location.search).get('back');const _n={'room-reservations':{href:'room-reservations.html',text:'← Room Reservations'},'reports':{href:'reports.html',text:'← Reports'},'floor-plan':{href:'floor-plan.html',text:'← Floor Plan'}};const _e=_n[from];const l=document.getElementById('backLink');if(l&&_e){l.href=_e.href;l.textContent=_e.text;}})()</script>
   <span class="nav-title">⚡ Electricity & Hot Water</span>
   <span class="nav-dorm" id="navDorm"></span>
 </div>
@@ -617,7 +617,7 @@ function printBills() {
     const usage = Math.max(0, row.meterOut - row.meterIn);
     const total = usage * elecRate;
     const per = row.occupants > 0 ? (total / row.occupants).toFixed(2) : '—';
-    elecHtml += `<tr><td>${row.room}</td><td>${row.occupants}</td><td>${row.meterIn}</td><td>${row.meterOut}</td><td>${usage.toFixed(2)}</td><td>${elecRate}</td><td>${total.toFixed(2)}</td><td class="per-student">${per}</td></tr>`;
+    elecHtml += `<tr><td>${escapeHtml(String(row.room))}</td><td>${row.occupants}</td><td>${escapeHtml(String(row.meterIn))}</td><td>${escapeHtml(String(row.meterOut))}</td><td>${usage.toFixed(2)}</td><td>${elecRate}</td><td>${total.toFixed(2)}</td><td class="per-student">${per}</td></tr>`;
   });
   elecHtml += '</tbody></table>';
 
@@ -629,12 +629,12 @@ function printBills() {
     const usage = Math.max(0, row.meterOut - row.meterIn);
     const total = usage * hwRate;
     const per = totalOcc > 0 ? (total / totalOcc).toFixed(2) : '—';
-    hwHtml += `<tr><td>#${row.group}</td><td>${row.roomA}</td><td>${row.roomB || '—'}</td><td>${totalOcc}</td><td>${row.meterIn}</td><td>${row.meterOut}</td><td>${usage.toFixed(2)}</td><td>${hwRate}</td><td>${total.toFixed(2)}</td><td class="per-student">${per}</td></tr>`;
+    hwHtml += `<tr><td>#${row.group}</td><td>${escapeHtml(String(row.roomA))}</td><td>${escapeHtml(String(row.roomB || '—'))}</td><td>${totalOcc}</td><td>${escapeHtml(String(row.meterIn))}</td><td>${escapeHtml(String(row.meterOut))}</td><td>${usage.toFixed(2)}</td><td>${hwRate}</td><td>${total.toFixed(2)}</td><td class="per-student">${per}</td></tr>`;
   });
   hwHtml += '</tbody></table>';
 
   document.getElementById('printSection').innerHTML = `
-    <div class="pr-title">⚡ ${DormDB.getDormName()} — Utility Bills</div>
+    <div class="pr-title">⚡ ${escapeHtml(DormDB.getDormName())} — Utility Bills</div>
     <div class="pr-sub">Period: ${currentPeriod} &nbsp;·&nbsp; Printed: ${new Date().toLocaleString()}</div>
     <div class="pr-section"><div class="pr-section-title">Electricity</div>${elecHtml}</div>
     <div class="pr-section"><div class="pr-section-title">Hot Water</div>${hwHtml}</div>

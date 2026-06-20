@@ -399,7 +399,7 @@ function checkLiveCountdown() {
     cls = 'in-effect';
     label = `Curfew in effect (since ${curfew}) — doors locked until 05:00`;
     timeStr = '🔒 Curfew';
-    sub = `Grace period ended at ${curfew.replace(':',':')} + ${grace} min`;
+    sub = `Grace period ended at ${curfew} + ${grace} min`;
   } else if (nowMs >= curfewMs) {
     const minsLeft = Math.ceil((graceMs - nowMs) / 60000);
     cls = 'grace';
@@ -1181,11 +1181,9 @@ async function init() {
   // Back link
   const params = new URLSearchParams(location.search);
   const back   = params.get('back');
-  if (back) {
-    const el = document.getElementById('backLink');
-    el.href        = back + '.html';
-    el.textContent = '← ' + back.split('/').pop().replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-  }
+  const _BACK_NAV = {'ra-portal':{href:'ra-portal.html',text:'← RA Portal'},'monitor-portal':{href:'monitor-portal.html',text:'← Monitor Portal'}};
+  const _backEntry = _BACK_NAV[back];
+  if (_backEntry) { const el = document.getElementById('backLink'); el.href = _backEntry.href; el.textContent = _backEntry.text; }
 
   // Dorm name in nav
   document.getElementById('navDorm').textContent = DormDB.getDormName();

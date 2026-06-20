@@ -162,7 +162,7 @@ td input[type=text],td input[type=date]{width:100%;border:1px solid #e0e0e0;bord
     <span class="ph-meta">Saved: <span id="lastUpdateTime">—</span> · <span id="lastUpdateUser">—</span></span>
   </div>
 </div>
-<script>(function(){const from=new URLSearchParams(location.search).get('back');if(from){const labels={'reports':'← Reports','floor-plan':'← Floor Plan'};const l=document.getElementById('backLink');if(l&&labels[from]){l.href=from+'.html';l.textContent=labels[from];}}})()</script>
+<script>(function(){const from=new URLSearchParams(location.search).get('back');const _n={'reports':{href:'reports.html',text:'← Reports'},'floor-plan':{href:'floor-plan.html',text:'← Floor Plan'}};const _e=_n[from];const l=document.getElementById('backLink');if(l&&_e){l.href=_e.href;l.textContent=_e.text;}})()</script>
 <!-- Toolbar -->
 <div class="toolbar">
   <div class="tb-group">
