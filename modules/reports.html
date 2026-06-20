@@ -690,7 +690,7 @@ function generateCustomReport() {
       default: return '';
     }
   }
-  const hRow  = selCols.map(c => `<th>${colMap[c] || c}</th>`).join('');
+  const hRow  = selCols.map(c => `<th>${colMap[c] || escapeHtml(c)}</th>`).join('');
   const bRows = rows.map((s, i) => `<tr style="background:${i % 2 === 0 ? '#f9f9f9' : 'white'}">${selCols.map(c => `<td>${cv(s, c)}</td>`).join('')}</tr>`).join('');
   const fl     = rptFloor === 'all' ? 'All Floors' : `Floor ${rptFloor}`;
   const typeTag = onlyQueue ? 'Incoming Queue' : onlyHistory ? 'Room History' : (onlyWaiting ? 'Waiting List' : selTypes.join(', '));

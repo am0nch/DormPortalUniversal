@@ -1152,7 +1152,7 @@ function printWeeklySheet() {
         <td><strong>${esc(b.workerName)}</strong>${b.floor?`<br><small>F${b.floor}</small>`:''}</td>
         ${days.map(d => {
           const shifts = (b.shifts||[]).filter(s=>s.day===d);
-          return `<td>${shifts.map(s=>`${s.startTime}–${s.endTime}${isOvernightShift(s.startTime,s.endTime)?'🌙':''}${s.area?`<br><em>${s.area}</em>`:''}`).join('<hr style="margin:2pt">') || ''}</td>`;
+          return `<td>${shifts.map(s=>`${esc(s.startTime)}–${esc(s.endTime)}${isOvernightShift(s.startTime,s.endTime)?'🌙':''}${s.area?`<br><em>${esc(s.area)}</em>`:''}`).join('<hr style="margin:2pt">') || ''}</td>`;
         }).join('')}
       </tr>`).join('')}
     </table>`;
@@ -1182,7 +1182,7 @@ function printSlotSheet() {
         catWorkers.forEach(w => {
           const block = blockOf[w.id];
           if (!block) return;
-          (block.shifts||[]).filter(s => s.day===d && isShiftInSlot(s,slotStart,cat)).forEach(() => names.push(displayName(w.name)));
+          (block.shifts||[]).filter(s => s.day===d && isShiftInSlot(s,slotStart,cat)).forEach(() => names.push(esc(displayName(w.name))));
         });
         return `<td>${names.join(', ')}</td>`;
       }).join('')}

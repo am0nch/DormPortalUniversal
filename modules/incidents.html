@@ -685,7 +685,7 @@ function incCardHtml(inc, showCheckbox) {
         <div class="inc-title">
           ${showCheckbox ? `<input type="checkbox" onclick="event.stopPropagation();toggleHistSel(${inc.id},this.checked)" style="margin-right:6px;width:auto">` : ''}
           ${escapeHtml(inc.type)}
-          <span class="badge badge-${sev}">${inc.severity}</span>
+          <span class="badge badge-${sev}">${escapeHtml(String(inc.severity))}</span>
           ${inc.resolved
             ? '<span class="badge badge-resolved">Resolved</span>'
             : '<span class="badge badge-open">Open</span>'}

@@ -538,9 +538,9 @@ async function populateOccupants(){
         </label>
         <div style="display:flex;align-items:center;gap:4px;font-size:.8rem">
           <span>฿</span>
-          <input type="number" id="ki_depositAmt_${i}" value="${defDeposit}" min="0" style="width:60px;padding:3px 5px;border:1px solid #ccc;border-radius:4px">
+          <input type="number" id="ki_depositAmt_${i}" value="${escapeHtml(String(defDeposit))}" min="0" style="width:60px;padding:3px 5px;border:1px solid #ccc;border-radius:4px">
         </div>
-        <input type="date" id="ki_depositDate_${i}" value="${today}" style="font-size:.8rem;padding:3px 6px;border:1px solid #ccc;border-radius:4px">
+        <input type="date" id="ki_depositDate_${i}" value="${escapeHtml(today)}" style="font-size:.8rem;padding:3px 6px;border:1px solid #ccc;border-radius:4px">
         <select id="ki_depositMethod_${i}" style="font-size:.8rem;padding:3px 5px;border:1px solid #ccc;border-radius:4px">
           <option value="Cash">Cash</option>
           <option value="QR">QR</option>
