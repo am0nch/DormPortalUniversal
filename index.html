@@ -637,18 +637,37 @@ async function _buildZip(files) {
 function _parseZip(buf) {
   const d = new Uint8Array(buf);
   const files = new Map();
-  let i = 0;
-  while (i < d.length - 30) {
-    if (d[i]===0x50 && d[i+1]===0x4B && d[i+2]===0x03 && d[i+3]===0x04) {
-      const method  = d[i+8]|(d[i+9]<<8);
-      const compSz  = d[i+18]|(d[i+19]<<8)|(d[i+20]<<16)|(d[i+21]<<24);
-      const nameLen = d[i+26]|(d[i+27]<<8);
-      const extLen  = d[i+28]|(d[i+29]<<8);
-      const name    = new TextDecoder().decode(d.slice(i+30, i+30+nameLen));
-      const start   = i+30+nameLen+extLen;
-      if (method === 0) files.set(name, d.slice(start, start+compSz));
-      i = start + compSz;
-    } else { i++; }
+  const u16 = p => d[p]|(d[p+1]<<8);
+  const u32 = p => (d[p]|(d[p+1]<<8)|(d[p+2]<<16)|(d[p+3]<<24))>>>0;
+
+  // Locate End of Central Directory (scan from end — no ZIP-comment support needed)
+  let eocd = -1;
+  for (let i = d.length - 22; i >= 0; i--) {
+    if (d[i]===0x50&&d[i+1]===0x4B&&d[i+2]===0x05&&d[i+3]===0x06) { eocd = i; break; }
+  }
+  if (eocd < 0) return files;
+
+  const cdCount = u16(eocd + 10);
+  let cdOff = u32(eocd + 16);
+
+  // Walk Central Directory — each CD entry has the exact LFH byte offset
+  for (let e = 0; e < cdCount; e++) {
+    if (cdOff + 46 > d.length) break;
+    if (!(d[cdOff]===0x50&&d[cdOff+1]===0x4B&&d[cdOff+2]===0x01&&d[cdOff+3]===0x02)) break;
+    const method  = u16(cdOff + 10);
+    const compSz  = u32(cdOff + 20);
+    const nameLen = u16(cdOff + 28);
+    const extLen  = u16(cdOff + 30);
+    const cmtLen  = u16(cdOff + 32);
+    const lfhOff  = u32(cdOff + 42);
+    const name    = new TextDecoder().decode(d.slice(cdOff + 46, cdOff + 46 + nameLen));
+    if (method === 0 && lfhOff + 30 <= d.length) {
+      const lExtLen  = u16(lfhOff + 28);
+      const lNameLen = u16(lfhOff + 26);
+      const dataStart = lfhOff + 30 + lNameLen + lExtLen;
+      if (dataStart + compSz <= d.length) files.set(name, d.slice(dataStart, dataStart + compSz));
+    }
+    cdOff += 46 + nameLen + extLen + cmtLen;
   }
   return files;
 }
@@ -661,9 +680,12 @@ async function exportWithPhotos() {
     delete dump._photos; // photos go as real files in the ZIP
     const allPhotos = await DormDB.getAllPhotos(); // [{id, blob}]
     const files = [{ name: 'backup.json', data: new TextEncoder().encode(JSON.stringify(dump, null, 2)) }];
+    let skipped = 0;
     for (const { id, blob } of allPhotos) {
-      const ext = blob.type === 'image/png' ? 'png' : 'jpg';
-      files.push({ name: `photos/${id}.${ext}`, data: new Uint8Array(await blob.arrayBuffer()) });
+      try {
+        const ext = blob.type === 'image/png' ? 'png' : 'jpg';
+        files.push({ name: `photos/${id}.${ext}`, data: new Uint8Array(await blob.arrayBuffer()) });
+      } catch(e) { skipped++; console.warn('Photo skipped in ZIP export:', id, e); }
     }
     const zip = await _buildZip(files);
     const fname = 'DormManager_Backup_' + new Date().toISOString().slice(0,10) + '_with_photos.zip';
@@ -672,7 +694,8 @@ async function exportWithPhotos() {
     a.download = fname;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-    _toast(`✅ ZIP exported — ${allPhotos.length} photo(s) included`);
+    const included = allPhotos.length - skipped;
+    _toast(`✅ ZIP exported — ${included} photo(s) included${skipped ? ` (${skipped} skipped — corrupted)` : ''}`);
   } catch(e) { alert('ZIP export failed: ' + e.message); }
 }
 
