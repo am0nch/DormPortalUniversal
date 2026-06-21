@@ -52,7 +52,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 2,134 |
+| `index.html` | 2,157 |
 | `dorm-db.js` | 984 |
 | `modules/room-reservations.html` | 2,221 |
 | `modules/student-profiles.html` | 1,246 |
@@ -68,8 +68,8 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 | `modules/dorm-workers.html` | 757 |
 | `modules/staff-scheduling.html` | 1,274 |
 | `modules/plant-requests.html` | 719 |
-| `modules/ra-portal.html` | 605 |
-| `modules/monitor-portal.html` | 571 |
+| `modules/ra-portal.html` | 634 |
+| `modules/monitor-portal.html` | 602 |
 | `modules/userguide.html` | 3,035 |
 | `modules/handbook.html` | 1,873 |
 
@@ -142,10 +142,18 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v33)
-- [ ] Staff Roster sync — implement `downloadStaffRoster()` in index.html + `importRosterFile()` in ra-portal.html + `importRosterFileMP()` in monitor-portal.html (plan approved, not yet implemented)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v34)
 
-## Completed (2026-06-21, session 7 — tooling, docs, proposal)
+## Completed (2026-06-21, session 7 — staff roster sync + tooling + proposal)
+
+- [x] **index.html** `downloadStaffRoster()` — Slim JSON export for staff devices: students, workers, curfew, semester, dorm name, portal PINs. `dormPwdHash` intentionally excluded. "📥 Download Staff Roster" button added to Cloud Sync modal with caption. 2,134→2,157 lines.
+- [x] **modules/ra-portal.html** `importRosterFile()` — File picker → parses Staff Roster JSON → applies via `saveRooms`, `saveWorkers`, `saveCurfewCfg`, `saveSemesterCfg`, `saveMaxOcc`, `saveDormName`, `savePortalPins`. Shows student count on success. "📂 Import Roster from Dean" button added to Cloud Sync card. 605→634 lines.
+- [x] **modules/monitor-portal.html** `importRosterFileMP()` — Same logic; also refreshes `mpDorm`/`mpFooterDorm` labels after import. "📂 Import Roster from Dean" button added. 571→602 lines.
+- [x] **sw.js** — Bumped v33 → v34. Commit e915c2c.
+- [x] **Memory** — Added `feedback_serena_routing.md`: ranked Serena tool selection guide. Updated `MEMORY.md` index.
+- [x] **Skills** — Created `~/.claude/commands/serena-tools.md`: `/serena-tools` slash command.
+- [x] **settings.json** — Removed 5 stale Bash allow rules (old `/home/richmond/Documents/` path).
+- [x] **DormPortal_Proposal.docx** + **generate_proposal.py** — 10-section proposal for Student Administration Department. Commit 86b3ef7.
 
 - [x] **Memory** — Added `feedback_serena_routing.md`: ranked Serena tool selection guide (find_symbol → search_for_pattern → read_file with range → read_file no range). Updated `MEMORY.md` index.
 - [x] **Skills** — Created `~/.claude/commands/serena-tools.md`: `/serena-tools` slash command with full ranked tool table.
