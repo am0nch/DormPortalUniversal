@@ -567,7 +567,9 @@ async function decryptAndRestore() {
 let _pendingExportDump = null, _pendingExportFailed = 0;
 
 async function _triggerDownload(dump, encrypted, failed) {
-  const payload = encrypted ? JSON.stringify(dump) : JSON.stringify(dump, null, 2);
+  let data = dump;
+  if (!encrypted) { data = { ...dump }; delete data.dormPwdHash; }
+  const payload = encrypted ? JSON.stringify(data) : JSON.stringify(data, null, 2);
   const blob = new Blob([payload], { type: 'application/json' });
   const suffix = encrypted ? '_encrypted' : '';
   const filename = 'DormManager_Backup_' + new Date().toISOString().slice(0, 10) + suffix + '.json';
@@ -686,7 +688,8 @@ async function exportWithPhotos() {
     delete dump._photosFailed;
     delete dump._photos; // photos go as real files in the ZIP
     const allPhotos = await DormDB.getAllPhotos(); // [{id, blob}]
-    const files = [{ name: 'backup.json', data: new TextEncoder().encode(JSON.stringify(dump, null, 2)) }];
+    const { dormPwdHash: _pwdOmit, ...zipData } = dump;
+    const files = [{ name: 'backup.json', data: new TextEncoder().encode(JSON.stringify(zipData, null, 2)) }];
     let skipped = 0;
     for (const { id, blob } of allPhotos) {
       try {
