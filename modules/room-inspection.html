@@ -1126,8 +1126,8 @@ async function openPhotoViewer(id){
   allLabels.bath='Bathroom';
   grid.innerHTML='';
   for(const [slotKey,photoId] of Object.entries(rec.photos)){
-    const blob=await DormDB.getPhoto(photoId);if(!blob)continue;
-    const url=URL.createObjectURL(blob);
+    const rec=await DormDB.getPhoto(photoId);if(!rec?.blob)continue;
+    const url=URL.createObjectURL(rec.blob);
     const div=document.createElement('div');div.className='photo-cell';
     div.innerHTML=`<img src="${url}" onclick="window.open(this.src,'_blank')" title="Tap to enlarge">
       <div class="photo-label">${escapeHtml(allLabels[slotKey]||slotKey)}</div>`;

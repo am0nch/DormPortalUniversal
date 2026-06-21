@@ -403,6 +403,7 @@ const DormDB = (() => {
   }
 
   function _dataURLtoBlob(dataURL) {
+    if (!dataURL || typeof dataURL !== 'string') return new Blob();
     const [header, b64] = dataURL.split(',');
     const mime = header.match(/:(.*?);/)[1];
     const bytes = atob(b64);

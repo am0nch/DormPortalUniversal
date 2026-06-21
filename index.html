@@ -624,7 +624,7 @@ async function _buildZip(files) {
     const lh = new Uint8Array([0x50,0x4B,0x03,0x04,0x14,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
       ..._u32(crc),..._u32(sz),..._u32(sz),..._u16(nb.length),0x00,0x00]);
     const ce = new Uint8Array([0x50,0x4B,0x01,0x02,0x14,0x00,0x14,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-      ..._u32(crc),..._u32(sz),..._u32(sz),..._u16(nb.length),0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,..._u32(off)]);
+      ..._u32(crc),..._u32(sz),..._u32(sz),..._u16(nb.length),0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,..._u32(off)]);
     parts.push(lh, nb, data);
     cd.push(ce, nb);
     off += lh.length + nb.length + sz;
@@ -650,24 +650,31 @@ function _parseZip(buf) {
   const cdCount = u16(eocd + 10);
   let cdOff = u32(eocd + 16);
 
-  // Walk Central Directory — each CD entry has the exact LFH byte offset
+  // Walk Central Directory — each CD entry has the exact LFH byte offset.
+  // Standard CE header is 46 bytes (LFH offset at +42). Older ZIPs produced by
+  // this app used a 44-byte CE (only 2 bytes for external-file-attrs, LFH offset
+  // at +40). Probe both and pick whichever has the real LFH signature.
   for (let e = 0; e < cdCount; e++) {
-    if (cdOff + 46 > d.length) break;
+    if (cdOff + 44 > d.length) break;
     if (!(d[cdOff]===0x50&&d[cdOff+1]===0x4B&&d[cdOff+2]===0x01&&d[cdOff+3]===0x02)) break;
     const method  = u16(cdOff + 10);
     const compSz  = u32(cdOff + 20);
     const nameLen = u16(cdOff + 28);
     const extLen  = u16(cdOff + 30);
     const cmtLen  = u16(cdOff + 32);
-    const lfhOff  = u32(cdOff + 42);
-    const name    = new TextDecoder().decode(d.slice(cdOff + 46, cdOff + 46 + nameLen));
+    // Probe standard offset (+42) first; fall back to legacy offset (+40)
+    let lfhOff = u32(cdOff + 42), ceSize = 46;
+    if (lfhOff >= d.length || !(d[lfhOff]===0x50&&d[lfhOff+1]===0x4B&&d[lfhOff+2]===0x03&&d[lfhOff+3]===0x04)) {
+      lfhOff = u32(cdOff + 40); ceSize = 44;
+    }
+    const name = new TextDecoder().decode(d.slice(cdOff + ceSize, cdOff + ceSize + nameLen));
     if (method === 0 && lfhOff + 30 <= d.length) {
-      const lExtLen  = u16(lfhOff + 28);
       const lNameLen = u16(lfhOff + 26);
+      const lExtLen  = u16(lfhOff + 28);
       const dataStart = lfhOff + 30 + lNameLen + lExtLen;
       if (dataStart + compSz <= d.length) files.set(name, d.slice(dataStart, dataStart + compSz));
     }
-    cdOff += 46 + nameLen + extLen + cmtLen;
+    cdOff += ceSize + nameLen + extLen + cmtLen;
   }
   return files;
 }
@@ -718,8 +725,10 @@ async function restoreFromZip(input) {
       const id   = path.slice(7).replace(/\.\w+$/, ''); // strip "photos/" prefix + extension
       const ext  = path.split('.').pop().toLowerCase();
       const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-      await DormDB.savePhoto(id, new Blob([data], { type: mime }));
-      photoCount++;
+      try {
+        await DormDB.savePhoto(id, new Blob([data], { type: mime }));
+        photoCount++;
+      } catch(e) { console.warn('Photo restore skipped:', id, e); }
     }
     _toast(`✅ Restored — data + ${photoCount} photo(s) imported`);
   } catch(e) { alert('ZIP restore failed: ' + e.message); }
@@ -1155,10 +1164,10 @@ function _renderSemesterTable(cfg) {
   const tbody = document.getElementById('smListTbody');
   tbody.innerHTML = cfg.list.map(s => `
     <tr>
-      <td style="padding:6px 8px">${s.label}${s.label === cfg.current ? ' <span style="color:#1565c0;font-size:.7rem">★ current</span>' : ''}</td>
-      <td style="padding:6px 8px">${s.type || ''}</td>
-      <td style="padding:6px 8px">${s.startDate || ''}</td>
-      <td style="padding:6px 8px">${s.endDate || ''}</td>
+      <td style="padding:6px 8px">${escapeHtml(s.label)}${s.label === cfg.current ? ' <span style="color:#1565c0;font-size:.7rem">★ current</span>' : ''}</td>
+      <td style="padding:6px 8px">${escapeHtml(s.type || '')}</td>
+      <td style="padding:6px 8px">${escapeHtml(s.startDate || '')}</td>
+      <td style="padding:6px 8px">${escapeHtml(s.endDate || '')}</td>
       <td style="padding:6px 8px;text-align:center">
         <button onclick="deleteSemesterFromList('${s.label.replace(/\\/g,"\\\\").replace(/'/g,"\\'")}')
 " style="font-size:.7rem;padding:1px 7px;border:1px solid #e57373;color:#c62828;background:#fff;border-radius:4px;cursor:pointer">🗑️</button>

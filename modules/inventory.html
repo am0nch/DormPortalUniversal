@@ -1272,10 +1272,10 @@ async function openAssetDetail(id) {
         style="max-width:120px;max-height:90px;border-radius:4px;margin-top:4px;cursor:pointer;border:1px solid #ddd"
         onclick="window.open(this.src)"
         onload="this.style.display='block'" onerror="this.style.display='none'">`;
-      DormDB.getPhoto(e.photoId).then(blob => {
-        if (!blob) return;
+      DormDB.getPhoto(e.photoId).then(rec => {
+        if (!rec?.blob) return;
         const img = document.querySelector(`img[data-photoid="${CSS.escape(e.photoId)}"]`);
-        if (img) { const url = URL.createObjectURL(blob); _detailBlobUrls.push(url); img.src = url; }
+        if (img) { const url = URL.createObjectURL(rec.blob); _detailBlobUrls.push(url); img.src = url; }
       });
     }
     return `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:.78rem">
