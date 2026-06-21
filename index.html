@@ -1175,7 +1175,7 @@ function _renderSemesterTable(cfg) {
     </tr>`).join('');
 }
 
-refreshSemesterHeader();
+DormDB.ready.then(refreshSemesterHeader);
 DormDB.on(DormDB.KEYS.SEMESTER_CFG, refreshSemesterHeader);
 
 function updateRolloverPreview() {
