@@ -1747,6 +1747,27 @@ async function pushRosterToStaff() {
   }
 }
 
+function downloadStaffRoster() {
+  const ts = new Date().toISOString().replace(/:/g,'-').slice(0,19);
+  const roster = {
+    _rosterPushedAt: new Date().toISOString(),
+    dormData:         DormDB.getRooms(),
+    dormWorkers:      DormDB.getWorkers ? DormDB.getWorkers() : [],
+    dormCurfewConfig: DormDB.getCurfewCfg ? DormDB.getCurfewCfg() : {},
+    dormSemesterCfg:  DormDB.getSemesterCfg ? DormDB.getSemesterCfg() : {},
+    dormMaxOccupants: DormDB.getMaxOcc ? DormDB.getMaxOcc() : 2,
+    dormNameSelect:   DormDB.getDormNameSel(),
+    dormNameCustom:   DormDB.getDormNameCust(),
+    // dormPwdHash and dormPortalPins intentionally excluded
+  };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(roster,null,2)],{type:'application/json'}));
+  a.download = 'Staff_Roster_' + ts + '.json';
+  a.click();
+  const stuCount = roster.dormData.filter(s => s.name).length;
+  _toast('📥 Staff Roster downloaded · ' + stuCount + ' students — share with RAs via WhatsApp');
+}
+
 async function _m365HandleRedirect() {
   const params = new URLSearchParams(location.search);
   if (params.get('state') !== 'm365auth' || !params.get('code')) return;
@@ -1966,6 +1987,8 @@ async function _m365HandleRedirect() {
         <div style="font-size:.74rem;color:#777;margin-bottom:10px">Uploads the current room roster, worker list, and curfew settings to OneDrive. RA and Monitor portals will offer an update banner on their next open.</div>
         <button onclick="pushRosterToStaff()" style="padding:7px 16px;background:#2e7d32;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">📤 Push Roster Now</button>
         <div id="rosterPushStatus" style="font-size:.72rem;color:#555;margin-top:8px;min-height:1em"></div>
+        <button onclick="downloadStaffRoster()" style="margin-top:6px;padding:7px 16px;background:#1565c0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:.82rem;font-weight:700">📥 Download Staff Roster</button>
+        <small style="display:block;color:#777;margin-top:4px">No Microsoft account needed — share the file directly via WhatsApp or email.</small>
       </div>
       <div style="font-size:.72rem;color:#999;margin-top:14px;border-top:1px solid #eee;padding-top:10px">
         Tokens are stored in your browser's localStorage. Each device (dean laptop, RA phones) must sign in separately. The dean's OneDrive "Nightly Checking" folder should be shared with all RA accounts.

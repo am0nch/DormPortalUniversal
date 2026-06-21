@@ -153,6 +153,7 @@
     <button class="rp-btn rp-btn-amber" onclick="rpExport()">💾 Export My Backup</button>
     <input type="file" id="rpMergeInput" accept=".json" style="display:none" onchange="rpMerge(this)">
     <button class="rp-btn rp-btn-ghost" onclick="document.getElementById('rpMergeInput').click()">🔀 Merge a Backup</button>
+    <button class="rp-btn rp-btn-ghost" onclick="importRosterFile()">📂 Import Roster from Dean</button>
   </div>
 
   <!-- Cloud Sync -->
@@ -556,6 +557,30 @@ async function _rpApplyRoster() {
     showToast('❌ Update failed: ' + e.message, '#c0392b');
     btn.disabled = false; btn.textContent = '📥 Update';
   }
+}
+
+function importRosterFile() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const r = JSON.parse(await file.text());
+      if (!Array.isArray(r.dormData)) return showToast('❌ Not a valid Staff Roster file', '#c62828');
+      if (Array.isArray(r.dormData))             DormDB.saveRooms(r.dormData);
+      if (Array.isArray(r.dormWorkers))           DormDB.saveWorkers(r.dormWorkers);
+      if (r.dormCurfewConfig)                     DormDB.saveCurfewCfg(r.dormCurfewConfig);
+      if (r.dormSemesterCfg)                      DormDB.saveSemesterCfg(r.dormSemesterCfg);
+      if (typeof r.dormMaxOccupants === 'number') DormDB.saveMaxOcc(r.dormMaxOccupants);
+      if (r.dormNameSelect)                       DormDB.saveDormName(r.dormNameSelect, r.dormNameCustom || '');
+      const dormName = DormDB.getDormName() || 'Dorm';
+      document.getElementById('rpDorm').textContent = dormName + ' — RA Portal';
+      const fe = document.getElementById('rpFooterDorm'); if (fe) fe.textContent = dormName + ' — RA Portal';
+      const stuCount = r.dormData.filter(s => s.name).length;
+      showToast('✅ Roster imported · ' + stuCount + ' students, ' + (r.dormWorkers||[]).length + ' workers');
+    } catch(e) { showToast('❌ Import failed: ' + e.message, '#c62828'); }
+  };
+  inp.click();
 }
 
 function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
