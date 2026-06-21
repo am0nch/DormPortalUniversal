@@ -143,6 +143,16 @@ s.roomHold.active && (s.summer || s.firstSem)
 ## Pending items
 
 - [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v33)
+- [ ] Staff Roster sync — implement `downloadStaffRoster()` in index.html + `importRosterFile()` in ra-portal.html + `importRosterFileMP()` in monitor-portal.html (plan approved, not yet implemented)
+
+## Completed (2026-06-21, session 7 — tooling, docs, proposal)
+
+- [x] **Memory** — Added `feedback_serena_routing.md`: ranked Serena tool selection guide (find_symbol → search_for_pattern → read_file with range → read_file no range). Updated `MEMORY.md` index.
+- [x] **Skills** — Created `~/.claude/commands/serena-tools.md`: `/serena-tools` slash command with full ranked tool table.
+- [x] **settings.json** — Removed 5 stale Bash allow rules referencing `/home/richmond/Documents/DormPortalUniversal_v4 (4).html` (old project path).
+- [x] **DormPortal_Proposal.docx** — 10-section proposal document generated for Student Administration Department / Dormitory Administration. Covers system overview, all 20 modules, architecture, security, development history, and proposed next steps.
+- [x] **generate_proposal.py** — Python script (python-docx) that produced the proposal DOCX.
+- [x] No HTML/JS files changed → SW remains at v33, no cache bump needed.
 
 ## Completed (2026-06-21, session 6 — auth & security fixes)
 
