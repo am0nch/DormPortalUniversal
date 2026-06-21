@@ -1059,8 +1059,9 @@ function openSemesterModal() {
   const cfg = DormDB.getSemesterCfg();
   const sel = document.getElementById('smCurrentSel');
   sel.innerHTML = cfg.list.map(s =>
-    `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
+    `<option value="${s.label}">${s.label}</option>`
   ).join('');
+  sel.value = cfg.current;
   const rsel = document.getElementById('rolloverTarget');
   rsel.innerHTML = '<option value="">— Select target semester —</option>' +
     cfg.list.map(s => `<option value="${s.label}">${s.label}</option>`).join('');
@@ -1102,9 +1103,11 @@ function addSemesterToList() {
     endDate:   document.getElementById('smAddEnd').value,
   });
   DormDB.saveSemesterCfg(cfg);
-  document.getElementById('smCurrentSel').innerHTML = cfg.list.map(s =>
-    `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
+  const smSel = document.getElementById('smCurrentSel');
+  smSel.innerHTML = cfg.list.map(s =>
+    `<option value="${s.label}">${s.label}</option>`
   ).join('');
+  smSel.value = cfg.current;
   _renderSemesterTable(cfg);
   document.getElementById('smAddLabel').value = '';
   document.getElementById('smAddStart').value = '';
@@ -1117,9 +1120,11 @@ function deleteSemesterFromList(label) {
   if (!confirm('Delete "' + label + '"?')) return;
   cfg.list = cfg.list.filter(s => s.label !== label);
   DormDB.saveSemesterCfg(cfg);
-  document.getElementById('smCurrentSel').innerHTML = cfg.list.map(s =>
-    `<option value="${s.label}"${s.label === cfg.current ? ' selected' : ''}>${s.label}</option>`
+  const smSel2 = document.getElementById('smCurrentSel');
+  smSel2.innerHTML = cfg.list.map(s =>
+    `<option value="${s.label}">${s.label}</option>`
   ).join('');
+  smSel2.value = cfg.current;
   _renderSemesterTable(cfg);
 }
 
