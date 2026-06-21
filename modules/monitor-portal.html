@@ -137,6 +137,9 @@
     <button class="rp-btn rp-btn-navy" id="mpM365SignInBtn" onclick="mpSignIn()" style="display:none">Sign in with Microsoft 365</button>
     <button class="rp-btn rp-btn-ghost" id="mpM365SignOutBtn" onclick="mpSignOut()" style="display:none">Sign out</button>
     <div style="font-size:.72rem;color:#90a4ae;margin-top:6px">When signed in, backups upload automatically every 10 min to OneDrive.</div>
+    <hr style="border:none;border-top:1px solid #e0e0e0;margin:10px 0">
+    <button class="rp-btn rp-btn-ghost" onclick="importRosterFileMP()" style="margin-bottom:0">📂 Import Roster from Dean</button>
+    <div style="font-size:.72rem;color:#90a4ae;margin-top:4px">Ask the Dean to share a Staff Roster file. Imports student rooms, curfew, semester &amp; PIN — your logged data stays intact.</div>
   </div>
 
   <!-- Data backup -->
@@ -538,6 +541,34 @@ function showToast(msg, color) {
 }
 
 mpInit();
+
+function importRosterFileMP() {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const r = JSON.parse(await file.text());
+      if (!r.dormData) return showToast('❌ Not a valid Staff Roster file', '#c0392b');
+      if (Array.isArray(r.dormData))             DormDB.saveRooms(r.dormData);
+      if (Array.isArray(r.dormWorkers))           DormDB.saveWorkers(r.dormWorkers);
+      if (r.dormCurfewConfig)                     DormDB.saveCurfewCfg(r.dormCurfewConfig);
+      if (r.dormSemesterCfg)                      DormDB.saveSemesterCfg(r.dormSemesterCfg);
+      if (typeof r.dormMaxOccupants === 'number') DormDB.saveMaxOcc(r.dormMaxOccupants);
+      if (r.dormNameSelect)                       DormDB.saveDormName(r.dormNameSelect, r.dormNameCustom || '');
+      if (r.dormPortalPins)                       DormDB.savePortalPins(r.dormPortalPins);
+      // dormPwdHash never present — Dean's password stays on Dean's device only
+      const stuCount = r.dormData.filter(s => s.name).length;
+      showToast('✅ Roster imported · ' + stuCount + ' students', '#27ae60');
+      const dormName = DormDB.getDormName() || 'Dorm';
+      document.getElementById('mpDorm').textContent = dormName + ' — Monitor Portal';
+      const fe = document.getElementById('mpFooterDorm'); if (fe) fe.textContent = dormName + ' — Monitor Portal';
+    } catch(e) {
+      showToast('❌ Import failed: ' + e.message, '#c0392b');
+    }
+  };
+  inp.click();
+}
 </script>
 
 <!-- PWA: install banner -->
