@@ -52,7 +52,7 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 2,131 |
+| `index.html` | 2,134 |
 | `dorm-db.js` | 984 |
 | `modules/room-reservations.html` | 2,221 |
 | `modules/student-profiles.html` | 1,246 |
@@ -142,7 +142,14 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v31)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v33)
+
+## Completed (2026-06-21, session 6 — auth & security fixes)
+
+- [x] **index.html** `refreshSemesterHeader` — Was called synchronously before `DormDB.ready` resolved; IDB cache empty → always showed default "1st Semester 2026" on refresh. Fixed: `DormDB.ready.then(refreshSemesterHeader)`. SW bumped v32. Commit 013077e.
+- [x] **index.html** `_triggerDownload` — Plain JSON export included `dormPwdHash`, exposing it to offline brute-force. Stripped via `{ ...dump }; delete data.dormPwdHash` when `encrypted=false`.
+- [x] **index.html** `exportWithPhotos` — `backup.json` inside ZIP also exposed `dormPwdHash`. Stripped via destructuring (`{ dormPwdHash: _pwdOmit, ...zipData }`). Encrypted JSON export retains the hash (protected by AES-256-GCM). SW bumped v33. Commit 6703023.
+- [x] **index.html** 2,131 → 2,134 lines.
 
 ## Completed (2026-06-21, session 5 — full bug audit + browser verification)
 
