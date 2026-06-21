@@ -52,8 +52,8 @@ Multi-module dormitory administration system for APIU. Runs entirely in the brow
 
 | File | Lines |
 |------|-------|
-| `index.html` | 2,094 |
-| `dorm-db.js` | 983 |
+| `index.html` | 2,131 |
+| `dorm-db.js` | 984 |
 | `modules/room-reservations.html` | 2,221 |
 | `modules/student-profiles.html` | 1,246 |
 | `modules/floor-plan.html` | 514 |
@@ -142,7 +142,20 @@ s.roomHold.active && (s.summer || s.firstSem)
 
 ## Pending items
 
-- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v28)
+- [ ] GitHub Pages enabled ✅ — SW cache must be bumped (`dormportal-vN`) after every deploy that touches HTML/JS (currently at v31)
+
+## Completed (2026-06-21, session 5 — full bug audit + browser verification)
+
+- [x] **index.html** — Semester registry modal: `smCurrentSel` dropdown now persists current semester on reopen (explicit `sel.value = cfg.current` after each `innerHTML` rebuild in `openSemesterModal`, `addSemesterToList`, `deleteSemesterFromList`). SW bumped v28→v29.
+- [x] **index.html** `_buildZip` — CE header had only 2 bytes for external-file-attrs (needs 4); LFH offset landed at CE+40 instead of standard CE+42. Added 2 missing zero bytes. 2,094→2,131 lines.
+- [x] **index.html** `_parseZip` — Replaced sequential signature scan (false-match on photo binary data) with EOCD→CD→LFH-offset parsing. Probes CE+42 (standard) then CE+40 (legacy fallback) for backward compat. SW bumped v29→v30, then v30→v31.
+- [x] **index.html** `exportWithPhotos` — Per-photo try/catch; corrupt blob logs warning + skips, does not abort ZIP. Toast reports included vs skipped count.
+- [x] **index.html** `restoreFromZip` — Per-photo try/catch around `savePhoto`; one IDB failure no longer aborts all remaining photo restores.
+- [x] **index.html** `_renderSemesterTable` — XSS: `s.label/type/startDate/endDate` wrapped with `escapeHtml()`.
+- [x] **dorm-db.js** `_dataURLtoBlob` — Guard against null/non-string input (FileReader error → null stored in dump._photos → crash on import). 983→984 lines.
+- [x] **modules/room-inspection.html** — `DormDB.getPhoto()` returns `{id,blob}`; fixed `URL.createObjectURL(rec.blob)` — photo grids now display correctly.
+- [x] **modules/inventory.html** — Same `getPhoto` fix for asset photo display.
+- [x] **sw.js** — Bumped v28→v29→v30→v31 across 3 deploys this session.
 
 ## Completed (2026-06-20, session 4 — CodeQL alert #40 XSS fix)
 
